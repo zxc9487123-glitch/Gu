@@ -6,6 +6,7 @@ import { DonutChart, Treemap, TrendLine } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
 import { availableYears, categoryTotalsFor, money, monthPointsFor, summaryFor, transactionsForPeriod } from "@/lib/finance";
+import { trendCopyFor } from "@/lib/trend-copy";
 
 type Period = "all" | number;
 
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const points = useMemo(() => monthPointsFor(filtered, period), [filtered, period]);
   const firstYear = years[0] ?? new Date().getFullYear();
+  const trendCopy = trendCopyFor(period);
 
   return (
     <ScreenContainer containerClassName="bg-background">
@@ -81,7 +83,7 @@ export default function HomeScreen() {
           <Treemap data={categories} />
         </Panel>
 
-        <Panel title="年度趨勢" subtitle={period === "all" ? `${new Date().getFullYear()} 年月度淨現金流` : `${period} 年月度淨現金流`}>
+        <Panel title={trendCopy.title} subtitle={trendCopy.subtitle}>
           <TrendLine points={points} />
         </Panel>
 

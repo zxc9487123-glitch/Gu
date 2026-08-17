@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
+import { trendCopyFor } from "../lib/trend-copy";
 
 const records: Transaction[] = [
   { id: "1", type: "income", amount: 50000, category: "薪資", note: "", date: "2026-01-05" },
@@ -32,5 +33,10 @@ describe("finance calculations", () => {
     expect(points).toHaveLength(12);
     expect(points[0]?.balance).toBe(48800);
     expect(points[1]?.balance).toBe(46800);
+  });
+
+  it("labels a selected year as a monthly trend and all years as an annual trend", () => {
+    expect(trendCopyFor(2026)).toEqual({ title: "月趨勢", subtitle: "2026 年逐月淨現金流" });
+    expect(trendCopyFor("all")).toEqual({ title: "年度趨勢", subtitle: "全年度收支變化" });
   });
 });
