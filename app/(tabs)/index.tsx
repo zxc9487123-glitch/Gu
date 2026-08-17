@@ -1,6 +1,5 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useMemo, useState } from "react";
-import { router } from "expo-router";
 
 import { DonutChart, Treemap, TrendLine } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
@@ -160,15 +159,6 @@ export default function HomeScreen() {
           <DonutChart data={categories} />
         </Panel>
 
-        {!isLoading && transactions.length === 0 ? (
-          <View style={styles.emptyPrompt}>
-            <Text style={styles.emptyPromptTitle}>開始建立你的收支紀錄</Text>
-            <Text style={styles.emptyPromptText}>新增第一筆收入或支出後，首頁圖表會依你的資料即時計算。</Text>
-            <Pressable onPress={() => router.push("./add")} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>新增第一筆記帳</Text>
-            </Pressable>
-          </View>
-        ) : null}
       </ScrollView>
     </ScreenContainer>
   );
@@ -240,9 +230,4 @@ const styles = StyleSheet.create({
   panelHeading: { marginBottom: 14 },
   panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },
   panelSubtitle: { color: "#7A837D", fontSize: 12, marginTop: 3 },
-  emptyPrompt: { backgroundColor: "#EEF5F1", padding: 18, borderRadius: 18, alignItems: "center" },
-  emptyPromptTitle: { color: "#1F2421", fontWeight: "900", fontSize: 16 },
-  emptyPromptText: { color: "#657069", fontSize: 13, lineHeight: 20, textAlign: "center", marginTop: 6 },
-  primaryButton: { marginTop: 14, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11, backgroundColor: "#0E6B56" },
-  primaryButtonText: { color: "#FFFFFF", fontWeight: "900", fontSize: 13 },
 });
