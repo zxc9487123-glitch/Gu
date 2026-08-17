@@ -157,8 +157,11 @@ function categoryFor(row: unknown[], indexes: ColumnIndexes) {
   return category || "未分類";
 }
 
-function isCdTransferOut(row: unknown[]) {
-  return row.some((cell) => normalized(cell).includes("cd轉出"));
+function cdTransferTypeFor(row: unknown[]): TransactionType | null {
+  const contents = row.map(normalized);
+  if (contents.some((content) => content.includes("cd轉出"))) return "expense";
+  if (contents.some((content) => content.includes("cd轉入"))) return "income";
+  return null;
 }
 
 function quotedCell(value: unknown) {
@@ -223,9 +226,10 @@ function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
     type = directAmountSign > 0 ? "income" : "expense";
     typeResolution = "inferred";
   }
-  // 銀行明細中的「CD轉出」代表資金由帳戶轉出，即使金額欄以正數呈現也應列為支出。
-  if (isCdTransferOut(row)) {
-    type = "expense";
+  // 銀行明細中的 CD 轉帳文字代表資金流向，優先於金額正負號與非標準交易類型。
+  const cdTransferType = cdTransferTypeFor(row);
+  if (cdTransferType) {
+    type = cdTransferType;
     typeResolution = "inferred";
   }
   return { amount, type, typeResolution };

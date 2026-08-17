@@ -122,6 +122,18 @@ describe("Excel import", () => {
     expect(result.valid[0]?.typeResolution).toBe("inferred");
   });
 
+  it("treats CD轉入 as income even when the bank export uses a negative amount", () => {
+    const result = parseExcelTransactions(workbookBuffer([
+      ["交易日期", "交易類型", "分類", "摘要", "金額 (NT$)"],
+      ["2025-12-23", "帳戶轉帳", "帳戶轉帳", "CD轉入", -2880],
+    ]));
+
+    expect(drafts(result)).toEqual([
+      { date: "2025-12-23", type: "income", category: "帳戶轉帳", amount: 2880, note: "CD轉入" },
+    ]);
+    expect(result.valid[0]?.typeResolution).toBe("inferred");
+  });
+
   it("returns sheet diagnostics when no recognizable transaction headers are present", () => {
     const result = parseExcelTransactions(workbookWithSheets([
       { name: "封面", rows: [["我的財務摘要"], ["本月結餘", 1000]] },
