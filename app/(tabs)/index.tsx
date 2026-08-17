@@ -1,13 +1,14 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useMemo, useState } from "react";
 
-import { DonutChart, Treemap, TrendLine } from "@/components/finance-visuals";
+import { DonutChart, Treemap } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
-import { annualExpenseInsightsFor, availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, trendPointsFor } from "@/lib/finance";
+import { useSavingsGoal } from "@/hooks/use-savings-goal";
+import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod } from "@/lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor } from "@/lib/living-amount";
-import { trendCopyFor } from "@/lib/trend-copy";
+import { savingsGoalProgressFor } from "@/lib/savings-goal";
 
 type Period = "all" | number;
 
@@ -26,43 +27,72 @@ function MetricCard({ label, amount, tone }: { label: string; amount: string; to
   );
 }
 
-function LivingAmountCard({ amount, expense, difference = 0, scope = "month" }: { amount: number; expense: number; difference?: number; scope?: "month" | "year" }) {
-  const isYear = scope === "year";
+function LivingAmountCard({ amount, expense }: { amount: number; expense: number }) {
   const positive = amount >= 0;
-  const differencePositive = difference >= 0;
   const expenseComparison = livingExpenseComparisonFor(amount, expense);
   const exceedsExpense = expenseComparison.difference >= 0;
   const expenseSharePercent = livingExpenseSharePercentFor(amount, expense);
   const expenseAlert = livingExpenseAlertFor(amount, expense);
   return (
-    <View style={[styles.livingCard, isYear && styles.annualLivingCard]}>
+    <View style={[styles.livingCard, styles.annualLivingCard]}>
       <View style={styles.livingHeading}>
         <View>
-          <Text style={styles.livingLabel}>{isYear ? "年度生活金額" : "生活金額"}</Text>
-          <Text style={styles.livingFormula}>{isYear ? "年度收入 ÷ 3 − 年度支出" : "收入 ÷ 3 − 支出"}</Text>
+          <Text style={styles.livingLabel}>年度生活金額</Text>
+          <Text style={styles.livingFormula}>年度收入 ÷ 3</Text>
         </View>
         <View style={styles.livingIcon}>
-          <IconSymbol name="house.fill" size={24} color={isYear ? "#315E96" : "#0E6B56"} />
+          <IconSymbol name="house.fill" size={24} color="#315E96" />
         </View>
       </View>
       <View>
         <Text style={[styles.livingAmount, positive ? styles.livingAmountPositive : styles.livingAmountNegative]}>{money(amount, positive)}</Text>
-        <Text style={styles.livingHint}>{positive ? (isYear ? "本年度可用於日常生活的金額" : "可用於日常生活的金額") : `${isYear ? "年度" : "目前"}支出已超出生活金額`}</Text>
+        <Text style={styles.livingHint}>{positive ? "本年度可用於日常生活的金額" : "年度支出已超出生活金額"}</Text>
         <View style={styles.expenseComparisonRow}>
           <View>
-            <Text style={styles.expenseComparisonLabel}>{isYear ? "年度生活支出" : "本月生活支出"}</Text>
+            <Text style={styles.expenseComparisonLabel}>年度生活支出</Text>
             <Text style={styles.expenseComparisonAmount}>{money(expense)}</Text>
           </View>
           <View style={styles.expenseComparisonDetail}>
-            <Text style={styles.expenseComparisonLabel}>{isYear ? "年度生活金額" : "生活金額"}{exceedsExpense ? "高於" : "低於"}支出</Text>
+            <Text style={styles.expenseComparisonLabel}>年度生活金額{exceedsExpense ? "高於" : "低於"}支出</Text>
             <Text style={[styles.expenseComparisonAmount, exceedsExpense ? styles.expenseComparisonPositive : styles.expenseComparisonNegative]}>{money(Math.abs(expenseComparison.difference))}</Text>
           </View>
         </View>
-        <Text style={[styles.expenseShareText, expenseSharePercent !== null && expenseSharePercent < 0 && styles.expenseComparisonNegative]}>{isYear ? "年度生活金額占年度生活支出" : "生活金額占本月生活支出"}：{expenseSharePercent === null ? "不適用" : `${expenseSharePercent}%`}</Text>
-        {expenseAlert.status === "warning" ? <View style={[styles.expenseOverAlert, styles.expenseWarningAlert]}><Text style={[styles.expenseOverAlertText, styles.expenseWarningAlertText]}>接近上限：{isYear ? "年度" : "本月"}生活支出已達生活金額 {expenseAlert.usagePercent}%</Text></View> : null}
-        {expenseAlert.status === "over" ? <View style={styles.expenseOverAlert}><Text style={styles.expenseOverAlertText}>超標警示：{isYear ? "年度" : "本月"}生活支出超過生活金額 {money(expenseAlert.overage)}</Text></View> : null}
-        {!isYear ? <><View style={styles.livingDivider} /><Text style={[styles.monthDifference, differencePositive ? styles.monthDifferencePositive : styles.monthDifferenceNegative]}>{differencePositive ? "↑" : "↓"} 較上月 {differencePositive ? "增加" : "減少"} {money(Math.abs(difference))}</Text></> : null}
+        <Text style={[styles.expenseShareText, expenseSharePercent !== null && expenseSharePercent < 0 && styles.expenseComparisonNegative]}>年度生活金額占年度生活支出：{expenseSharePercent === null ? "不適用" : `${expenseSharePercent}%`}</Text>
+        {expenseAlert.status === "warning" ? <View style={[styles.expenseOverAlert, styles.expenseWarningAlert]}><Text style={[styles.expenseOverAlertText, styles.expenseWarningAlertText]}>接近上限：年度生活支出已達生活金額 {expenseAlert.usagePercent}%</Text></View> : null}
+        {expenseAlert.status === "over" ? <View style={styles.expenseOverAlert}><Text style={styles.expenseOverAlertText}>超標警示：年度生活支出超過生活金額 {money(expenseAlert.overage)}</Text></View> : null}
       </View>
+    </View>
+  );
+}
+
+function SavingsGoalCard({ saved, goal }: { saved: number; goal: number | null }) {
+  const progress = savingsGoalProgressFor(saved, goal);
+  const savedPositive = saved >= 0;
+  const progressWidth = `${Math.round(progress.progressFraction * 100)}%` as const;
+
+  return (
+    <View style={styles.savingsGoalCard}>
+      <View style={styles.savingsGoalHeading}>
+        <View>
+          <Text style={styles.savingsGoalTitle}>存款目標</Text>
+          <Text style={styles.savingsGoalSubtitle}>以總收入減總支出計算目前存款</Text>
+        </View>
+        <View style={styles.savingsGoalIcon}><Text style={styles.savingsGoalIconText}>目</Text></View>
+      </View>
+      <Text style={[styles.savingsGoalAmount, savedPositive ? styles.savingsGoalAmountPositive : styles.savingsGoalAmountNegative]}>{money(saved, savedPositive)}</Text>
+      <Text style={styles.savingsGoalCaption}>目前累積存款</Text>
+      {progress.status === "not-set" ? (
+        <View style={styles.savingsGoalEmpty}><Text style={styles.savingsGoalEmptyText}>請至「設定」輸入存款目標金額</Text></View>
+      ) : (
+        <>
+          <View style={styles.savingsGoalMetaRow}>
+            <Text style={styles.savingsGoalMetaText}>目標 {money(progress.goal ?? 0)}</Text>
+            <Text style={[styles.savingsGoalPercent, progress.status === "achieved" && styles.savingsGoalAchieved]}>{progress.progressPercent}%</Text>
+          </View>
+          <View style={styles.savingsGoalTrack}><View style={[styles.savingsGoalFill, progress.status === "achieved" && styles.savingsGoalFillAchieved, { width: progressWidth }]} /></View>
+          <Text style={[styles.savingsGoalRemaining, progress.status === "achieved" && styles.savingsGoalAchieved]}>{progress.status === "achieved" ? `已超越目標 ${money(Math.max(saved - (progress.goal ?? 0), 0))}` : `距離目標尚差 ${money(progress.remaining ?? 0)}`}</Text>
+        </>
+      )}
     </View>
   );
 }
@@ -81,16 +111,14 @@ function Panel({ title, subtitle, children }: { title: string; subtitle?: string
 
 export default function HomeScreen() {
   const { transactions, isLoading } = useFinance();
+  const { savingsGoal } = useSavingsGoal();
   const years = availableYears(transactions);
   const [period, setPeriod] = useState<Period>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
-  const points = useMemo(() => trendPointsFor(filtered, period), [filtered, period]);
-  const annualExpenseInsights = useMemo(() => period === "all" ? annualExpenseInsightsFor(transactions) : {}, [transactions, period]);
   const firstYear = years[0] ?? new Date().getFullYear();
-  const trendCopy = trendCopyFor(period);
 
   return (
     <ScreenContainer containerClassName="bg-background">
@@ -133,7 +161,7 @@ export default function HomeScreen() {
               <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
               <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
             </View>
-            <LivingAmountCard scope="year" amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
+            <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
           </View>
         </View>
 
@@ -142,9 +170,7 @@ export default function HomeScreen() {
         </Panel>
 
         {period === "all" ? (
-          <Panel title={trendCopy.title} subtitle={trendCopy.subtitle}>
-            <TrendLine points={points} showAnnualSummary annualExpenseInsights={annualExpenseInsights} />
-          </Panel>
+          <SavingsGoalCard saved={summary.net} goal={savingsGoal} />
         ) : null}
 
         <Panel title="支出分類佔比" subtitle="各分類支出金額比例">
@@ -215,6 +241,26 @@ const styles = StyleSheet.create({
   monthDifference: { fontSize: 10, lineHeight: 15, fontWeight: "900", marginTop: 7 },
   monthDifferencePositive: { color: "#0E6B56" },
   monthDifferenceNegative: { color: "#C85F3A" },
+  savingsGoalCard: { borderRadius: 20, backgroundColor: "#F3F0FB", padding: 16, borderWidth: 1, borderColor: "#DDD5F0" },
+  savingsGoalHeading: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  savingsGoalTitle: { color: "#3E365F", fontSize: 19, fontWeight: "900" },
+  savingsGoalSubtitle: { color: "#7A7192", fontSize: 11, marginTop: 4 },
+  savingsGoalIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#E6DFFC", alignItems: "center", justifyContent: "center" },
+  savingsGoalIconText: { color: "#69529D", fontSize: 14, fontWeight: "900" },
+  savingsGoalAmount: { fontSize: 25, lineHeight: 32, fontWeight: "900", marginTop: 18 },
+  savingsGoalAmountPositive: { color: "#0E6B56" },
+  savingsGoalAmountNegative: { color: "#C85F3A" },
+  savingsGoalCaption: { color: "#7A7192", fontSize: 11, marginTop: 4 },
+  savingsGoalEmpty: { marginTop: 14, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, backgroundColor: "#FFFFFF" },
+  savingsGoalEmptyText: { color: "#69529D", fontSize: 11, fontWeight: "800" },
+  savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 14 },
+  savingsGoalMetaText: { color: "#665D7D", fontSize: 11, fontWeight: "800" },
+  savingsGoalPercent: { color: "#69529D", fontSize: 15, fontWeight: "900" },
+  savingsGoalTrack: { height: 9, borderRadius: 5, backgroundColor: "#DED7EE", overflow: "hidden", marginTop: 7 },
+  savingsGoalFill: { height: "100%", borderRadius: 5, backgroundColor: "#69529D" },
+  savingsGoalFillAchieved: { backgroundColor: "#0E6B56" },
+  savingsGoalRemaining: { color: "#665D7D", fontSize: 11, fontWeight: "800", marginTop: 8 },
+  savingsGoalAchieved: { color: "#0E6B56" },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
   panelHeading: { marginBottom: 14 },
   panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },

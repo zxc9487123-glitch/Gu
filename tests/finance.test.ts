@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
+import { savingsGoalProgressFor } from "../lib/savings-goal";
 import { trendCopyFor } from "../lib/trend-copy";
 
 const records: Transaction[] = [
@@ -78,14 +79,14 @@ describe("finance calculations", () => {
     expect(trendCopyFor("all")).toEqual({ title: "年度趨勢", subtitle: "全年度收支變化" });
   });
 
-  it("calculates the living amount as one-third of income minus expenses", () => {
-    expect(livingAmountFor(991428, 331828)).toBe(-1352);
-    expect(livingAmountFor(6000, 3500)).toBe(-1500);
+  it("calculates the living amount as one-third of income", () => {
+    expect(livingAmountFor(991428, 331828)).toBe(330476);
+    expect(livingAmountFor(6000, 3500)).toBe(2000);
   });
 
   it("calculates the life amount from the selected year's income and expenses", () => {
     const selectedYearSummary = summaryFor(transactionsForPeriod(records, 2026));
-    expect(livingAmountFor(selectedYearSummary.income, selectedYearSummary.expense)).toBeCloseTo(13466.666666666668);
+    expect(livingAmountFor(selectedYearSummary.income, selectedYearSummary.expense)).toBeCloseTo(16666.666666666668);
   });
 
   it("compares the living amount against the expense amount", () => {
@@ -108,15 +109,21 @@ describe("finance calculations", () => {
   it("applies the same living amount and alert rules to annual totals", () => {
     const annual = summaryFor(records);
     const annualLivingAmount = livingAmountFor(annual.income, annual.expense);
-    expect(annualLivingAmount).toBeCloseTo(12866.666666666668);
+    expect(annualLivingAmount).toBeCloseTo(16666.666666666668);
     expect(livingExpenseAlertFor(annualLivingAmount, annual.expense)).toMatchObject({ status: "normal" });
+  });
+
+  it("calculates savings goal progress for unset, in-progress, and achieved goals", () => {
+    expect(savingsGoalProgressFor(40000, null)).toMatchObject({ status: "not-set", progressPercent: null, progressFraction: 0 });
+    expect(savingsGoalProgressFor(40000, 100000)).toMatchObject({ status: "in-progress", progressPercent: 40, progressFraction: 0.4, remaining: 60000 });
+    expect(savingsGoalProgressFor(125000, 100000)).toMatchObject({ status: "achieved", progressPercent: 125, progressFraction: 1, remaining: 0 });
   });
 
   it("compares this month’s living amount with the previous month", () => {
     const comparison = monthlyLivingComparison(records, new Date(2026, 1, 15));
-    expect(comparison.current).toMatchObject({ year: 2026, month: 1, income: 0, expense: 2000, livingAmount: -2000 });
-    expect(comparison.previous).toMatchObject({ year: 2026, month: 0, income: 50000, expense: 1200, livingAmount: 15466.666666666668 });
-    expect(comparison.difference).toBeCloseTo(-17466.666666666668);
+    expect(comparison.current).toMatchObject({ year: 2026, month: 1, income: 0, expense: 2000, livingAmount: 0 });
+    expect(comparison.previous).toMatchObject({ year: 2026, month: 0, income: 50000, expense: 1200, livingAmount: 16666.666666666668 });
+    expect(comparison.difference).toBeCloseTo(-16666.666666666668);
   });
 
 });
