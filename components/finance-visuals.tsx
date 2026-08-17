@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
 
-import { money, type CategoryTotal, type MonthPoint } from "@/lib/finance";
+import { annualSummariesFor, money, type CategoryTotal, type MonthPoint } from "@/lib/finance";
 
 const PLOT_WIDTH = 316;
 const PLOT_HEIGHT = 128;
@@ -12,6 +12,14 @@ function EmptyChart({ label }: { label: string }) {
       <Text style={styles.emptyText}>{label}</Text>
     </View>
   );
+}
+
+function AnnualChange({ percent, metric }: { percent: number | null; metric: "income" | "expense" | "net" }) {
+  if (percent === null) return <Text style={styles.annualChangeNeutral}>無前一年資料</Text>;
+  const direction = percent > 0 ? "↑" : percent < 0 ? "↓" : "→";
+  const isFavorable = metric === "expense" ? percent < 0 : percent > 0;
+  const style = percent === 0 ? styles.annualChangeNeutral : isFavorable ? styles.annualChangePositive : styles.annualChangeNegative;
+  return <Text style={style}>較前一年 {direction} {Math.abs(percent).toFixed(1)}%</Text>;
 }
 
 export function Treemap({ data }: { data: CategoryTotal[] }) {
@@ -71,6 +79,7 @@ export function TrendLine({ points, showAnnualSummary = false }: { points: Month
   const labelIndexes = points.length === 1
     ? [0]
     : Array.from({ length: labelCount }, (_, index) => Math.round((index * (points.length - 1)) / (labelCount - 1)));
+  const annualSummaries = showAnnualSummary ? annualSummariesFor(points) : [];
 
   return (
     <View>
@@ -88,8 +97,7 @@ export function TrendLine({ points, showAnnualSummary = false }: { points: Month
       {showAnnualSummary ? (
         <View style={styles.annualSummary}>
           <Text style={styles.annualSummaryTitle}>年度數字摘要</Text>
-          {points.map((point) => {
-            const net = point.income - point.expense;
+          {annualSummaries.map((point) => {
             return (
               <View key={point.label} style={styles.annualSummaryRow}>
                 <Text style={styles.annualSummaryYear}>{point.label}</Text>
@@ -97,14 +105,17 @@ export function TrendLine({ points, showAnnualSummary = false }: { points: Month
                   <View style={styles.annualMetric}>
                     <Text style={styles.annualMetricLabel}>收入</Text>
                     <Text style={styles.annualIncomeValue}>{money(point.income)}</Text>
+                    <AnnualChange percent={point.incomeChangePercent} metric="income" />
                   </View>
                   <View style={styles.annualMetric}>
                     <Text style={styles.annualMetricLabel}>支出</Text>
                     <Text style={styles.annualExpenseValue}>{money(point.expense)}</Text>
+                    <AnnualChange percent={point.expenseChangePercent} metric="expense" />
                   </View>
                   <View style={styles.annualMetric}>
                     <Text style={styles.annualMetricLabel}>淨結餘</Text>
-                    <Text style={[styles.annualNetValue, net < 0 && styles.annualNetValueNegative]}>{money(net, true)}</Text>
+                    <Text style={[styles.annualNetValue, point.net < 0 && styles.annualNetValueNegative]}>{money(point.net, true)}</Text>
+                    <AnnualChange percent={point.netChangePercent} metric="net" />
                   </View>
                 </View>
               </View>
@@ -194,6 +205,9 @@ const styles = StyleSheet.create({
   annualExpenseValue: { color: "#C85F3A", fontSize: 11, fontWeight: "900", marginTop: 3 },
   annualNetValue: { color: "#315E96", fontSize: 11, fontWeight: "900", marginTop: 3 },
   annualNetValueNegative: { color: "#C85F3A" },
+  annualChangePositive: { color: "#0E6B56", fontSize: 9, fontWeight: "800", marginTop: 3 },
+  annualChangeNegative: { color: "#C85F3A", fontSize: 9, fontWeight: "800", marginTop: 3 },
+  annualChangeNeutral: { color: "#7A837D", fontSize: 9, fontWeight: "700", marginTop: 3 },
   donutLayout: { flexDirection: "row", alignItems: "center", gap: 12 },
   donutWrap: { width: 132, height: 132, alignItems: "center", justifyContent: "center" },
   donutCenter: { position: "absolute", alignItems: "center" },

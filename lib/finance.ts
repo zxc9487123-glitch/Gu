@@ -27,6 +27,13 @@ export type MonthPoint = {
   balance: number;
 };
 
+export type AnnualSummaryPoint = MonthPoint & {
+  net: number;
+  incomeChangePercent: number | null;
+  expenseChangePercent: number | null;
+  netChangePercent: number | null;
+};
+
 export const EXPENSE_CATEGORIES: Category[] = [
   { name: "餐飲／食品", color: "#C76867", type: "expense" },
   { name: "購物", color: "#D39A2E", type: "expense" },
@@ -149,6 +156,23 @@ export const annualPointsFor = (transactions: Transaction[]): MonthPoint[] => {
 
 export const trendPointsFor = (transactions: Transaction[], period: "all" | number) =>
   period === "all" ? annualPointsFor(transactions) : monthPointsFor(transactions, period);
+
+const percentageChangeFor = (current: number, previous: number) =>
+  previous === 0 ? null : ((current - previous) / Math.abs(previous)) * 100;
+
+export const annualSummariesFor = (points: MonthPoint[]): AnnualSummaryPoint[] =>
+  points.map((point, index) => {
+    const previous = points[index - 1];
+    const net = point.income - point.expense;
+    const previousNet = previous ? previous.income - previous.expense : 0;
+    return {
+      ...point,
+      net,
+      incomeChangePercent: previous ? percentageChangeFor(point.income, previous.income) : null,
+      expenseChangePercent: previous ? percentageChangeFor(point.expense, previous.expense) : null,
+      netChangePercent: previous ? percentageChangeFor(net, previousNet) : null,
+    };
+  });
 
 export const sortedTransactions = (transactions: Transaction[]) =>
   [...transactions].sort((a, b) => new Date(`${b.date}T12:00:00`).getTime() - new Date(`${a.date}T12:00:00`).getTime());

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, type Transaction } from "../lib/finance";
+import { annualSummariesFor, availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, type Transaction } from "../lib/finance";
 import { budgetAlertFor, budgetProgressPercentFor } from "../lib/budget-status";
 import { annualLivingBudgetFor } from "../lib/annual-living";
 import { livingAmountFor } from "../lib/living-amount";
@@ -50,6 +50,16 @@ describe("finance calculations", () => {
       { label: "2025年", income: 0, expense: 600, balance: -600 },
       { label: "2026年", income: 50000, expense: 3200, balance: 46200 },
     ]);
+  });
+
+  it("calculates income, expense, and net changes against the prior year for annual summaries", () => {
+    const summaries = annualSummariesFor([
+      { label: "2024年", income: 100, expense: 50, balance: 50 },
+      { label: "2025年", income: 120, expense: 40, balance: 130 },
+    ]);
+
+    expect(summaries[0]).toMatchObject({ net: 50, incomeChangePercent: null, expenseChangePercent: null, netChangePercent: null });
+    expect(summaries[1]).toMatchObject({ net: 80, incomeChangePercent: 20, expenseChangePercent: -20, netChangePercent: 60 });
   });
 
   it("labels a selected year as a monthly trend and all years as an annual trend", () => {
