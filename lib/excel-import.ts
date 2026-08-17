@@ -4,7 +4,7 @@ import { currentDateInput, type Transaction, type TransactionType } from "./fina
 
 export type ImportDraft = Omit<Transaction, "id">;
 export type ExcelImportMode = "skip" | "update";
-export type ImportIssue = { row: number; message: string };
+export type ImportIssue = { row: number | null; message: string };
 export type TypeResolution = "explicit" | "inferred" | "manual";
 export type ImportPreviewTransaction = ImportDraft & { row: number; typeResolution: TypeResolution };
 
@@ -65,7 +65,7 @@ const normalized = (value: unknown) =>
     .replace(/[^\p{L}\p{N}]/gu, "");
 
 function emptyPreview(worksheetName: string, workbookSheets: string[], message: string, detectedHeaders: string[] = []): ExcelImportPreview {
-  return { valid: [], issues: [{ row: 0, message }], scannedRows: 0, worksheetName, workbookSheets, headerRow: null, detectedHeaders };
+  return { valid: [], issues: [{ row: null, message }], scannedRows: 0, worksheetName, workbookSheets, headerRow: null, detectedHeaders };
 }
 
 function findColumn(headers: unknown[], aliases: string[]) {
@@ -157,6 +157,38 @@ function categoryFor(row: unknown[], indexes: ColumnIndexes) {
   return category || "未分類";
 }
 
+function quotedCell(value: unknown) {
+  const content = text(value);
+  if (!content) return "空白";
+  return `「${content.length > 32 ? `${content.slice(0, 32)}…` : content}」`;
+}
+
+function invalidDateMessage(value: unknown) {
+  return text(value)
+    ? `日期欄的${quotedCell(value)}無法辨識；請使用 YYYY-MM-DD、YYYY/MM/DD 或 YYYY年M月D日。`
+    : "日期欄未填寫；請使用 YYYY-MM-DD、YYYY/MM/DD 或 YYYY年M月D日。";
+}
+
+function invalidTypeMessage(row: unknown[], indexes: ColumnIndexes) {
+  const source = indexes.type >= 0 ? row[indexes.type] : "";
+  return text(source)
+    ? `收支類型${quotedCell(source)}無法辨識，且無法由金額正負號推斷；請填寫「收入」或「支出」。`
+    : "收支類型未填寫，且無法由金額正負號推斷；請填寫「收入」或「支出」。";
+}
+
+function invalidAmountMessage(row: unknown[], indexes: ColumnIndexes) {
+  if (indexes.amount >= 0) {
+    const source = row[indexes.amount];
+    return text(source)
+      ? `金額欄的${quotedCell(source)}不是大於 0 的數字；請移除文字、貨幣符號或確認數值。`
+      : "金額欄未填寫；請填入大於 0 的數字。";
+  }
+  const income = indexes.income >= 0 ? row[indexes.income] : "";
+  const expense = indexes.expense >= 0 ? row[indexes.expense] : "";
+  if (!text(income) && !text(expense)) return "收入金額與支出金額欄均未填寫；請至少填入一個大於 0 的數字。";
+  return `收入金額 ${quotedCell(income)}、支出金額 ${quotedCell(expense)} 均無法作為大於 0 的金額。`;
+}
+
 function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
   let type = indexes.type >= 0 ? parseType(row[indexes.type]) : null;
   let typeResolution: TypeResolution | null = type ? "explicit" : null;
@@ -223,16 +255,14 @@ export function parseExcelTransactions(buffer: ArrayBuffer): ExcelImportPreview 
     const { amount, type, typeResolution } = amountAndTypeFor(row, candidate.indexes);
     const category = categoryFor(row, candidate.indexes);
     const note = candidate.indexes.note >= 0 ? text(row[candidate.indexes.note]) : "";
-    if (!date) {
-      issues.push({ row: rowNumber, message: "日期格式無效。可使用 YYYY-MM-DD、YYYY/MM/DD 或 YYYY年M月D日。" });
-      return;
-    }
-    if (!type) {
-      issues.push({ row: rowNumber, message: "找不到收支類型。請填寫「收入／支出」，或使用收入金額／支出金額欄。" });
-      return;
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      issues.push({ row: rowNumber, message: "找不到大於 0 的金額。" });
+    const problems = [
+      !date ? invalidDateMessage(row[candidate.indexes.date]) : null,
+      !Number.isFinite(amount) || amount <= 0 ? invalidAmountMessage(row, candidate.indexes) : null,
+      !type ? invalidTypeMessage(row, candidate.indexes) : null,
+    ].filter((message): message is string => Boolean(message));
+    const isInvalid = !date || !type || !Number.isFinite(amount) || amount <= 0;
+    if (isInvalid) {
+      issues.push({ row: rowNumber, message: problems.join("\n") });
       return;
     }
     valid.push({ date, type, category, amount, note, row: rowNumber, typeResolution: typeResolution ?? "inferred" });

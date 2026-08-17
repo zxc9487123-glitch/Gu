@@ -38,6 +38,20 @@ describe("Excel import", () => {
     expect(result.issues).toHaveLength(1);
   });
 
+  it("reports the exact Excel row and every invalid field in that row", () => {
+    const result = parseExcelTransactions(workbookBuffer([
+      ["日期", "類型", "分類", "金額", "備註"],
+      ["2026-19-40", "其他", "餐飲／食品", "金額待補", "多個欄位不符"],
+    ]));
+
+    expect(result.valid).toHaveLength(0);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0]?.row).toBe(2);
+    expect(result.issues[0]?.message).toContain("日期欄的「2026-19-40」無法辨識");
+    expect(result.issues[0]?.message).toContain("金額欄的「金額待補」不是大於 0 的數字");
+    expect(result.issues[0]?.message).toContain("收支類型「其他」無法辨識");
+  });
+
   it("finds a transaction sheet after a cover sheet and accepts alternate headers", () => {
     const result = parseExcelTransactions(workbookWithSheets([
       { name: "封面", rows: [["我的記帳本"], ["本工作表僅供說明"]] },
@@ -104,6 +118,7 @@ describe("Excel import", () => {
 
     expect(result.valid).toHaveLength(0);
     expect(result.workbookSheets).toEqual(["封面", "資料"]);
+    expect(result.issues[0]?.row).toBeNull();
     expect(result.issues[0]?.message).toContain("日期");
     expect(result.detectedHeaders).toContain("我的財務摘要");
   });

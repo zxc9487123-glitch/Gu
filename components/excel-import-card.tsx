@@ -28,6 +28,7 @@ export function ExcelImportCard({ onConfirm }: Props) {
   const [result, setResult] = useState("");
   const [mode, setMode] = useState<ExcelImportMode>("skip");
   const [showAllRows, setShowAllRows] = useState(false);
+  const [showAllIssues, setShowAllIssues] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -49,6 +50,7 @@ export function ExcelImportCard({ onConfirm }: Props) {
       setPreview(parsed);
       setFilename(asset.name);
       setShowAllRows(false);
+      setShowAllIssues(false);
     } catch {
       setError("無法讀取此 Excel 檔案。請確認檔案為 .xlsx 或 .xls 格式，且檔案未受密碼或保護設定限制。");
     } finally {
@@ -84,7 +86,7 @@ export function ExcelImportCard({ onConfirm }: Props) {
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>匯入 Excel</Text>
-      <Text style={styles.description}>系統會自動掃描所有工作表。可使用「日期、類型、分類、金額、備註」，或以「收入金額／支出金額」分欄；日期支援 YYYY-MM-DD、YYYY/MM/DD、YYYY年M月D日。</Text>
+      <Text style={styles.description}>系統會自動掃描所有工作表。可使用「日期、類型、分類、金額、備註」，或以「收入金額／支出金額」分欄；若格式不符，預覽會標示工作表、Excel 實際列號與欄位原因。</Text>
       <Pressable onPress={() => void selectFile()} disabled={isParsing || isSaving} style={({ pressed }) => [styles.selectButton, pressed && styles.pressed, (isParsing || isSaving) && styles.disabled]}>
         <Text style={styles.selectText}>{isParsing ? "正在讀取檔案…" : "選擇 Excel 檔案"}</Text>
       </Pressable>
@@ -128,8 +130,19 @@ export function ExcelImportCard({ onConfirm }: Props) {
             </View>
           ))}
           {preview.valid.length > 8 ? <Pressable onPress={() => setShowAllRows((value) => !value)} style={styles.showMoreButton}><Text style={styles.showMoreText}>{showAllRows ? "收合預覽列" : `顯示全部 ${preview.valid.length} 筆並逐筆更正`}</Text></Pressable> : null}
-          {preview.issues.slice(0, 3).map((issue) => <Text key={`${issue.row}-${issue.message}`} style={styles.issue}>第 {issue.row} 列：{issue.message}</Text>)}
-          {preview.issues.length > 3 ? <Text style={styles.issue}>另有 {preview.issues.length - 3} 項資料問題。</Text> : null}
+          {preview.issues.length > 0 ? (
+            <View style={styles.issuesPanel}>
+              <Text style={styles.issuesTitle}>資料問題（{preview.issues.length}）</Text>
+              <Text style={styles.issuesDescription}>工作表「{preview.worksheetName}」中無法匯入的資料如下；請依 Excel 的實際列號修正後重新選檔。</Text>
+              {(showAllIssues ? preview.issues : preview.issues.slice(0, 3)).map((issue, index) => (
+                <View key={`${issue.row ?? "header"}-${issue.message}-${index}`} style={styles.issueRow}>
+                  <Text style={styles.issueLocation}>{issue.row ? `第 ${issue.row} 列` : "欄位偵測"}</Text>
+                  <Text style={styles.issue}>{issue.message}</Text>
+                </View>
+              ))}
+              {preview.issues.length > 3 ? <Pressable onPress={() => setShowAllIssues((value) => !value)} style={styles.showIssuesButton}><Text style={styles.showIssuesText}>{showAllIssues ? "收合問題清單" : `顯示全部 ${preview.issues.length} 項問題`}</Text></Pressable> : null}
+            </View>
+          ) : null}
           <Pressable onPress={() => void importPreview()} disabled={preview.valid.length === 0 || isSaving} style={({ pressed }) => [styles.confirmButton, pressed && styles.pressed, (preview.valid.length === 0 || isSaving) && styles.disabled]}>
             <Text style={styles.confirmText}>{isSaving ? "正在匯入…" : mode === "update" ? `確認匯入並更新 ${preview.valid.length} 筆` : `確認匯入 ${preview.valid.length} 筆`}</Text>
           </Pressable>
@@ -183,7 +196,14 @@ const styles = StyleSheet.create({
   typeButtonIncomeText: { color: "#0E6B56" },
   showMoreButton: { marginTop: 10, alignItems: "center", paddingVertical: 10, borderRadius: 10, backgroundColor: "#F1F6F3" },
   showMoreText: { color: "#0E6B56", fontSize: 12, fontWeight: "900" },
-  issue: { color: "#B5472C", fontSize: 11, lineHeight: 17, marginTop: 7 },
+  issuesPanel: { marginTop: 14, padding: 11, borderRadius: 12, backgroundColor: "#FFF3F0", borderWidth: 1, borderColor: "#F1C6BA" },
+  issuesTitle: { color: "#9C351E", fontSize: 13, fontWeight: "900" },
+  issuesDescription: { color: "#9C513E", fontSize: 11, lineHeight: 17, marginTop: 4 },
+  issueRow: { marginTop: 9, paddingTop: 9, borderTopWidth: 1, borderTopColor: "#F4D8D0" },
+  issueLocation: { color: "#9C351E", fontSize: 11, fontWeight: "900" },
+  issue: { color: "#B5472C", fontSize: 11, lineHeight: 17, marginTop: 3 },
+  showIssuesButton: { alignSelf: "flex-start", marginTop: 10, paddingVertical: 5 },
+  showIssuesText: { color: "#9C351E", fontSize: 11, fontWeight: "900" },
   confirmButton: { marginTop: 15, borderRadius: 13, paddingVertical: 12, alignItems: "center", backgroundColor: "#0E6B56" },
   confirmText: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" },
 });
