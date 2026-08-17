@@ -47,7 +47,7 @@ export function ExcelImportCard({ onConfirm }: Props) {
       setPreview(parsed);
       setFilename(asset.name);
     } catch {
-      setError("無法讀取此 Excel 檔案。請確認檔案為 .xlsx 或 .xls 格式。" );
+      setError("無法讀取此 Excel 檔案。請確認檔案為 .xlsx 或 .xls 格式，且檔案未受密碼或保護設定限制。");
     } finally {
       setIsParsing(false);
     }
@@ -71,7 +71,7 @@ export function ExcelImportCard({ onConfirm }: Props) {
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>匯入 Excel</Text>
-      <Text style={styles.description}>第一張工作表請包含：日期、類型、分類、金額、備註。類型限「收入」或「支出」，日期使用 YYYY-MM-DD。</Text>
+      <Text style={styles.description}>系統會自動掃描所有工作表。可使用「日期、類型、分類、金額、備註」，或以「收入金額／支出金額」分欄；日期支援 YYYY-MM-DD、YYYY/MM/DD、YYYY年M月D日。</Text>
       <Pressable onPress={() => void selectFile()} disabled={isParsing || isSaving} style={({ pressed }) => [styles.selectButton, pressed && styles.pressed, (isParsing || isSaving) && styles.disabled]}>
         <Text style={styles.selectText}>{isParsing ? "正在讀取檔案…" : "選擇 Excel 檔案"}</Text>
       </Pressable>
@@ -82,7 +82,9 @@ export function ExcelImportCard({ onConfirm }: Props) {
       {preview ? (
         <View style={styles.preview}>
           <Text style={styles.previewTitle}>匯入預覽</Text>
-          <Text style={styles.previewText}>工作表「{preview.worksheetName}」：掃描 {preview.scannedRows} 列，其中 {preview.valid.length} 列可匯入。</Text>
+          <Text style={styles.previewText}>已選用工作表「{preview.worksheetName}」{preview.headerRow ? `第 ${preview.headerRow} 列欄位` : ""}：掃描 {preview.scannedRows} 列，其中 {preview.valid.length} 列可匯入。</Text>
+          <Text style={styles.diagnostic}>已檢查工作表：{preview.workbookSheets.join("、") || "無"}</Text>
+          {preview.detectedHeaders.length > 0 ? <Text style={styles.diagnostic}>辨識欄位／內容：{preview.detectedHeaders.slice(0, 8).join("、")}</Text> : null}
           <Pressable onPress={() => setMode((value) => value === "skip" ? "update" : "skip")} style={[styles.modeRow, mode === "update" && styles.modeRowActive]}>
             <View style={styles.modeCopy}>
               <Text style={styles.modeTitle}>更新既有交易</Text>
@@ -123,6 +125,7 @@ const styles = StyleSheet.create({
   preview: { marginTop: 15, paddingTop: 14, borderTopWidth: 1, borderTopColor: "#ECE7DE" },
   previewTitle: { color: "#1F2421", fontSize: 14, fontWeight: "900" },
   previewText: { color: "#6D7770", fontSize: 12, lineHeight: 18, marginTop: 4 },
+  diagnostic: { color: "#7A837D", fontSize: 11, lineHeight: 17, marginTop: 5 },
   modeRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 13, padding: 11, borderRadius: 12, backgroundColor: "#F8F6F1", borderWidth: 1, borderColor: "#ECE7DE" },
   modeRowActive: { backgroundColor: "#E8F2ED", borderColor: "#B9D6CA" },
   modeCopy: { flex: 1 },

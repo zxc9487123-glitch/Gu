@@ -5,9 +5,12 @@ import { deduplicateExcelImports, mergeExcelImports, parseExcelTransactions } fr
 import type { Transaction } from "../lib/finance";
 
 function workbookBuffer(rows: unknown[][]) {
-  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  return workbookWithSheets([{ name: "交易", rows }]);
+}
+
+function workbookWithSheets(sheets: Array<{ name: string; rows: unknown[][] }>) {
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, sheet, "交易");
+  sheets.forEach((definition) => XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(definition.rows), definition.name));
   return XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 }
 
@@ -22,6 +25,7 @@ describe("Excel import", () => {
     ]));
 
     expect(result.worksheetName).toBe("交易");
+    expect(result.headerRow).toBe(1);
     expect(result.valid).toEqual([
       { date: "2026-08-17", type: "expense", category: "餐飲／食品", amount: 150, note: "午餐" },
       { date: "2026-08-18", type: "income", category: "薪資", amount: 50000, note: "八月薪資" },
@@ -29,14 +33,37 @@ describe("Excel import", () => {
     expect(result.issues).toHaveLength(2);
   });
 
-  it("requires the mandatory headers", () => {
-    const result = parseExcelTransactions(workbookBuffer([
-      ["日期", "類型", "金額"],
-      ["2026-08-17", "支出", 150],
+  it("finds a transaction sheet after a cover sheet and accepts alternate headers", () => {
+    const result = parseExcelTransactions(workbookWithSheets([
+      { name: "封面", rows: [["我的記帳本"], ["本工作表僅供說明"]] },
+      { name: "八月明細", rows: [
+        ["2026 年度收支"],
+        [],
+        ["交易日期", "項目", "收入金額", "支出金額", "備考"],
+        ["2026年8月17日", "午餐", 0, 150, "公司附近"],
+        ["2026/08/18", "薪資", 50000, 0, "八月薪資"],
+      ] },
+    ]));
+
+    expect(result.worksheetName).toBe("八月明細");
+    expect(result.workbookSheets).toEqual(["封面", "八月明細"]);
+    expect(result.headerRow).toBe(3);
+    expect(result.valid).toEqual([
+      { date: "2026-08-17", type: "expense", category: "午餐", amount: 150, note: "公司附近" },
+      { date: "2026-08-18", type: "income", category: "薪資", amount: 50000, note: "八月薪資" },
+    ]);
+  });
+
+  it("returns sheet diagnostics when no recognizable transaction headers are present", () => {
+    const result = parseExcelTransactions(workbookWithSheets([
+      { name: "封面", rows: [["我的財務摘要"], ["本月結餘", 1000]] },
+      { name: "資料", rows: [["編號", "名稱", "數量"], [1, "午餐", 1]] },
     ]));
 
     expect(result.valid).toHaveLength(0);
-    expect(result.issues[0]?.message).toContain("分類");
+    expect(result.workbookSheets).toEqual(["封面", "資料"]);
+    expect(result.issues[0]?.message).toContain("日期");
+    expect(result.detectedHeaders).toContain("我的財務摘要");
   });
 
   it("skips records that already exist or repeat within the selected sheet", () => {
