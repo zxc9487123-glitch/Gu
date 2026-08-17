@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
+import { budgetAlertFor } from "../lib/budget-status";
 import { livingAmountFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { trendCopyFor } from "../lib/trend-copy";
@@ -52,5 +53,11 @@ describe("finance calculations", () => {
     expect(comparison.current).toMatchObject({ year: 2026, month: 1, income: 0, expense: 2000, livingAmount: -2000 });
     expect(comparison.previous).toMatchObject({ year: 2026, month: 0, income: 50000, expense: 1200, livingAmount: 15466.666666666668 });
     expect(comparison.difference).toBeCloseTo(-17466.666666666668);
+  });
+
+  it("shows warning at 80% of budget and over-budget status at 100%", () => {
+    expect(budgetAlertFor(790, 1000)).toMatchObject({ status: "normal", usagePercent: 79 });
+    expect(budgetAlertFor(800, 1000)).toMatchObject({ status: "warning", usagePercent: 80 });
+    expect(budgetAlertFor(1200, 1000)).toMatchObject({ status: "over", usagePercent: 120 });
   });
 });

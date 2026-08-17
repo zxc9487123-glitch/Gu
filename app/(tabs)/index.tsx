@@ -7,6 +7,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { useLivingBudget } from "@/hooks/use-living-budget";
+import { budgetAlertFor, type BudgetAlert } from "@/lib/budget-status";
 import { availableYears, categoryTotalsFor, money, monthPointsFor, summaryFor, transactionsForPeriod } from "@/lib/finance";
 import { monthlyLivingComparison } from "@/lib/monthly-living";
 import { trendCopyFor } from "@/lib/trend-copy";
@@ -32,8 +33,9 @@ function LivingAmountCard({ amount, expense, budget, difference }: { amount: num
   const positive = amount >= 0;
   const differencePositive = difference >= 0;
   const budgetRemaining = budget === null ? null : budget - expense;
+  const budgetAlert: BudgetAlert | null = budget === null ? null : budgetAlertFor(expense, budget);
   return (
-    <View style={styles.livingCard}>
+    <View style={[styles.livingCard, budgetAlert?.status === "warning" && styles.livingCardWarning, budgetAlert?.status === "over" && styles.livingCardOver]}>
       <View style={styles.livingHeading}>
         <View>
           <Text style={styles.livingLabel}>生活金額</Text>
@@ -49,6 +51,7 @@ function LivingAmountCard({ amount, expense, budget, difference }: { amount: num
         <View style={styles.livingDivider} />
         {budget === null ? <Text style={styles.livingMeta}>尚未設定每月生活預算上限</Text> : <Text style={styles.livingMeta}>生活支出 {money(expense)} ／上限 {money(budget)}</Text>}
         {budgetRemaining !== null ? <Text style={[styles.livingMeta, budgetRemaining < 0 && styles.livingMetaNegative]}>{budgetRemaining >= 0 ? `距上限尚餘 ${money(budgetRemaining)}` : `超出上限 ${money(Math.abs(budgetRemaining))}`}</Text> : null}
+        {budgetAlert ? <View style={[styles.budgetAlert, budgetAlert.status === "warning" && styles.budgetAlertWarning, budgetAlert.status === "over" && styles.budgetAlertOver]}><Text style={[styles.budgetAlertText, budgetAlert.status === "warning" && styles.budgetAlertTextWarning, budgetAlert.status === "over" && styles.budgetAlertTextOver]}>{budgetAlert.status === "normal" ? budgetAlert.message : `注意：${budgetAlert.message}`}</Text></View> : null}
         <Text style={[styles.monthDifference, differencePositive ? styles.monthDifferencePositive : styles.monthDifferenceNegative]}>{differencePositive ? "↑" : "↓"} 較上月 {differencePositive ? "增加" : "減少"} {money(Math.abs(difference))}</Text>
       </View>
     </View>
@@ -167,6 +170,8 @@ const styles = StyleSheet.create({
   metricAmount: { color: "#0E6B56", fontSize: 22, lineHeight: 28, fontWeight: "900", marginTop: 18 },
   expenseAmount: { color: "#C85F3A" },
   livingCard: { flex: 1, borderRadius: 17, backgroundColor: "#EEF5F1", padding: 14, borderWidth: 1, borderColor: "#CEE1D8", minHeight: 278, justifyContent: "space-between" },
+  livingCardWarning: { backgroundColor: "#FFF8E8", borderColor: "#F0C86A" },
+  livingCardOver: { backgroundColor: "#FFF0EC", borderColor: "#E9A38F" },
   livingHeading: { flexDirection: "row", justifyContent: "space-between", gap: 7 },
   livingLabel: { color: "#34473D", fontSize: 13, fontWeight: "900" },
   livingFormula: { color: "#6D7B72", fontSize: 10, marginTop: 4 },
@@ -178,6 +183,12 @@ const styles = StyleSheet.create({
   livingDivider: { height: 1, backgroundColor: "#D6E5DD", marginVertical: 9 },
   livingMeta: { color: "#587066", fontSize: 10, lineHeight: 15 },
   livingMetaNegative: { color: "#C85F3A", fontWeight: "800" },
+  budgetAlert: { marginTop: 7, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: "#E4F1EB" },
+  budgetAlertWarning: { backgroundColor: "#FFF0C8" },
+  budgetAlertOver: { backgroundColor: "#FBE0D7" },
+  budgetAlertText: { color: "#0E6B56", fontSize: 10, fontWeight: "900", lineHeight: 14 },
+  budgetAlertTextWarning: { color: "#8A5E05" },
+  budgetAlertTextOver: { color: "#B5472C" },
   monthDifference: { fontSize: 10, lineHeight: 15, fontWeight: "900", marginTop: 7 },
   monthDifferencePositive: { color: "#0E6B56" },
   monthDifferenceNegative: { color: "#C85F3A" },
