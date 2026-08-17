@@ -6,8 +6,9 @@ import { DonutChart, Treemap, TrendLine } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
+import { useLivingBudget } from "@/hooks/use-living-budget";
 import { availableYears, categoryTotalsFor, money, monthPointsFor, summaryFor, transactionsForPeriod } from "@/lib/finance";
-import { livingAmountFor } from "@/lib/living-amount";
+import { monthlyLivingComparison } from "@/lib/monthly-living";
 import { trendCopyFor } from "@/lib/trend-copy";
 
 type Period = "all" | number;
@@ -27,8 +28,10 @@ function MetricCard({ label, amount, tone }: { label: string; amount: string; to
   );
 }
 
-function LivingAmountCard({ amount }: { amount: number }) {
+function LivingAmountCard({ amount, expense, budget, difference }: { amount: number; expense: number; budget: number | null; difference: number }) {
   const positive = amount >= 0;
+  const differencePositive = difference >= 0;
+  const budgetRemaining = budget === null ? null : budget - expense;
   return (
     <View style={styles.livingCard}>
       <View style={styles.livingHeading}>
@@ -43,6 +46,10 @@ function LivingAmountCard({ amount }: { amount: number }) {
       <View>
         <Text style={[styles.livingAmount, positive ? styles.livingAmountPositive : styles.livingAmountNegative]}>{money(amount, positive)}</Text>
         <Text style={styles.livingHint}>{positive ? "可用於日常生活的金額" : "目前支出已超出生活金額"}</Text>
+        <View style={styles.livingDivider} />
+        {budget === null ? <Text style={styles.livingMeta}>尚未設定每月生活預算上限</Text> : <Text style={styles.livingMeta}>生活支出 {money(expense)} ／上限 {money(budget)}</Text>}
+        {budgetRemaining !== null ? <Text style={[styles.livingMeta, budgetRemaining < 0 && styles.livingMetaNegative]}>{budgetRemaining >= 0 ? `距上限尚餘 ${money(budgetRemaining)}` : `超出上限 ${money(Math.abs(budgetRemaining))}`}</Text> : null}
+        <Text style={[styles.monthDifference, differencePositive ? styles.monthDifferencePositive : styles.monthDifferenceNegative]}>{differencePositive ? "↑" : "↓"} 較上月 {differencePositive ? "增加" : "減少"} {money(Math.abs(difference))}</Text>
       </View>
     </View>
   );
@@ -62,6 +69,7 @@ function Panel({ title, subtitle, children }: { title: string; subtitle?: string
 
 export default function HomeScreen() {
   const { transactions, isLoading } = useFinance();
+  const { monthlyBudget } = useLivingBudget();
   const years = availableYears(transactions);
   const [period, setPeriod] = useState<Period>("all");
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
@@ -70,7 +78,7 @@ export default function HomeScreen() {
   const points = useMemo(() => monthPointsFor(filtered, period), [filtered, period]);
   const firstYear = years[0] ?? new Date().getFullYear();
   const trendCopy = trendCopyFor(period);
-  const livingAmount = livingAmountFor(summary.income, summary.expense);
+  const monthComparison = useMemo(() => monthlyLivingComparison(transactions), [transactions]);
 
   return (
     <ScreenContainer containerClassName="bg-background">
@@ -100,7 +108,7 @@ export default function HomeScreen() {
               <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
               <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
             </View>
-            <LivingAmountCard amount={livingAmount} />
+            <LivingAmountCard amount={monthComparison.current.livingAmount} expense={monthComparison.current.expense} budget={monthlyBudget} difference={monthComparison.difference} />
           </View>
           <View style={styles.netCard}>
             <Text style={styles.metricLabel}>淨結餘</Text>
@@ -158,7 +166,7 @@ const styles = StyleSheet.create({
   metricIconTextExpense: { color: "#C85F3A" },
   metricAmount: { color: "#0E6B56", fontSize: 22, lineHeight: 28, fontWeight: "900", marginTop: 18 },
   expenseAmount: { color: "#C85F3A" },
-  livingCard: { flex: 1, borderRadius: 17, backgroundColor: "#EEF5F1", padding: 14, borderWidth: 1, borderColor: "#CEE1D8", minHeight: 234, justifyContent: "space-between" },
+  livingCard: { flex: 1, borderRadius: 17, backgroundColor: "#EEF5F1", padding: 14, borderWidth: 1, borderColor: "#CEE1D8", minHeight: 278, justifyContent: "space-between" },
   livingHeading: { flexDirection: "row", justifyContent: "space-between", gap: 7 },
   livingLabel: { color: "#34473D", fontSize: 13, fontWeight: "900" },
   livingFormula: { color: "#6D7B72", fontSize: 10, marginTop: 4 },
@@ -167,6 +175,12 @@ const styles = StyleSheet.create({
   livingAmountPositive: { color: "#0E6B56" },
   livingAmountNegative: { color: "#C85F3A" },
   livingHint: { color: "#6D7B72", fontSize: 10, lineHeight: 15, marginTop: 5 },
+  livingDivider: { height: 1, backgroundColor: "#D6E5DD", marginVertical: 9 },
+  livingMeta: { color: "#587066", fontSize: 10, lineHeight: 15 },
+  livingMetaNegative: { color: "#C85F3A", fontWeight: "800" },
+  monthDifference: { fontSize: 10, lineHeight: 15, fontWeight: "900", marginTop: 7 },
+  monthDifferencePositive: { color: "#0E6B56" },
+  monthDifferenceNegative: { color: "#C85F3A" },
   netCard: { width: "100%", borderRadius: 17, backgroundColor: "#FFFFFF", padding: 14, borderWidth: 1, borderColor: "#ECE7DE" },
   netAmount: { color: "#0E6B56", fontSize: 26, lineHeight: 32, fontWeight: "900", marginTop: 8 },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },

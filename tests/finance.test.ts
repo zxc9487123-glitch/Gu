@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
 import { livingAmountFor } from "../lib/living-amount";
+import { monthlyLivingComparison } from "../lib/monthly-living";
 import { trendCopyFor } from "../lib/trend-copy";
 
 const records: Transaction[] = [
@@ -44,5 +45,12 @@ describe("finance calculations", () => {
   it("calculates the living amount as one-third of income minus expenses", () => {
     expect(livingAmountFor(991428, 331828)).toBe(-1352);
     expect(livingAmountFor(6000, 3500)).toBe(-1500);
+  });
+
+  it("compares this month’s living amount with the previous month", () => {
+    const comparison = monthlyLivingComparison(records, new Date(2026, 1, 15));
+    expect(comparison.current).toMatchObject({ year: 2026, month: 1, income: 0, expense: 2000, livingAmount: -2000 });
+    expect(comparison.previous).toMatchObject({ year: 2026, month: 0, income: 50000, expense: 1200, livingAmount: 15466.666666666668 });
+    expect(comparison.difference).toBeCloseTo(-17466.666666666668);
   });
 });
