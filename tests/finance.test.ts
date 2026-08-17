@@ -83,6 +83,11 @@ describe("finance calculations", () => {
     expect(livingAmountFor(6000, 3500)).toBe(-1500);
   });
 
+  it("calculates the life amount from the selected year's income and expenses", () => {
+    const selectedYearSummary = summaryFor(transactionsForPeriod(records, 2026));
+    expect(livingAmountFor(selectedYearSummary.income, selectedYearSummary.expense)).toBeCloseTo(13466.666666666668);
+  });
+
   it("compares the living amount against the expense amount", () => {
     expect(livingExpenseComparisonFor(2000, 1200)).toEqual({ difference: 800 });
     expect(livingExpenseComparisonFor(-1500, 3500)).toEqual({ difference: -5000 });

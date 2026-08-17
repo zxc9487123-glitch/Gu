@@ -7,7 +7,6 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { annualExpenseInsightsFor, availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, trendPointsFor } from "@/lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor } from "@/lib/living-amount";
-import { monthlyLivingComparison } from "@/lib/monthly-living";
 import { trendCopyFor } from "@/lib/trend-copy";
 
 type Period = "all" | number;
@@ -92,7 +91,6 @@ export default function HomeScreen() {
   const annualExpenseInsights = useMemo(() => period === "all" ? annualExpenseInsightsFor(transactions) : {}, [transactions, period]);
   const firstYear = years[0] ?? new Date().getFullYear();
   const trendCopy = trendCopyFor(period);
-  const monthComparison = useMemo(() => monthlyLivingComparison(transactions), [transactions]);
 
   return (
     <ScreenContainer containerClassName="bg-background">
@@ -135,7 +133,7 @@ export default function HomeScreen() {
               <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
               <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
             </View>
-            {period === "all" ? <LivingAmountCard scope="year" amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} /> : <LivingAmountCard amount={monthComparison.current.livingAmount} expense={monthComparison.current.expense} difference={monthComparison.difference} />}
+            <LivingAmountCard scope="year" amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
           </View>
         </View>
 
