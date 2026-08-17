@@ -34,6 +34,11 @@ export type AnnualSummaryPoint = MonthPoint & {
   netChangePercent: number | null;
 };
 
+export type YearExpenseInsight = {
+  averageMonthlyExpense: number;
+  highestExpenseMonth: { label: string; amount: number } | null;
+};
+
 export const EXPENSE_CATEGORIES: Category[] = [
   { name: "餐飲／食品", color: "#C76867", type: "expense" },
   { name: "購物", color: "#D39A2E", type: "expense" },
@@ -173,6 +178,36 @@ export const annualSummariesFor = (points: MonthPoint[]): AnnualSummaryPoint[] =
       netChangePercent: previous ? percentageChangeFor(net, previousNet) : null,
     };
   });
+
+export const yearExpenseInsightFor = (transactions: Transaction[]): YearExpenseInsight => {
+  const monthlyExpenses = Array.from({ length: 12 }, () => 0);
+  transactions
+    .filter((transaction) => transaction.type === "expense")
+    .forEach((transaction) => {
+      const month = new Date(`${transaction.date}T12:00:00`).getMonth();
+      monthlyExpenses[month] += transaction.amount;
+    });
+  const totalExpense = monthlyExpenses.reduce((total, amount) => total + amount, 0);
+  const highestAmount = Math.max(...monthlyExpenses);
+  const highestIndex = monthlyExpenses.indexOf(highestAmount);
+
+  return {
+    averageMonthlyExpense: totalExpense / 12,
+    highestExpenseMonth: highestAmount > 0 ? { label: `${highestIndex + 1}月`, amount: highestAmount } : null,
+  };
+};
+
+export const annualExpenseInsightsFor = (transactions: Transaction[]): Record<string, YearExpenseInsight> => {
+  const transactionsByYear = transactions.reduce<Record<number, Transaction[]>>((groups, transaction) => {
+    const year = new Date(`${transaction.date}T12:00:00`).getFullYear();
+    (groups[year] ??= []).push(transaction);
+    return groups;
+  }, {});
+
+  return Object.fromEntries(
+    Object.entries(transactionsByYear).map(([year, items]) => [`${year}年`, yearExpenseInsightFor(items)]),
+  );
+};
 
 export const sortedTransactions = (transactions: Transaction[]) =>
   [...transactions].sort((a, b) => new Date(`${b.date}T12:00:00`).getTime() - new Date(`${a.date}T12:00:00`).getTime());

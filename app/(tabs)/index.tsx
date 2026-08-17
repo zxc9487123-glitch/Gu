@@ -8,7 +8,7 @@ import { useFinance } from "@/hooks/use-finance";
 import { useLivingBudget } from "@/hooks/use-living-budget";
 import { annualLivingBudgetFor } from "@/lib/annual-living";
 import { budgetAlertFor, budgetProgressPercentFor, type BudgetAlert } from "@/lib/budget-status";
-import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, trendPointsFor } from "@/lib/finance";
+import { annualExpenseInsightsFor, availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor } from "@/lib/finance";
 import { monthlyLivingComparison } from "@/lib/monthly-living";
 import { trendCopyFor } from "@/lib/trend-copy";
 
@@ -86,6 +86,19 @@ function AnnualLivingBudgetCard({ expense, monthlyBudget }: { expense: number; m
   );
 }
 
+function YearExpenseInsightCard({ averageMonthlyExpense }: { averageMonthlyExpense: number }) {
+  return (
+    <View style={styles.yearInsightCard}>
+      <View style={styles.yearInsightIcon}><Text style={styles.yearInsightIconText}>◷</Text></View>
+      <View>
+        <Text style={styles.yearInsightLabel}>平均每月支出</Text>
+        <Text style={styles.yearInsightAmount}>{money(averageMonthlyExpense)}</Text>
+        <Text style={styles.yearInsightHint}>本年度總支出 ÷ 12 個月</Text>
+      </View>
+    </View>
+  );
+}
+
 function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <View style={styles.panel}>
@@ -108,6 +121,8 @@ export default function HomeScreen() {
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const points = useMemo(() => trendPointsFor(filtered, period), [filtered, period]);
+  const yearExpenseInsight = useMemo(() => period === "all" ? null : yearExpenseInsightFor(filtered), [filtered, period]);
+  const annualExpenseInsights = useMemo(() => period === "all" ? annualExpenseInsightsFor(transactions) : {}, [transactions, period]);
   const firstYear = years[0] ?? new Date().getFullYear();
   const trendCopy = trendCopyFor(period);
   const monthComparison = useMemo(() => monthlyLivingComparison(transactions), [transactions]);
@@ -161,13 +176,15 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {yearExpenseInsight ? <YearExpenseInsightCard averageMonthlyExpense={yearExpenseInsight.averageMonthlyExpense} /> : null}
+
         <Panel title="支出分類地圖" subtitle="依金額查看分類結構">
           <Treemap data={categories} />
         </Panel>
 
         {period === "all" ? (
           <Panel title={trendCopy.title} subtitle={trendCopy.subtitle}>
-            <TrendLine points={points} showAnnualSummary />
+            <TrendLine points={points} showAnnualSummary annualExpenseInsights={annualExpenseInsights} />
           </Panel>
         ) : null}
 
@@ -252,6 +269,12 @@ const styles = StyleSheet.create({
   monthDifferenceNegative: { color: "#C85F3A" },
   netCard: { width: "100%", borderRadius: 17, backgroundColor: "#FFFFFF", padding: 14, borderWidth: 1, borderColor: "#ECE7DE" },
   netAmount: { color: "#0E6B56", fontSize: 26, lineHeight: 32, fontWeight: "900", marginTop: 8 },
+  yearInsightCard: { borderRadius: 17, backgroundColor: "#F4F0FB", padding: 14, borderWidth: 1, borderColor: "#E2D8F2", flexDirection: "row", alignItems: "center", gap: 11 },
+  yearInsightIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#E7DEF6", alignItems: "center", justifyContent: "center" },
+  yearInsightIconText: { color: "#6C4B94", fontSize: 22, fontWeight: "900" },
+  yearInsightLabel: { color: "#5B5070", fontSize: 12, fontWeight: "800" },
+  yearInsightAmount: { color: "#6C4B94", fontSize: 21, lineHeight: 26, fontWeight: "900", marginTop: 3 },
+  yearInsightHint: { color: "#7A708A", fontSize: 10, marginTop: 3 },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
   panelHeading: { marginBottom: 14 },
   panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },

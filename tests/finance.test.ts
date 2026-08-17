@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annualSummariesFor, availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, type Transaction } from "../lib/finance";
+import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { budgetAlertFor, budgetProgressPercentFor } from "../lib/budget-status";
 import { annualLivingBudgetFor } from "../lib/annual-living";
 import { livingAmountFor } from "../lib/living-amount";
@@ -43,6 +43,20 @@ describe("finance calculations", () => {
     expect(points).toHaveLength(12);
     expect(points[0]?.balance).toBe(48800);
     expect(points[1]?.balance).toBe(46800);
+  });
+
+  it("calculates average monthly expense and the highest spending month for a selected year", () => {
+    expect(yearExpenseInsightFor(transactionsForPeriod(records, 2026))).toEqual({
+      averageMonthlyExpense: 3200 / 12,
+      highestExpenseMonth: { label: "2月", amount: 2000 },
+    });
+  });
+
+  it("maps each annual summary to its highest spending month", () => {
+    expect(annualExpenseInsightsFor(records)).toEqual({
+      "2025年": { averageMonthlyExpense: 50, highestExpenseMonth: { label: "12月", amount: 600 } },
+      "2026年": { averageMonthlyExpense: 3200 / 12, highestExpenseMonth: { label: "2月", amount: 2000 } },
+    });
   });
 
   it("creates annual trend points from every imported transaction year in all-years mode", () => {

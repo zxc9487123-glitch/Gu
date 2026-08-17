@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
+import { useState } from "react";
 
-import { annualSummariesFor, money, type CategoryTotal, type MonthPoint } from "@/lib/finance";
+import { annualSummariesFor, money, type CategoryTotal, type MonthPoint, type YearExpenseInsight } from "@/lib/finance";
 
 const PLOT_WIDTH = 316;
 const PLOT_HEIGHT = 128;
@@ -60,7 +61,8 @@ function TreemapBlock({ item, compact = false }: { item: CategoryTotal; compact?
   );
 }
 
-export function TrendLine({ points, showAnnualSummary = false }: { points: MonthPoint[]; showAnnualSummary?: boolean }) {
+export function TrendLine({ points, showAnnualSummary = false, annualExpenseInsights = {} }: { points: MonthPoint[]; showAnnualSummary?: boolean; annualExpenseInsights?: Record<string, YearExpenseInsight> }) {
+  const [isAnnualSummaryExpanded, setIsAnnualSummaryExpanded] = useState(false);
   const hasActivity = points.some((point) => point.income !== 0 || point.expense !== 0);
   if (!hasActivity) return <EmptyChart label="新增交易後，這裡會顯示年度收支趨勢" />;
 
@@ -96,8 +98,15 @@ export function TrendLine({ points, showAnnualSummary = false }: { points: Month
       </View>
       {showAnnualSummary ? (
         <View style={styles.annualSummary}>
-          <Text style={styles.annualSummaryTitle}>年度數字摘要</Text>
-          {annualSummaries.map((point) => {
+          <Pressable onPress={() => setIsAnnualSummaryExpanded((value) => !value)} style={styles.annualSummaryHeader}>
+            <View>
+              <Text style={styles.annualSummaryTitle}>年度數字摘要</Text>
+              <Text style={styles.annualSummaryHint}>{isAnnualSummaryExpanded ? "點選即可收合各年度明細" : `共 ${annualSummaries.length} 個年度・點選展開明細`}</Text>
+            </View>
+            <Text style={styles.annualSummaryChevron}>{isAnnualSummaryExpanded ? "⌃" : "⌄"}</Text>
+          </Pressable>
+          {isAnnualSummaryExpanded ? annualSummaries.map((point) => {
+            const insight = annualExpenseInsights[point.label];
             return (
               <View key={point.label} style={styles.annualSummaryRow}>
                 <Text style={styles.annualSummaryYear}>{point.label}</Text>
@@ -118,9 +127,13 @@ export function TrendLine({ points, showAnnualSummary = false }: { points: Month
                     <AnnualChange percent={point.netChangePercent} metric="net" />
                   </View>
                 </View>
+                <View style={styles.highestMonthRow}>
+                  <Text style={styles.highestMonthLabel}>最高消費月份</Text>
+                  <Text style={styles.highestMonthValue}>{insight?.highestExpenseMonth ? `${insight.highestExpenseMonth.label}・${money(insight.highestExpenseMonth.amount)}` : "尚無支出資料"}</Text>
+                </View>
               </View>
             );
-          })}
+          }) : null}
         </View>
       ) : null}
     </View>
@@ -195,7 +208,10 @@ const styles = StyleSheet.create({
   monthLabels: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 6, marginTop: 4 },
   axisText: { color: "#7A837D", fontSize: 11 },
   annualSummary: { marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#ECE7DE", gap: 9 },
+  annualSummaryHeader: { minHeight: 36, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   annualSummaryTitle: { color: "#34473D", fontSize: 12, fontWeight: "900" },
+  annualSummaryHint: { color: "#7A837D", fontSize: 10, marginTop: 3 },
+  annualSummaryChevron: { color: "#0E6B56", fontSize: 18, fontWeight: "900" },
   annualSummaryRow: { borderRadius: 10, padding: 10, backgroundColor: "#F8F6F1" },
   annualSummaryYear: { color: "#1F2421", fontSize: 13, fontWeight: "900", marginBottom: 8 },
   annualSummaryMetrics: { flexDirection: "row", gap: 7 },
@@ -208,6 +224,9 @@ const styles = StyleSheet.create({
   annualChangePositive: { color: "#0E6B56", fontSize: 9, fontWeight: "800", marginTop: 3 },
   annualChangeNegative: { color: "#C85F3A", fontSize: 9, fontWeight: "800", marginTop: 3 },
   annualChangeNeutral: { color: "#7A837D", fontSize: 9, fontWeight: "700", marginTop: 3 },
+  highestMonthRow: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E7E0D5", flexDirection: "row", justifyContent: "space-between", gap: 10 },
+  highestMonthLabel: { color: "#7A837D", fontSize: 10, fontWeight: "800" },
+  highestMonthValue: { color: "#6C4B94", fontSize: 10, fontWeight: "900", textAlign: "right" },
   donutLayout: { flexDirection: "row", alignItems: "center", gap: 12 },
   donutWrap: { width: 132, height: 132, alignItems: "center", justifyContent: "center" },
   donutCenter: { position: "absolute", alignItems: "center" },
