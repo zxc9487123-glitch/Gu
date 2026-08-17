@@ -3,7 +3,7 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 
-SOURCE = Path("/home/ubuntu/upload/59463.jpg")
+SOURCE = Path("/home/ubuntu/upload/59464.jpg")
 DESTINATION = Path("/home/ubuntu/bookkeeping-dashboard/assets/images")
 OUTPUTS = [
     "icon.png",
@@ -14,13 +14,9 @@ OUTPUTS = [
 
 
 def make_icon(source: Image.Image) -> Image.Image:
-    # Preserve the user-provided image content within a white square safe area.
-    canvas = Image.new("RGB", (512, 512), "white")
-    contained = ImageOps.contain(source.convert("RGB"), (448, 448), Image.Resampling.LANCZOS)
-    left = (canvas.width - contained.width) // 2
-    top = (canvas.height - contained.height) // 2
-    canvas.paste(contained, (left, top))
-    return canvas.quantize(colors=128, method=Image.Quantize.MEDIANCUT)
+    # The supplied close-up is intentionally center-cropped to fill a square app-icon canvas.
+    square = ImageOps.fit(source.convert("RGB"), (512, 512), method=Image.Resampling.LANCZOS, centering=(0.5, 0.38))
+    return square.quantize(colors=128, method=Image.Quantize.MEDIANCUT)
 
 
 def main() -> None:
