@@ -1,9 +1,9 @@
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system/next";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useState } from "react";
 
-import { overrideExcelPreviewCategoryType, parseExcelTransactions, type ExcelImportMode, type ExcelImportPreview } from "@/lib/excel-import";
+import { overrideExcelPreviewCategoryType, overrideExcelPreviewNoteKeywordType, parseExcelTransactions, type ExcelImportMode, type ExcelImportPreview } from "@/lib/excel-import";
 import type { TransactionType } from "@/lib/finance";
 
 const EXCEL_TYPES = [
@@ -29,6 +29,7 @@ export function ExcelImportCard({ onConfirm }: Props) {
   const [mode, setMode] = useState<ExcelImportMode>("skip");
   const [showAllRows, setShowAllRows] = useState(false);
   const [showAllIssues, setShowAllIssues] = useState(false);
+  const [noteKeyword, setNoteKeyword] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -49,6 +50,7 @@ export function ExcelImportCard({ onConfirm }: Props) {
       const parsed = parseExcelTransactions(buffer);
       setPreview(parsed);
       setFilename(asset.name);
+      setNoteKeyword("");
       setShowAllRows(false);
       setShowAllIssues(false);
     } catch {
@@ -87,10 +89,16 @@ export function ExcelImportCard({ onConfirm }: Props) {
     setPreview((current) => current ? overrideExcelPreviewCategoryType(current, category, type) : current);
   };
 
+  const overrideNoteKeywordType = (type: TransactionType) => {
+    setPreview((current) => current ? overrideExcelPreviewNoteKeywordType(current, noteKeyword, type) : current);
+  };
+
   const categoryCounts = preview?.valid.reduce<Record<string, number>>((counts, item) => {
     counts[item.category] = (counts[item.category] ?? 0) + 1;
     return counts;
   }, {}) ?? {};
+  const normalizedNoteKeyword = noteKeyword.trim().toLocaleLowerCase();
+  const noteKeywordMatchCount = normalizedNoteKeyword ? preview?.valid.filter((item) => item.note.toLocaleLowerCase().includes(normalizedNoteKeyword)).length ?? 0 : 0;
 
   return (
     <View style={styles.panel}>
@@ -119,6 +127,20 @@ export function ExcelImportCard({ onConfirm }: Props) {
               <View style={[styles.switchThumb, mode === "update" && styles.switchThumbActive]} />
             </View>
           </Pressable>
+          <View style={styles.keywordPanel}>
+            <Text style={styles.keywordTitle}>依備註關鍵字批次套用</Text>
+            <Text style={styles.keywordDescription}>輸入備註中的文字，例如「UBER」或「訂閱」；符合的交易會一次改為指定收支類型。</Text>
+            <TextInput value={noteKeyword} onChangeText={setNoteKeyword} placeholder="輸入備註關鍵字" placeholderTextColor="#929A94" style={styles.keywordInput} returnKeyType="done" />
+            <Text style={styles.keywordMatchText}>{normalizedNoteKeyword ? `符合 ${noteKeywordMatchCount} 筆交易` : "輸入關鍵字後顯示符合筆數"}</Text>
+            <View style={styles.keywordActions}>
+              <Pressable disabled={noteKeywordMatchCount === 0} onPress={() => overrideNoteKeywordType("expense")} style={({ pressed }) => [styles.keywordActionButton, styles.keywordExpenseButton, pressed && styles.pressed, noteKeywordMatchCount === 0 && styles.disabled]}>
+                <Text style={styles.keywordExpenseText}>符合項目全設為支出</Text>
+              </Pressable>
+              <Pressable disabled={noteKeywordMatchCount === 0} onPress={() => overrideNoteKeywordType("income")} style={({ pressed }) => [styles.keywordActionButton, styles.keywordIncomeButton, pressed && styles.pressed, noteKeywordMatchCount === 0 && styles.disabled]}>
+                <Text style={styles.keywordIncomeText}>符合項目全設為收入</Text>
+              </Pressable>
+            </View>
+          </View>
           {(showAllRows ? preview.valid : preview.valid.slice(0, 8)).map((item, index) => (
             <View key={`${item.date}-${item.amount}-${index}`} style={styles.previewRow}>
               <View style={styles.previewHeader}>
@@ -199,6 +221,17 @@ const styles = StyleSheet.create({
   switchTrackActive: { backgroundColor: "#0E6B56" },
   switchThumb: { width: 16, height: 16, borderRadius: 8, backgroundColor: "#FFFFFF", alignSelf: "flex-start" },
   switchThumbActive: { alignSelf: "flex-end" },
+  keywordPanel: { marginTop: 13, padding: 11, borderRadius: 12, backgroundColor: "#F2F6F3", borderWidth: 1, borderColor: "#D7E6DD" },
+  keywordTitle: { color: "#334039", fontSize: 13, fontWeight: "900" },
+  keywordDescription: { color: "#66736B", fontSize: 11, lineHeight: 16, marginTop: 3 },
+  keywordInput: { marginTop: 9, minHeight: 38, borderRadius: 9, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#CFDAD2", paddingHorizontal: 10, color: "#334039", fontSize: 12 },
+  keywordMatchText: { color: "#587066", fontSize: 10, fontWeight: "800", marginTop: 7 },
+  keywordActions: { flexDirection: "row", gap: 7, marginTop: 8 },
+  keywordActionButton: { flex: 1, minHeight: 34, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 6, borderWidth: 1 },
+  keywordExpenseButton: { backgroundColor: "#FFF1ED", borderColor: "#EDC1B5" },
+  keywordIncomeButton: { backgroundColor: "#EBF5EF", borderColor: "#B9D6CA" },
+  keywordExpenseText: { color: "#C85F3A", fontSize: 10, fontWeight: "900", textAlign: "center" },
+  keywordIncomeText: { color: "#0E6B56", fontSize: 10, fontWeight: "900", textAlign: "center" },
   previewRow: { marginTop: 10, padding: 10, borderRadius: 11, backgroundColor: "#F8F6F1" },
   previewHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   previewCategory: { color: "#334039", fontSize: 13, fontWeight: "800" },

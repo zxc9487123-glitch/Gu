@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
 
-import { deduplicateExcelImports, mergeExcelImports, overrideExcelPreviewCategoryType, parseExcelTransactions } from "../lib/excel-import";
+import { deduplicateExcelImports, mergeExcelImports, overrideExcelPreviewCategoryType, overrideExcelPreviewNoteKeywordType, parseExcelTransactions } from "../lib/excel-import";
 import type { Transaction } from "../lib/finance";
 
 function workbookBuffer(rows: unknown[][]) {
@@ -147,6 +147,22 @@ describe("Excel import", () => {
       { category: "卡牌", type: "expense", typeResolution: "manual" },
       { category: "卡牌", type: "expense", typeResolution: "manual" },
       { category: "薪資", type: "income", typeResolution: "explicit" },
+    ]);
+  });
+
+  it("applies a manual type override to every note containing a keyword without changing other notes", () => {
+    const preview = parseExcelTransactions(workbookBuffer([
+      ["交易日期", "類型", "分類", "金額", "摘要"],
+      ["2025-12-25", "收入", "帳戶轉帳", 1416, "UBER 收款"],
+      ["2025-12-24", "收入", "帳戶轉帳", 5000, "uber 退款"],
+      ["2025-12-23", "收入", "薪資", 37277, "每月薪資"],
+    ]));
+
+    const corrected = overrideExcelPreviewNoteKeywordType(preview, "Uber", "expense");
+    expect(corrected.valid.map((item) => ({ note: item.note, type: item.type, typeResolution: item.typeResolution }))).toEqual([
+      { note: "UBER 收款", type: "expense", typeResolution: "manual" },
+      { note: "uber 退款", type: "expense", typeResolution: "manual" },
+      { note: "每月薪資", type: "income", typeResolution: "explicit" },
     ]);
   });
 

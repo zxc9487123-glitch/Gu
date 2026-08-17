@@ -295,6 +295,15 @@ export function overrideExcelPreviewCategoryType(preview: ExcelImportPreview, ca
   };
 }
 
+export function overrideExcelPreviewNoteKeywordType(preview: ExcelImportPreview, keyword: string, type: TransactionType): ExcelImportPreview {
+  const query = keyword.trim().toLocaleLowerCase();
+  if (!query) return preview;
+  return {
+    ...preview,
+    valid: preview.valid.map((item) => item.note.toLocaleLowerCase().includes(query) ? { ...item, type, typeResolution: "manual" } : item),
+  };
+}
+
 function fingerprint(transaction: Omit<Transaction, "id">) {
   return [transaction.date, transaction.type, transaction.category, transaction.amount, transaction.note.trim()].join("|");
 }
