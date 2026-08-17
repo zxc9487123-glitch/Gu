@@ -157,6 +157,10 @@ function categoryFor(row: unknown[], indexes: ColumnIndexes) {
   return category || "未分類";
 }
 
+function isCdTransferOut(row: unknown[]) {
+  return row.some((cell) => normalized(cell).includes("cd轉出"));
+}
+
 function quotedCell(value: unknown) {
   const content = text(value);
   if (!content) return "空白";
@@ -217,6 +221,11 @@ function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
   }
   if (!type && Number.isFinite(amount) && amount > 0 && directAmountSign !== 0) {
     type = directAmountSign > 0 ? "income" : "expense";
+    typeResolution = "inferred";
+  }
+  // 銀行明細中的「CD轉出」代表資金由帳戶轉出，即使金額欄以正數呈現也應列為支出。
+  if (isCdTransferOut(row)) {
+    type = "expense";
     typeResolution = "inferred";
   }
   return { amount, type, typeResolution };
