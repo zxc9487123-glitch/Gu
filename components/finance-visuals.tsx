@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
-import { useState } from "react";
 
+import { useAnnualSummaryPreference } from "@/hooks/use-annual-summary-preference";
 import { annualSummariesFor, money, type CategoryTotal, type MonthPoint, type YearExpenseInsight } from "@/lib/finance";
 
 const PLOT_WIDTH = 316;
@@ -62,7 +62,7 @@ function TreemapBlock({ item, compact = false }: { item: CategoryTotal; compact?
 }
 
 export function TrendLine({ points, showAnnualSummary = false, annualExpenseInsights = {} }: { points: MonthPoint[]; showAnnualSummary?: boolean; annualExpenseInsights?: Record<string, YearExpenseInsight> }) {
-  const [isAnnualSummaryExpanded, setIsAnnualSummaryExpanded] = useState(false);
+  const { isAnnualSummaryExpanded, setAnnualSummaryExpanded } = useAnnualSummaryPreference();
   const hasActivity = points.some((point) => point.income !== 0 || point.expense !== 0);
   if (!hasActivity) return <EmptyChart label="新增交易後，這裡會顯示年度收支趨勢" />;
 
@@ -98,7 +98,7 @@ export function TrendLine({ points, showAnnualSummary = false, annualExpenseInsi
       </View>
       {showAnnualSummary ? (
         <View style={styles.annualSummary}>
-          <Pressable onPress={() => setIsAnnualSummaryExpanded((value) => !value)} style={styles.annualSummaryHeader}>
+          <Pressable onPress={() => void setAnnualSummaryExpanded(!isAnnualSummaryExpanded)} style={styles.annualSummaryHeader}>
             <View>
               <Text style={styles.annualSummaryTitle}>年度數字摘要</Text>
               <Text style={styles.annualSummaryHint}>{isAnnualSummaryExpanded ? "點選即可收合各年度明細" : `共 ${annualSummaries.length} 個年度・點選展開明細`}</Text>
