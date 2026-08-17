@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
 import { budgetAlertFor, budgetProgressPercentFor } from "../lib/budget-status";
+import { annualLivingBudgetFor } from "../lib/annual-living";
 import { livingAmountFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { trendCopyFor } from "../lib/trend-copy";
@@ -64,5 +65,10 @@ describe("finance calculations", () => {
   it("caps visual budget progress at 100% while keeping the actual usage percentage", () => {
     expect(budgetProgressPercentFor(0.425)).toBe(43);
     expect(budgetProgressPercentFor(1.2)).toBe(100);
+  });
+
+  it("derives the annual living budget from the monthly limit", () => {
+    expect(annualLivingBudgetFor(10000, 80000)).toEqual({ annualBudget: 120000, annualExpense: 80000, remaining: 40000 });
+    expect(annualLivingBudgetFor(null, 80000)).toEqual({ annualBudget: null, annualExpense: 80000, remaining: null });
   });
 });

@@ -7,6 +7,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { useLivingBudget } from "@/hooks/use-living-budget";
+import { annualLivingBudgetFor } from "@/lib/annual-living";
 import { budgetAlertFor, budgetProgressPercentFor, type BudgetAlert } from "@/lib/budget-status";
 import { availableYears, categoryTotalsFor, money, monthPointsFor, summaryFor, transactionsForPeriod } from "@/lib/finance";
 import { monthlyLivingComparison } from "@/lib/monthly-living";
@@ -55,6 +56,32 @@ function LivingAmountCard({ amount, expense, budget, difference }: { amount: num
         {budgetAlert ? <View style={styles.progressArea}><View style={styles.progressMetaRow}><Text style={styles.progressLabel}>預算使用進度</Text><Text style={[styles.progressPercent, budgetAlert.status === "warning" && styles.progressPercentWarning, budgetAlert.status === "over" && styles.progressPercentOver]}>{budgetAlert.usagePercent}%</Text></View><View style={styles.progressTrack}><View style={[styles.progressFill, budgetAlert.status === "warning" && styles.progressFillWarning, budgetAlert.status === "over" && styles.progressFillOver, { width: `${progressPercent}%` }]} /></View></View> : null}
         {budgetAlert ? <View style={[styles.budgetAlert, budgetAlert.status === "warning" && styles.budgetAlertWarning, budgetAlert.status === "over" && styles.budgetAlertOver]}><Text style={[styles.budgetAlertText, budgetAlert.status === "warning" && styles.budgetAlertTextWarning, budgetAlert.status === "over" && styles.budgetAlertTextOver]}>{budgetAlert.status === "normal" ? budgetAlert.message : `注意：${budgetAlert.message}`}</Text></View> : null}
         <Text style={[styles.monthDifference, differencePositive ? styles.monthDifferencePositive : styles.monthDifferenceNegative]}>{differencePositive ? "↑" : "↓"} 較上月 {differencePositive ? "增加" : "減少"} {money(Math.abs(difference))}</Text>
+      </View>
+    </View>
+  );
+}
+
+function AnnualLivingBudgetCard({ expense, monthlyBudget }: { expense: number; monthlyBudget: number | null }) {
+  const annual = annualLivingBudgetFor(monthlyBudget, expense);
+  const budgetAlert: BudgetAlert | null = annual.annualBudget === null ? null : budgetAlertFor(annual.annualExpense, annual.annualBudget);
+  const progressPercent = budgetAlert ? budgetProgressPercentFor(budgetAlert.usageRate) : 0;
+  return (
+    <View style={[styles.livingCard, styles.annualCard, budgetAlert?.status === "warning" && styles.livingCardWarning, budgetAlert?.status === "over" && styles.livingCardOver]}>
+      <View style={styles.livingHeading}>
+        <View>
+          <Text style={styles.livingLabel}>年度生活預算</Text>
+          <Text style={styles.livingFormula}>每月上限 × 12</Text>
+        </View>
+        <View style={styles.annualIcon}><IconSymbol name="calendar" size={23} color="#315E96" /></View>
+      </View>
+      <View>
+        <Text style={styles.annualAmount}>{money(annual.annualExpense)}</Text>
+        <Text style={styles.livingHint}>本年度累積生活支出</Text>
+        <View style={styles.livingDivider} />
+        {annual.annualBudget === null ? <Text style={styles.livingMeta}>尚未設定每月生活預算上限</Text> : <Text style={styles.livingMeta}>年度預算 {money(annual.annualBudget)}</Text>}
+        {annual.remaining !== null ? <Text style={[styles.livingMeta, annual.remaining < 0 && styles.livingMetaNegative]}>{annual.remaining >= 0 ? `年度預算尚餘 ${money(annual.remaining)}` : `年度預算超出 ${money(Math.abs(annual.remaining))}`}</Text> : null}
+        {budgetAlert ? <View style={styles.progressArea}><View style={styles.progressMetaRow}><Text style={styles.progressLabel}>年度預算進度</Text><Text style={[styles.progressPercent, budgetAlert.status === "warning" && styles.progressPercentWarning, budgetAlert.status === "over" && styles.progressPercentOver]}>{budgetAlert.usagePercent}%</Text></View><View style={styles.progressTrack}><View style={[styles.progressFill, budgetAlert.status === "warning" && styles.progressFillWarning, budgetAlert.status === "over" && styles.progressFillOver, { width: `${progressPercent}%` }]} /></View></View> : null}
+        {budgetAlert ? <View style={[styles.budgetAlert, budgetAlert.status === "warning" && styles.budgetAlertWarning, budgetAlert.status === "over" && styles.budgetAlertOver]}><Text style={[styles.budgetAlertText, budgetAlert.status === "warning" && styles.budgetAlertTextWarning, budgetAlert.status === "over" && styles.budgetAlertTextOver]}>{budgetAlert.status === "normal" ? budgetAlert.message.replace("每月", "年度") : `注意：${budgetAlert.message.replace("每月", "年度")}`}</Text></View> : null}
       </View>
     </View>
   );
@@ -113,7 +140,7 @@ export default function HomeScreen() {
               <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
               <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
             </View>
-            <LivingAmountCard amount={monthComparison.current.livingAmount} expense={monthComparison.current.expense} budget={monthlyBudget} difference={monthComparison.difference} />
+            {period === "all" ? <AnnualLivingBudgetCard expense={summary.expense} monthlyBudget={monthlyBudget} /> : <LivingAmountCard amount={monthComparison.current.livingAmount} expense={monthComparison.current.expense} budget={monthlyBudget} difference={monthComparison.difference} />}
           </View>
           <View style={styles.netCard}>
             <Text style={styles.metricLabel}>淨結餘</Text>
@@ -172,15 +199,18 @@ const styles = StyleSheet.create({
   metricAmount: { color: "#0E6B56", fontSize: 22, lineHeight: 28, fontWeight: "900", marginTop: 18 },
   expenseAmount: { color: "#C85F3A" },
   livingCard: { flex: 1, borderRadius: 17, backgroundColor: "#EEF5F1", padding: 14, borderWidth: 1, borderColor: "#CEE1D8", minHeight: 278, justifyContent: "space-between" },
+  annualCard: { backgroundColor: "#EEF3FA", borderColor: "#D3DFEF" },
   livingCardWarning: { backgroundColor: "#FFF8E8", borderColor: "#F0C86A" },
   livingCardOver: { backgroundColor: "#FFF0EC", borderColor: "#E9A38F" },
   livingHeading: { flexDirection: "row", justifyContent: "space-between", gap: 7 },
   livingLabel: { color: "#34473D", fontSize: 13, fontWeight: "900" },
   livingFormula: { color: "#6D7B72", fontSize: 10, marginTop: 4 },
   livingIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#DCEDE5", alignItems: "center", justifyContent: "center" },
+  annualIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#E0EBF8", alignItems: "center", justifyContent: "center" },
   livingAmount: { fontSize: 22, lineHeight: 28, fontWeight: "900" },
   livingAmountPositive: { color: "#0E6B56" },
   livingAmountNegative: { color: "#C85F3A" },
+  annualAmount: { color: "#315E96", fontSize: 22, lineHeight: 28, fontWeight: "900" },
   livingHint: { color: "#6D7B72", fontSize: 10, lineHeight: 15, marginTop: 5 },
   livingDivider: { height: 1, backgroundColor: "#D6E5DD", marginVertical: 9 },
   livingMeta: { color: "#587066", fontSize: 10, lineHeight: 15 },
