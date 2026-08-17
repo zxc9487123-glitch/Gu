@@ -6,7 +6,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { annualExpenseInsightsFor, availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor } from "@/lib/finance";
-import { livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor } from "@/lib/living-amount";
+import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor } from "@/lib/living-amount";
 import { monthlyLivingComparison } from "@/lib/monthly-living";
 import { trendCopyFor } from "@/lib/trend-copy";
 
@@ -27,7 +27,8 @@ function MetricCard({ label, amount, tone }: { label: string; amount: string; to
   );
 }
 
-function LivingAmountCard({ amount, expense, difference }: { amount: number; expense: number; difference: number }) {
+function LivingAmountCard({ amount, expense, difference = 0, scope = "month" }: { amount: number; expense: number; difference?: number; scope?: "month" | "year" }) {
+  const isYear = scope === "year";
   const positive = amount >= 0;
   const differencePositive = difference >= 0;
   const expenseComparison = livingExpenseComparisonFor(amount, expense);
@@ -35,34 +36,33 @@ function LivingAmountCard({ amount, expense, difference }: { amount: number; exp
   const expenseSharePercent = livingExpenseSharePercentFor(amount, expense);
   const expenseAlert = livingExpenseAlertFor(amount, expense);
   return (
-    <View style={styles.livingCard}>
+    <View style={[styles.livingCard, isYear && styles.annualLivingCard]}>
       <View style={styles.livingHeading}>
         <View>
-          <Text style={styles.livingLabel}>生活金額</Text>
-          <Text style={styles.livingFormula}>收入 ÷ 3 − 支出</Text>
+          <Text style={styles.livingLabel}>{isYear ? "年度生活金額" : "生活金額"}</Text>
+          <Text style={styles.livingFormula}>{isYear ? "年度收入 ÷ 3 − 年度支出" : "收入 ÷ 3 − 支出"}</Text>
         </View>
         <View style={styles.livingIcon}>
-          <IconSymbol name="house.fill" size={24} color="#0E6B56" />
+          <IconSymbol name="house.fill" size={24} color={isYear ? "#315E96" : "#0E6B56"} />
         </View>
       </View>
       <View>
         <Text style={[styles.livingAmount, positive ? styles.livingAmountPositive : styles.livingAmountNegative]}>{money(amount, positive)}</Text>
-        <Text style={styles.livingHint}>{positive ? "可用於日常生活的金額" : "目前支出已超出生活金額"}</Text>
+        <Text style={styles.livingHint}>{positive ? (isYear ? "本年度可用於日常生活的金額" : "可用於日常生活的金額") : `${isYear ? "年度" : "目前"}支出已超出生活金額`}</Text>
         <View style={styles.expenseComparisonRow}>
           <View>
-            <Text style={styles.expenseComparisonLabel}>本月生活支出</Text>
+            <Text style={styles.expenseComparisonLabel}>{isYear ? "年度生活支出" : "本月生活支出"}</Text>
             <Text style={styles.expenseComparisonAmount}>{money(expense)}</Text>
           </View>
           <View style={styles.expenseComparisonDetail}>
-            <Text style={styles.expenseComparisonLabel}>生活金額{exceedsExpense ? "高於" : "低於"}支出</Text>
+            <Text style={styles.expenseComparisonLabel}>{isYear ? "年度生活金額" : "生活金額"}{exceedsExpense ? "高於" : "低於"}支出</Text>
             <Text style={[styles.expenseComparisonAmount, exceedsExpense ? styles.expenseComparisonPositive : styles.expenseComparisonNegative]}>{money(Math.abs(expenseComparison.difference))}</Text>
           </View>
         </View>
-        <Text style={[styles.expenseShareText, expenseSharePercent !== null && expenseSharePercent < 0 && styles.expenseComparisonNegative]}>生活金額占本月生活支出：{expenseSharePercent === null ? "不適用" : `${expenseSharePercent}%`}</Text>
-        {expenseAlert.status === "warning" ? <View style={[styles.expenseOverAlert, styles.expenseWarningAlert]}><Text style={[styles.expenseOverAlertText, styles.expenseWarningAlertText]}>接近上限：本月生活支出已達生活金額 {expenseAlert.usagePercent}%</Text></View> : null}
-        {expenseAlert.status === "over" ? <View style={styles.expenseOverAlert}><Text style={styles.expenseOverAlertText}>超標警示：本月生活支出超過生活金額 {money(expenseAlert.overage)}</Text></View> : null}
-        <View style={styles.livingDivider} />
-        <Text style={[styles.monthDifference, differencePositive ? styles.monthDifferencePositive : styles.monthDifferenceNegative]}>{differencePositive ? "↑" : "↓"} 較上月 {differencePositive ? "增加" : "減少"} {money(Math.abs(difference))}</Text>
+        <Text style={[styles.expenseShareText, expenseSharePercent !== null && expenseSharePercent < 0 && styles.expenseComparisonNegative]}>{isYear ? "年度生活金額占年度生活支出" : "生活金額占本月生活支出"}：{expenseSharePercent === null ? "不適用" : `${expenseSharePercent}%`}</Text>
+        {expenseAlert.status === "warning" ? <View style={[styles.expenseOverAlert, styles.expenseWarningAlert]}><Text style={[styles.expenseOverAlertText, styles.expenseWarningAlertText]}>接近上限：{isYear ? "年度" : "本月"}生活支出已達生活金額 {expenseAlert.usagePercent}%</Text></View> : null}
+        {expenseAlert.status === "over" ? <View style={styles.expenseOverAlert}><Text style={styles.expenseOverAlertText}>超標警示：{isYear ? "年度" : "本月"}生活支出超過生活金額 {money(expenseAlert.overage)}</Text></View> : null}
+        {!isYear ? <><View style={styles.livingDivider} /><Text style={[styles.monthDifference, differencePositive ? styles.monthDifferencePositive : styles.monthDifferenceNegative]}>{differencePositive ? "↑" : "↓"} 較上月 {differencePositive ? "增加" : "減少"} {money(Math.abs(difference))}</Text></> : null}
       </View>
     </View>
   );
@@ -149,7 +149,7 @@ export default function HomeScreen() {
               <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
               <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
             </View>
-            {period !== "all" ? <LivingAmountCard amount={monthComparison.current.livingAmount} expense={monthComparison.current.expense} difference={monthComparison.difference} /> : null}
+            {period === "all" ? <LivingAmountCard scope="year" amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} /> : <LivingAmountCard amount={monthComparison.current.livingAmount} expense={monthComparison.current.expense} difference={monthComparison.difference} />}
           </View>
         </View>
 
@@ -209,6 +209,7 @@ const styles = StyleSheet.create({
   metricAmount: { color: "#0E6B56", fontSize: 22, lineHeight: 28, fontWeight: "900", marginTop: 18 },
   expenseAmount: { color: "#C85F3A" },
   livingCard: { flex: 1, borderRadius: 17, backgroundColor: "#EEF5F1", padding: 14, borderWidth: 1, borderColor: "#CEE1D8", minHeight: 278, justifyContent: "space-between" },
+  annualLivingCard: { backgroundColor: "#EEF3FA", borderColor: "#D3DFEF" },
   livingHeading: { flexDirection: "row", justifyContent: "space-between", gap: 7 },
   livingLabel: { color: "#34473D", fontSize: 13, fontWeight: "900" },
   livingFormula: { color: "#6D7B72", fontSize: 10, marginTop: 4 },

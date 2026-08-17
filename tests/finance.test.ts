@@ -100,6 +100,13 @@ describe("finance calculations", () => {
     expect(livingExpenseAlertFor(2000, 3500)).toEqual({ status: "over", overage: 1500, usagePercent: 175 });
   });
 
+  it("applies the same living amount and alert rules to annual totals", () => {
+    const annual = summaryFor(records);
+    const annualLivingAmount = livingAmountFor(annual.income, annual.expense);
+    expect(annualLivingAmount).toBeCloseTo(12866.666666666668);
+    expect(livingExpenseAlertFor(annualLivingAmount, annual.expense)).toMatchObject({ status: "normal" });
+  });
+
   it("compares this month’s living amount with the previous month", () => {
     const comparison = monthlyLivingComparison(records, new Date(2026, 1, 15));
     expect(comparison.current).toMatchObject({ year: 2026, month: 1, income: 0, expense: 2000, livingAmount: -2000 });
