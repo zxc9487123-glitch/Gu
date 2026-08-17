@@ -3,7 +3,7 @@ import { File } from "expo-file-system/next";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useState } from "react";
 
-import { parseExcelTransactions, type ExcelImportMode, type ExcelImportPreview } from "@/lib/excel-import";
+import { overrideExcelPreviewCategoryType, parseExcelTransactions, type ExcelImportMode, type ExcelImportPreview } from "@/lib/excel-import";
 import type { TransactionType } from "@/lib/finance";
 
 const EXCEL_TYPES = [
@@ -83,6 +83,15 @@ export function ExcelImportCard({ onConfirm }: Props) {
     });
   };
 
+  const overrideCategoryType = (category: string, type: TransactionType) => {
+    setPreview((current) => current ? overrideExcelPreviewCategoryType(current, category, type) : current);
+  };
+
+  const categoryCounts = preview?.valid.reduce<Record<string, number>>((counts, item) => {
+    counts[item.category] = (counts[item.category] ?? 0) + 1;
+    return counts;
+  }, {}) ?? {};
+
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>匯入 Excel</Text>
@@ -127,6 +136,19 @@ export function ExcelImportCard({ onConfirm }: Props) {
                   <Text style={[styles.typeButtonText, item.type === "income" && styles.typeButtonIncomeText]}>收入</Text>
                 </Pressable>
               </View>
+              {(categoryCounts[item.category] ?? 0) > 1 ? (
+                <View style={styles.batchCategoryActions}>
+                  <Text style={styles.batchCategoryLabel}>同分類 {categoryCounts[item.category]} 筆</Text>
+                  <View style={styles.batchCategoryButtons}>
+                    <Pressable onPress={() => overrideCategoryType(item.category, "expense")} style={[styles.batchCategoryButton, styles.batchCategoryExpenseButton]}>
+                      <Text style={styles.batchCategoryExpenseText}>全部支出</Text>
+                    </Pressable>
+                    <Pressable onPress={() => overrideCategoryType(item.category, "income")} style={[styles.batchCategoryButton, styles.batchCategoryIncomeButton]}>
+                      <Text style={styles.batchCategoryIncomeText}>全部收入</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
             </View>
           ))}
           {preview.valid.length > 8 ? <Pressable onPress={() => setShowAllRows((value) => !value)} style={styles.showMoreButton}><Text style={styles.showMoreText}>{showAllRows ? "收合預覽列" : `顯示全部 ${preview.valid.length} 筆並逐筆更正`}</Text></Pressable> : null}
@@ -194,6 +216,14 @@ const styles = StyleSheet.create({
   typeButtonText: { color: "#7A837D", fontSize: 11, fontWeight: "900" },
   typeButtonExpenseText: { color: "#C85F3A" },
   typeButtonIncomeText: { color: "#0E6B56" },
+  batchCategoryActions: { marginTop: 9, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E8E3DB", flexDirection: "row", alignItems: "center", gap: 8 },
+  batchCategoryLabel: { flex: 1, color: "#6D7770", fontSize: 10, fontWeight: "800" },
+  batchCategoryButtons: { flexDirection: "row", gap: 6 },
+  batchCategoryButton: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, borderWidth: 1 },
+  batchCategoryExpenseButton: { backgroundColor: "#FFF1ED", borderColor: "#EDC1B5" },
+  batchCategoryIncomeButton: { backgroundColor: "#EBF5EF", borderColor: "#B9D6CA" },
+  batchCategoryExpenseText: { color: "#C85F3A", fontSize: 10, fontWeight: "900" },
+  batchCategoryIncomeText: { color: "#0E6B56", fontSize: 10, fontWeight: "900" },
   showMoreButton: { marginTop: 10, alignItems: "center", paddingVertical: 10, borderRadius: 10, backgroundColor: "#F1F6F3" },
   showMoreText: { color: "#0E6B56", fontSize: 12, fontWeight: "900" },
   issuesPanel: { marginTop: 14, padding: 11, borderRadius: 12, backgroundColor: "#FFF3F0", borderWidth: 1, borderColor: "#F1C6BA" },

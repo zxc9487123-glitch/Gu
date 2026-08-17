@@ -288,6 +288,13 @@ export function parseExcelTransactions(buffer: ArrayBuffer): ExcelImportPreview 
   return { valid, issues, scannedRows: dataRows.filter((row) => !emptyRow(row)).length, worksheetName: candidate.name, workbookSheets, headerRow: candidate.headerIndex + 1, detectedHeaders };
 }
 
+export function overrideExcelPreviewCategoryType(preview: ExcelImportPreview, category: string, type: TransactionType): ExcelImportPreview {
+  return {
+    ...preview,
+    valid: preview.valid.map((item) => item.category === category ? { ...item, type, typeResolution: "manual" } : item),
+  };
+}
+
 function fingerprint(transaction: Omit<Transaction, "id">) {
   return [transaction.date, transaction.type, transaction.category, transaction.amount, transaction.note.trim()].join("|");
 }

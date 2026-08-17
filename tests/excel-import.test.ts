@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
 
-import { deduplicateExcelImports, mergeExcelImports, parseExcelTransactions } from "../lib/excel-import";
+import { deduplicateExcelImports, mergeExcelImports, overrideExcelPreviewCategoryType, parseExcelTransactions } from "../lib/excel-import";
 import type { Transaction } from "../lib/finance";
 
 function workbookBuffer(rows: unknown[][]) {
@@ -132,6 +132,22 @@ describe("Excel import", () => {
       { date: "2025-12-23", type: "income", category: "帳戶轉帳", amount: 2880, note: "CD轉入" },
     ]);
     expect(result.valid[0]?.typeResolution).toBe("inferred");
+  });
+
+  it("applies a manual type override to every preview transaction in the same category", () => {
+    const preview = parseExcelTransactions(workbookBuffer([
+      ["交易日期", "類型", "分類", "金額", "摘要"],
+      ["2025-12-25", "收入", "卡牌", 1416, "第一筆"],
+      ["2025-12-24", "收入", "卡牌", 5000, "第二筆"],
+      ["2025-12-23", "收入", "薪資", 37277, "不同分類"],
+    ]));
+
+    const corrected = overrideExcelPreviewCategoryType(preview, "卡牌", "expense");
+    expect(corrected.valid.map((item) => ({ category: item.category, type: item.type, typeResolution: item.typeResolution }))).toEqual([
+      { category: "卡牌", type: "expense", typeResolution: "manual" },
+      { category: "卡牌", type: "expense", typeResolution: "manual" },
+      { category: "薪資", type: "income", typeResolution: "explicit" },
+    ]);
   });
 
   it("returns sheet diagnostics when no recognizable transaction headers are present", () => {
