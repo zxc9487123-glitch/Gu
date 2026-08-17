@@ -3,11 +3,9 @@ import * as XLSX from "xlsx";
 import { currentDateInput, type Transaction, type TransactionType } from "./finance";
 
 export type ImportDraft = Omit<Transaction, "id">;
+export type ExcelImportMode = "skip" | "update";
 
-export type ImportIssue = {
-  row: number;
-  message: string;
-};
+export type ImportIssue = { row: number; message: string };
 
 export type ExcelImportPreview = {
   valid: ImportDraft[];
@@ -16,10 +14,8 @@ export type ExcelImportPreview = {
   worksheetName: string;
 };
 
-export type DeduplicationResult = {
-  accepted: ImportDraft[];
-  skipped: number;
-};
+export type DeduplicationResult = { accepted: ImportDraft[]; skipped: number };
+export type MergeImportResult = { transactions: Transaction[]; added: number; updated: number; skipped: number };
 
 const HEADER_ALIASES: Record<"date" | "type" | "category" | "amount" | "note", string[]> = {
   date: ["日期", "date"],
@@ -139,6 +135,10 @@ function fingerprint(transaction: Omit<Transaction, "id">) {
   return [transaction.date, transaction.type, transaction.category, transaction.amount, transaction.note.trim()].join("|");
 }
 
+function identityKey(transaction: Omit<Transaction, "id">) {
+  return [transaction.date, transaction.type, transaction.category].join("|");
+}
+
 export function deduplicateExcelImports(existing: Transaction[], drafts: ImportDraft[]): DeduplicationResult {
   const seen = new Set(existing.map(fingerprint));
   const accepted: ImportDraft[] = [];
@@ -153,6 +153,37 @@ export function deduplicateExcelImports(existing: Transaction[], drafts: ImportD
     accepted.push(draft);
   });
   return { accepted, skipped };
+}
+
+export function mergeExcelImports(existing: Transaction[], drafts: ImportDraft[], mode: ExcelImportMode, createId: () => string): MergeImportResult {
+  const transactions = [...existing];
+  const byIdentity = new Map<string, number>();
+  transactions.forEach((transaction, index) => {
+    if (!byIdentity.has(identityKey(transaction))) byIdentity.set(identityKey(transaction), index);
+  });
+
+  let added = 0;
+  let updated = 0;
+  let skipped = 0;
+  drafts.forEach((draft) => {
+    const key = identityKey(draft);
+    const existingIndex = byIdentity.get(key);
+    if (existingIndex === undefined) {
+      transactions.push({ ...draft, id: createId() });
+      byIdentity.set(key, transactions.length - 1);
+      added += 1;
+      return;
+    }
+    const current = transactions[existingIndex];
+    if (mode === "skip" || fingerprint(current) === fingerprint(draft)) {
+      skipped += 1;
+      return;
+    }
+    transactions[existingIndex] = { ...current, ...draft };
+    updated += 1;
+  });
+
+  return { transactions, added, updated, skipped };
 }
 
 export function excelTemplateExample() {

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useState } from "react";
 
-import { deduplicateExcelImports, type ImportDraft } from "@/lib/excel-import";
+import { mergeExcelImports, type ExcelImportMode, type ImportDraft } from "@/lib/excel-import";
 import { currentDateInput, type Transaction, type TransactionType } from "@/lib/finance";
 
 const STORAGE_KEY = "bookkeeping.transactions.v1";
@@ -64,15 +64,14 @@ export function useFinance() {
   );
 
   const importTransactions = useCallback(
-    async (drafts: ImportDraft[]) => {
-      const deduplicated = deduplicateExcelImports(transactions, drafts);
-      const additions: Transaction[] = deduplicated.accepted.map((draft, index) => ({
-        ...draft,
-        id: `import-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
-      }));
-
-      if (additions.length > 0) await persist([...additions, ...transactions]);
-      return { added: additions.length, skipped: deduplicated.skipped };
+    async (drafts: ImportDraft[], mode: ExcelImportMode = "skip") => {
+      let sequence = 0;
+      const merged = mergeExcelImports(transactions, drafts, mode, () => {
+        sequence += 1;
+        return `import-${Date.now()}-${sequence}-${Math.random().toString(16).slice(2)}`;
+      });
+      if (merged.added + merged.updated > 0) await persist(merged.transactions);
+      return { added: merged.added, updated: merged.updated, skipped: merged.skipped };
     },
     [persist, transactions],
   );

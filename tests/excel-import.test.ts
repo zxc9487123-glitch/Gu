@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
 
-import { deduplicateExcelImports, parseExcelTransactions } from "../lib/excel-import";
+import { deduplicateExcelImports, mergeExcelImports, parseExcelTransactions } from "../lib/excel-import";
 import type { Transaction } from "../lib/finance";
 
 function workbookBuffer(rows: unknown[][]) {
@@ -52,5 +52,23 @@ describe("Excel import", () => {
     expect(result.accepted).toHaveLength(1);
     expect(result.accepted[0]?.category).toBe("購物");
     expect(result.skipped).toBe(2);
+  });
+
+  it("updates a matching transaction only when update mode is enabled", () => {
+    const existing: Transaction[] = [
+      { id: "stored", date: "2026-08-17", type: "expense", category: "餐飲／食品", amount: 150, note: "午餐" },
+    ];
+    const drafts = [
+      { date: "2026-08-17", type: "expense" as const, category: "餐飲／食品", amount: 180, note: "午餐調整" },
+      { date: "2026-08-18", type: "income" as const, category: "薪資", amount: 50000, note: "八月薪資" },
+    ];
+
+    const skipped = mergeExcelImports(existing, drafts, "skip", () => "new");
+    expect(skipped).toMatchObject({ added: 1, updated: 0, skipped: 1 });
+    expect(skipped.transactions.find((item) => item.id === "stored")?.amount).toBe(150);
+
+    const updated = mergeExcelImports(existing, drafts, "update", () => "new");
+    expect(updated).toMatchObject({ added: 1, updated: 1, skipped: 0 });
+    expect(updated.transactions.find((item) => item.id === "stored")).toMatchObject({ amount: 180, note: "午餐調整" });
   });
 });
