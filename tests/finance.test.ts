@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { budgetAlertFor, budgetProgressPercentFor } from "../lib/budget-status";
 import { annualLivingBudgetFor } from "../lib/annual-living";
-import { livingAmountFor, livingExpenseComparisonFor } from "../lib/living-amount";
+import { livingAmountFor, livingExpenseComparisonFor, livingExpenseSharePercentFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { trendCopyFor } from "../lib/trend-copy";
 
@@ -88,6 +88,12 @@ describe("finance calculations", () => {
   it("compares the living amount against the expense amount", () => {
     expect(livingExpenseComparisonFor(2000, 1200)).toEqual({ difference: 800 });
     expect(livingExpenseComparisonFor(-1500, 3500)).toEqual({ difference: -5000 });
+  });
+
+  it("calculates the living amount as a percentage of monthly living expense", () => {
+    expect(livingExpenseSharePercentFor(2000, 8000)).toBe(25);
+    expect(livingExpenseSharePercentFor(-1500, 3500)).toBe(-43);
+    expect(livingExpenseSharePercentFor(2000, 0)).toBeNull();
   });
 
   it("compares this month’s living amount with the previous month", () => {

@@ -9,7 +9,7 @@ import { useLivingBudget } from "@/hooks/use-living-budget";
 import { annualLivingBudgetFor } from "@/lib/annual-living";
 import { budgetAlertFor, budgetProgressPercentFor, type BudgetAlert } from "@/lib/budget-status";
 import { annualExpenseInsightsFor, availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor } from "@/lib/finance";
-import { livingExpenseComparisonFor } from "@/lib/living-amount";
+import { livingExpenseComparisonFor, livingExpenseSharePercentFor } from "@/lib/living-amount";
 import { monthlyLivingComparison } from "@/lib/monthly-living";
 import { trendCopyFor } from "@/lib/trend-copy";
 
@@ -35,6 +35,7 @@ function LivingAmountCard({ amount, expense, budget, difference }: { amount: num
   const differencePositive = difference >= 0;
   const expenseComparison = livingExpenseComparisonFor(amount, expense);
   const exceedsExpense = expenseComparison.difference >= 0;
+  const expenseSharePercent = livingExpenseSharePercentFor(amount, expense);
   const budgetRemaining = budget === null ? null : budget - expense;
   const budgetAlert: BudgetAlert | null = budget === null ? null : budgetAlertFor(expense, budget);
   const progressPercent = budgetAlert ? budgetProgressPercentFor(budgetAlert.usageRate) : 0;
@@ -62,6 +63,7 @@ function LivingAmountCard({ amount, expense, budget, difference }: { amount: num
             <Text style={[styles.expenseComparisonAmount, exceedsExpense ? styles.expenseComparisonPositive : styles.expenseComparisonNegative]}>{money(Math.abs(expenseComparison.difference))}</Text>
           </View>
         </View>
+        <Text style={[styles.expenseShareText, expenseSharePercent !== null && expenseSharePercent < 0 && styles.expenseComparisonNegative]}>生活金額占本月生活支出：{expenseSharePercent === null ? "不適用" : `${expenseSharePercent}%`}</Text>
         <View style={styles.livingDivider} />
         {budget === null ? <Text style={styles.livingMeta}>尚未設定每月生活預算上限</Text> : <Text style={styles.livingMeta}>生活支出 {money(expense)} ／上限 {money(budget)}</Text>}
         {budgetRemaining !== null ? <Text style={[styles.livingMeta, budgetRemaining < 0 && styles.livingMetaNegative]}>{budgetRemaining >= 0 ? `距上限尚餘 ${money(budgetRemaining)}` : `超出上限 ${money(Math.abs(budgetRemaining))}`}</Text> : null}
@@ -260,6 +262,7 @@ const styles = StyleSheet.create({
   expenseComparisonAmount: { color: "#34473D", fontSize: 12, lineHeight: 16, fontWeight: "900", marginTop: 2 },
   expenseComparisonPositive: { color: "#0E6B56" },
   expenseComparisonNegative: { color: "#C85F3A" },
+  expenseShareText: { color: "#587066", fontSize: 10, fontWeight: "800", marginTop: 6 },
   livingDivider: { height: 1, backgroundColor: "#D6E5DD", marginVertical: 9 },
   livingMeta: { color: "#587066", fontSize: 10, lineHeight: 15 },
   livingMetaNegative: { color: "#C85F3A", fontWeight: "800" },
