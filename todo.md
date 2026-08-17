@@ -34,3 +34,6 @@
 - [x] 確認 Expo slug 與 EAS projectId 的一致性
 - [x] 修正 Expo 發佈識別設定
 - [x] 建立可重新發佈的版本快照
+- [x] 確認 EAS 專案所綁定的原始 slug
+- [x] 還原 Expo slug 以符合 EAS projectId
+- [x] 建立 slug 還原後的可建置版本快照
