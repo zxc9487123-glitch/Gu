@@ -7,7 +7,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { useLivingBudget } from "@/hooks/use-living-budget";
-import { budgetAlertFor, type BudgetAlert } from "@/lib/budget-status";
+import { budgetAlertFor, budgetProgressPercentFor, type BudgetAlert } from "@/lib/budget-status";
 import { availableYears, categoryTotalsFor, money, monthPointsFor, summaryFor, transactionsForPeriod } from "@/lib/finance";
 import { monthlyLivingComparison } from "@/lib/monthly-living";
 import { trendCopyFor } from "@/lib/trend-copy";
@@ -34,6 +34,7 @@ function LivingAmountCard({ amount, expense, budget, difference }: { amount: num
   const differencePositive = difference >= 0;
   const budgetRemaining = budget === null ? null : budget - expense;
   const budgetAlert: BudgetAlert | null = budget === null ? null : budgetAlertFor(expense, budget);
+  const progressPercent = budgetAlert ? budgetProgressPercentFor(budgetAlert.usageRate) : 0;
   return (
     <View style={[styles.livingCard, budgetAlert?.status === "warning" && styles.livingCardWarning, budgetAlert?.status === "over" && styles.livingCardOver]}>
       <View style={styles.livingHeading}>
@@ -51,6 +52,7 @@ function LivingAmountCard({ amount, expense, budget, difference }: { amount: num
         <View style={styles.livingDivider} />
         {budget === null ? <Text style={styles.livingMeta}>尚未設定每月生活預算上限</Text> : <Text style={styles.livingMeta}>生活支出 {money(expense)} ／上限 {money(budget)}</Text>}
         {budgetRemaining !== null ? <Text style={[styles.livingMeta, budgetRemaining < 0 && styles.livingMetaNegative]}>{budgetRemaining >= 0 ? `距上限尚餘 ${money(budgetRemaining)}` : `超出上限 ${money(Math.abs(budgetRemaining))}`}</Text> : null}
+        {budgetAlert ? <View style={styles.progressArea}><View style={styles.progressMetaRow}><Text style={styles.progressLabel}>預算使用進度</Text><Text style={[styles.progressPercent, budgetAlert.status === "warning" && styles.progressPercentWarning, budgetAlert.status === "over" && styles.progressPercentOver]}>{budgetAlert.usagePercent}%</Text></View><View style={styles.progressTrack}><View style={[styles.progressFill, budgetAlert.status === "warning" && styles.progressFillWarning, budgetAlert.status === "over" && styles.progressFillOver, { width: `${progressPercent}%` }]} /></View></View> : null}
         {budgetAlert ? <View style={[styles.budgetAlert, budgetAlert.status === "warning" && styles.budgetAlertWarning, budgetAlert.status === "over" && styles.budgetAlertOver]}><Text style={[styles.budgetAlertText, budgetAlert.status === "warning" && styles.budgetAlertTextWarning, budgetAlert.status === "over" && styles.budgetAlertTextOver]}>{budgetAlert.status === "normal" ? budgetAlert.message : `注意：${budgetAlert.message}`}</Text></View> : null}
         <Text style={[styles.monthDifference, differencePositive ? styles.monthDifferencePositive : styles.monthDifferenceNegative]}>{differencePositive ? "↑" : "↓"} 較上月 {differencePositive ? "增加" : "減少"} {money(Math.abs(difference))}</Text>
       </View>
@@ -183,6 +185,16 @@ const styles = StyleSheet.create({
   livingDivider: { height: 1, backgroundColor: "#D6E5DD", marginVertical: 9 },
   livingMeta: { color: "#587066", fontSize: 10, lineHeight: 15 },
   livingMetaNegative: { color: "#C85F3A", fontWeight: "800" },
+  progressArea: { marginTop: 8 },
+  progressMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  progressLabel: { color: "#587066", fontSize: 10, fontWeight: "800" },
+  progressPercent: { color: "#0E6B56", fontSize: 10, fontWeight: "900" },
+  progressPercentWarning: { color: "#8A5E05" },
+  progressPercentOver: { color: "#B5472C" },
+  progressTrack: { height: 7, borderRadius: 4, backgroundColor: "#D9E7E0", overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 4, backgroundColor: "#0E6B56" },
+  progressFillWarning: { backgroundColor: "#D39A2E" },
+  progressFillOver: { backgroundColor: "#C85F3A" },
   budgetAlert: { marginTop: 7, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: "#E4F1EB" },
   budgetAlertWarning: { backgroundColor: "#FFF0C8" },
   budgetAlertOver: { backgroundColor: "#FBE0D7" },

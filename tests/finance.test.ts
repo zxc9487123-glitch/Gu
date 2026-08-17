@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
-import { budgetAlertFor } from "../lib/budget-status";
+import { budgetAlertFor, budgetProgressPercentFor } from "../lib/budget-status";
 import { livingAmountFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { trendCopyFor } from "../lib/trend-copy";
@@ -59,5 +59,10 @@ describe("finance calculations", () => {
     expect(budgetAlertFor(790, 1000)).toMatchObject({ status: "normal", usagePercent: 79 });
     expect(budgetAlertFor(800, 1000)).toMatchObject({ status: "warning", usagePercent: 80 });
     expect(budgetAlertFor(1200, 1000)).toMatchObject({ status: "over", usagePercent: 120 });
+  });
+
+  it("caps visual budget progress at 100% while keeping the actual usage percentage", () => {
+    expect(budgetProgressPercentFor(0.425)).toBe(43);
+    expect(budgetProgressPercentFor(1.2)).toBe(100);
   });
 });

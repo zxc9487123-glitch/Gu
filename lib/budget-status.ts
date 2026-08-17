@@ -18,3 +18,7 @@ export function budgetAlertFor(expense: number, budget: number): BudgetAlert {
   }
   return { status: "normal", usageRate, usagePercent, message: `已使用 ${usagePercent}%：仍在每月預算內` };
 }
+
+export function budgetProgressPercentFor(usageRate: number) {
+  return Math.round(Math.max(0, Math.min(usageRate, 1)) * 100);
+}
