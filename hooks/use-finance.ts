@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useState } from "react";
 
+import { deduplicateExcelImports, type ImportDraft } from "@/lib/excel-import";
 import { currentDateInput, type Transaction, type TransactionType } from "@/lib/finance";
 
 const STORAGE_KEY = "bookkeeping.transactions.v1";
@@ -62,9 +63,23 @@ export function useFinance() {
     [persist, transactions],
   );
 
+  const importTransactions = useCallback(
+    async (drafts: ImportDraft[]) => {
+      const deduplicated = deduplicateExcelImports(transactions, drafts);
+      const additions: Transaction[] = deduplicated.accepted.map((draft, index) => ({
+        ...draft,
+        id: `import-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
+      }));
+
+      if (additions.length > 0) await persist([...additions, ...transactions]);
+      return { added: additions.length, skipped: deduplicated.skipped };
+    },
+    [persist, transactions],
+  );
+
   const clearTransactions = useCallback(async () => {
     await persist([]);
   }, [persist]);
 
-  return { transactions, isLoading, addTransaction, removeTransaction, clearTransactions };
+  return { transactions, isLoading, addTransaction, removeTransaction, importTransactions, clearTransactions };
 }

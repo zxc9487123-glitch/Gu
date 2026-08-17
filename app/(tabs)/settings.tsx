@@ -1,10 +1,11 @@
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { ExcelImportCard } from "@/components/excel-import-card";
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
 
 export default function SettingsScreen() {
-  const { transactions, clearTransactions } = useFinance();
+  const { transactions, clearTransactions, importTransactions } = useFinance();
   const confirmClear = () => {
     Alert.alert("清除所有本機記錄？", "這會刪除目前裝置上的所有交易資料，且無法復原。", [
       { text: "取消", style: "cancel" },
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
           <View style={styles.divider} />
           <Text style={styles.infoText}>每筆收支會用於計算首頁摘要、分類結構、年度趨勢與支出排行。</Text>
         </View>
+        <ExcelImportCard onConfirm={(preview) => importTransactions(preview.valid)} />
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>資料管理</Text>
           <Text style={styles.infoText}>清除只會影響目前裝置上的記帳紀錄。</Text>
