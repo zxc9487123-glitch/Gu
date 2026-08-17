@@ -71,6 +71,23 @@ describe("Excel import", () => {
     ]);
   });
 
+  it("infers type from signed amounts only when the transaction type is blank", () => {
+    const result = parseExcelTransactions(workbookBuffer([
+      ["交易日期", "類型", "分類", "金額 (NT$)", "摘要"],
+      ["2025-12-31", "", "交通/Uber", -179, "未填類型的扣款"],
+      ["2025-12-30", "", "其他收入", 880, "未填類型的入帳"],
+      ["2025-12-29", "支出", "購物", 300, "已填類型優先"],
+      ["2025-12-28", "收入", "薪資", -50000, "已填類型優先"],
+    ]));
+
+    expect(result.valid).toEqual([
+      { date: "2025-12-31", type: "expense", category: "交通/Uber", amount: 179, note: "未填類型的扣款" },
+      { date: "2025-12-30", type: "income", category: "其他收入", amount: 880, note: "未填類型的入帳" },
+      { date: "2025-12-29", type: "expense", category: "購物", amount: 300, note: "已填類型優先" },
+      { date: "2025-12-28", type: "income", category: "薪資", amount: 50000, note: "已填類型優先" },
+    ]);
+  });
+
   it("returns sheet diagnostics when no recognizable transaction headers are present", () => {
     const result = parseExcelTransactions(workbookWithSheets([
       { name: "封面", rows: [["我的財務摘要"], ["本月結餘", 1000]] },

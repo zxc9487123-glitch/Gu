@@ -110,11 +110,21 @@ function parseType(value: unknown): TransactionType | null {
 function parseAmount(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return Math.abs(value);
   const raw = text(value);
-  const isNegative = /^\(.*\)$/.test(raw) || raw.includes("-");
-  const sanitized = raw.replace(/[,$\s()\-]|nt\$/gi, "");
+  const isNegative = /^\(.*\)$/.test(raw) || /[-−–]/.test(raw);
+  const sanitized = raw.replace(/[,$\s()\-−–]|nt\$/gi, "");
   const parsed = Number(sanitized);
   if (!Number.isFinite(parsed)) return Number.NaN;
   return isNegative ? Math.abs(parsed) : parsed;
+}
+
+function amountSign(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.sign(value);
+  const raw = text(value);
+  if (!raw) return 0;
+  if (/^\(.*\)$/.test(raw) || /[-−–]/.test(raw)) return -1;
+  const sanitized = raw.replace(/[,$\s()]/g, "").replace(/nt\$/gi, "");
+  const parsed = Number(sanitized);
+  return Number.isFinite(parsed) ? Math.sign(parsed) : 0;
 }
 
 function parseDate(value: unknown): string | null {
@@ -147,7 +157,9 @@ function categoryFor(row: unknown[], indexes: ColumnIndexes) {
 
 function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
   let type = indexes.type >= 0 ? parseType(row[indexes.type]) : null;
+  const hasExplicitTypeValue = indexes.type >= 0 && text(row[indexes.type]) !== "";
   let amount = indexes.amount >= 0 ? parseAmount(row[indexes.amount]) : Number.NaN;
+  const directAmountSign = indexes.amount >= 0 ? amountSign(row[indexes.amount]) : 0;
   const income = indexes.income >= 0 ? parseAmount(row[indexes.income]) : Number.NaN;
   const expense = indexes.expense >= 0 ? parseAmount(row[indexes.expense]) : Number.NaN;
 
@@ -161,6 +173,9 @@ function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
   }
   if (!type && Number.isFinite(income) && income > 0) type = "income";
   if (!type && Number.isFinite(expense) && expense > 0) type = "expense";
+  if (!type && !hasExplicitTypeValue && Number.isFinite(amount) && amount > 0 && directAmountSign !== 0) {
+    type = directAmountSign > 0 ? "income" : "expense";
+  }
   return { amount, type };
 }
 
