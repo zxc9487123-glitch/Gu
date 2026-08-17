@@ -4,8 +4,10 @@ import { router } from "expo-router";
 
 import { DonutChart, Treemap, TrendLine } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { availableYears, categoryTotalsFor, money, monthPointsFor, summaryFor, transactionsForPeriod } from "@/lib/finance";
+import { livingAmountFor } from "@/lib/living-amount";
 import { trendCopyFor } from "@/lib/trend-copy";
 
 type Period = "all" | number;
@@ -21,6 +23,27 @@ function MetricCard({ label, amount, tone }: { label: string; amount: string; to
         </View>
       </View>
       <Text style={[styles.metricAmount, tone === "expense" && styles.expenseAmount]}>{amount}</Text>
+    </View>
+  );
+}
+
+function LivingAmountCard({ amount }: { amount: number }) {
+  const positive = amount >= 0;
+  return (
+    <View style={styles.livingCard}>
+      <View style={styles.livingHeading}>
+        <View>
+          <Text style={styles.livingLabel}>生活金額</Text>
+          <Text style={styles.livingFormula}>收入 ÷ 3 − 支出</Text>
+        </View>
+        <View style={styles.livingIcon}>
+          <IconSymbol name="house.fill" size={24} color="#0E6B56" />
+        </View>
+      </View>
+      <View>
+        <Text style={[styles.livingAmount, positive ? styles.livingAmountPositive : styles.livingAmountNegative]}>{money(amount, positive)}</Text>
+        <Text style={styles.livingHint}>{positive ? "可用於日常生活的金額" : "目前支出已超出生活金額"}</Text>
+      </View>
     </View>
   );
 }
@@ -47,6 +70,7 @@ export default function HomeScreen() {
   const points = useMemo(() => monthPointsFor(filtered, period), [filtered, period]);
   const firstYear = years[0] ?? new Date().getFullYear();
   const trendCopy = trendCopyFor(period);
+  const livingAmount = livingAmountFor(summary.income, summary.expense);
 
   return (
     <ScreenContainer containerClassName="bg-background">
@@ -71,8 +95,13 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.metricGrid}>
-          <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
-          <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
+          <View style={styles.metricTopRow}>
+            <View style={styles.metricColumn}>
+              <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
+              <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
+            </View>
+            <LivingAmountCard amount={livingAmount} />
+          </View>
           <View style={styles.netCard}>
             <Text style={styles.metricLabel}>淨結餘</Text>
             <Text style={styles.netAmount}>{isLoading ? "載入中" : money(summary.net, summary.net >= 0)}</Text>
@@ -117,8 +146,10 @@ const styles = StyleSheet.create({
   segmentSelected: { backgroundColor: "#E8F1EC" },
   segmentText: { color: "#6E7871", fontSize: 12, fontWeight: "700" },
   segmentTextSelected: { color: "#0E6B56" },
-  metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 34 },
-  metricCard: { width: "48.6%", borderRadius: 17, backgroundColor: "#FFFFFF", padding: 14, borderWidth: 1, borderColor: "#ECE7DE", minHeight: 112 },
+  metricGrid: { gap: 10, marginTop: 34 },
+  metricTopRow: { flexDirection: "row", gap: 10 },
+  metricColumn: { flex: 1, gap: 10 },
+  metricCard: { borderRadius: 17, backgroundColor: "#FFFFFF", padding: 14, borderWidth: 1, borderColor: "#ECE7DE", minHeight: 112 },
   metricHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   metricLabel: { color: "#657069", fontSize: 12, fontWeight: "800" },
   metricIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#E6F3ED" },
@@ -127,6 +158,15 @@ const styles = StyleSheet.create({
   metricIconTextExpense: { color: "#C85F3A" },
   metricAmount: { color: "#0E6B56", fontSize: 22, lineHeight: 28, fontWeight: "900", marginTop: 18 },
   expenseAmount: { color: "#C85F3A" },
+  livingCard: { flex: 1, borderRadius: 17, backgroundColor: "#EEF5F1", padding: 14, borderWidth: 1, borderColor: "#CEE1D8", minHeight: 234, justifyContent: "space-between" },
+  livingHeading: { flexDirection: "row", justifyContent: "space-between", gap: 7 },
+  livingLabel: { color: "#34473D", fontSize: 13, fontWeight: "900" },
+  livingFormula: { color: "#6D7B72", fontSize: 10, marginTop: 4 },
+  livingIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#DCEDE5", alignItems: "center", justifyContent: "center" },
+  livingAmount: { fontSize: 22, lineHeight: 28, fontWeight: "900" },
+  livingAmountPositive: { color: "#0E6B56" },
+  livingAmountNegative: { color: "#C85F3A" },
+  livingHint: { color: "#6D7B72", fontSize: 10, lineHeight: 15, marginTop: 5 },
   netCard: { width: "100%", borderRadius: 17, backgroundColor: "#FFFFFF", padding: 14, borderWidth: 1, borderColor: "#ECE7DE" },
   netAmount: { color: "#0E6B56", fontSize: 26, lineHeight: 32, fontWeight: "900", marginTop: 8 },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },

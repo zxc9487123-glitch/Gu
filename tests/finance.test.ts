@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
+import { livingAmountFor } from "../lib/living-amount";
 import { trendCopyFor } from "../lib/trend-copy";
 
 const records: Transaction[] = [
@@ -38,5 +39,10 @@ describe("finance calculations", () => {
   it("labels a selected year as a monthly trend and all years as an annual trend", () => {
     expect(trendCopyFor(2026)).toEqual({ title: "月趨勢", subtitle: "2026 年逐月淨現金流" });
     expect(trendCopyFor("all")).toEqual({ title: "年度趨勢", subtitle: "全年度收支變化" });
+  });
+
+  it("calculates the living amount as one-third of income minus expenses", () => {
+    expect(livingAmountFor(991428, 331828)).toBe(-1352);
+    expect(livingAmountFor(6000, 3500)).toBe(-1500);
   });
 });
