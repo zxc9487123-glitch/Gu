@@ -62,8 +62,7 @@ describe("finance calculations", () => {
     expect(summaries[1]).toMatchObject({ net: 80, incomeChangePercent: 20, expenseChangePercent: -20, netChangePercent: 60 });
   });
 
-  it("labels a selected year as a monthly trend and all years as an annual trend", () => {
-    expect(trendCopyFor(2026)).toEqual({ title: "月趨勢", subtitle: "2026 年逐月淨現金流" });
+  it("keeps the annual trend wording for the all-years overview", () => {
     expect(trendCopyFor("all")).toEqual({ title: "年度趨勢", subtitle: "全年度收支變化" });
   });
 

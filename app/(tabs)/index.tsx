@@ -165,9 +165,11 @@ export default function HomeScreen() {
           <Treemap data={categories} />
         </Panel>
 
-        <Panel title={trendCopy.title} subtitle={trendCopy.subtitle}>
-          <TrendLine points={points} showAnnualSummary={period === "all"} />
-        </Panel>
+        {period === "all" ? (
+          <Panel title={trendCopy.title} subtitle={trendCopy.subtitle}>
+            <TrendLine points={points} showAnnualSummary />
+          </Panel>
+        ) : null}
 
         <Panel title="支出分類佔比" subtitle="各分類支出金額比例">
           <DonutChart data={categories} />
