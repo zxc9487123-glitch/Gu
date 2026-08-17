@@ -29,8 +29,9 @@ describe("Excel import", () => {
     expect(result.valid).toEqual([
       { date: "2026-08-17", type: "expense", category: "餐飲／食品", amount: 150, note: "午餐" },
       { date: "2026-08-18", type: "income", category: "薪資", amount: 50000, note: "八月薪資" },
+      { date: "2026-08-20", type: "income", category: "購物", amount: 100, note: "錯誤類型" },
     ]);
-    expect(result.issues).toHaveLength(2);
+    expect(result.issues).toHaveLength(1);
   });
 
   it("finds a transaction sheet after a cover sheet and accepts alternate headers", () => {
@@ -71,13 +72,14 @@ describe("Excel import", () => {
     ]);
   });
 
-  it("infers type from signed amounts only when the transaction type is blank", () => {
+  it("infers type from signed amounts when the transaction type is blank or nonstandard", () => {
     const result = parseExcelTransactions(workbookBuffer([
       ["交易日期", "類型", "分類", "金額 (NT$)", "摘要"],
       ["2025-12-31", "", "交通/Uber", -179, "未填類型的扣款"],
       ["2025-12-30", "", "其他收入", 880, "未填類型的入帳"],
       ["2025-12-29", "支出", "購物", 300, "已填類型優先"],
       ["2025-12-28", "收入", "薪資", -50000, "已填類型優先"],
+      ["2025-12-27", "其他交易", "銀行轉帳", -600, "非標準類型扣款"],
     ]));
 
     expect(result.valid).toEqual([
@@ -85,6 +87,7 @@ describe("Excel import", () => {
       { date: "2025-12-30", type: "income", category: "其他收入", amount: 880, note: "未填類型的入帳" },
       { date: "2025-12-29", type: "expense", category: "購物", amount: 300, note: "已填類型優先" },
       { date: "2025-12-28", type: "income", category: "薪資", amount: 50000, note: "已填類型優先" },
+      { date: "2025-12-27", type: "expense", category: "銀行轉帳", amount: 600, note: "非標準類型扣款" },
     ]);
   });
 

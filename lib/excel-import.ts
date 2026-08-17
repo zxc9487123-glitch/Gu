@@ -157,7 +157,6 @@ function categoryFor(row: unknown[], indexes: ColumnIndexes) {
 
 function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
   let type = indexes.type >= 0 ? parseType(row[indexes.type]) : null;
-  const hasExplicitTypeValue = indexes.type >= 0 && text(row[indexes.type]) !== "";
   let amount = indexes.amount >= 0 ? parseAmount(row[indexes.amount]) : Number.NaN;
   const directAmountSign = indexes.amount >= 0 ? amountSign(row[indexes.amount]) : 0;
   const income = indexes.income >= 0 ? parseAmount(row[indexes.income]) : Number.NaN;
@@ -173,7 +172,7 @@ function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
   }
   if (!type && Number.isFinite(income) && income > 0) type = "income";
   if (!type && Number.isFinite(expense) && expense > 0) type = "expense";
-  if (!type && !hasExplicitTypeValue && Number.isFinite(amount) && amount > 0 && directAmountSign !== 0) {
+  if (!type && Number.isFinite(amount) && amount > 0 && directAmountSign !== 0) {
     type = directAmountSign > 0 ? "income" : "expense";
   }
   return { amount, type };
