@@ -14,6 +14,10 @@ function workbookWithSheets(sheets: Array<{ name: string; rows: unknown[][] }>) 
   return XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 }
 
+function drafts(preview: ReturnType<typeof parseExcelTransactions>) {
+  return preview.valid.map(({ row: _row, typeResolution: _typeResolution, ...draft }) => draft);
+}
+
 describe("Excel import", () => {
   it("parses valid rows and reports invalid rows", () => {
     const result = parseExcelTransactions(workbookBuffer([
@@ -26,7 +30,7 @@ describe("Excel import", () => {
 
     expect(result.worksheetName).toBe("交易");
     expect(result.headerRow).toBe(1);
-    expect(result.valid).toEqual([
+    expect(drafts(result)).toEqual([
       { date: "2026-08-17", type: "expense", category: "餐飲／食品", amount: 150, note: "午餐" },
       { date: "2026-08-18", type: "income", category: "薪資", amount: 50000, note: "八月薪資" },
       { date: "2026-08-20", type: "income", category: "購物", amount: 100, note: "錯誤類型" },
@@ -49,7 +53,7 @@ describe("Excel import", () => {
     expect(result.worksheetName).toBe("八月明細");
     expect(result.workbookSheets).toEqual(["封面", "八月明細"]);
     expect(result.headerRow).toBe(3);
-    expect(result.valid).toEqual([
+    expect(drafts(result)).toEqual([
       { date: "2026-08-17", type: "expense", category: "午餐", amount: 150, note: "公司附近" },
       { date: "2026-08-18", type: "income", category: "薪資", amount: 50000, note: "八月薪資" },
     ]);
@@ -66,7 +70,7 @@ describe("Excel import", () => {
     ]));
 
     expect(result.worksheetName).toBe("交易明細");
-    expect(result.valid).toEqual([
+    expect(drafts(result)).toEqual([
       { date: "2026-08-17", type: "expense", category: "餐飲／食品", amount: 150, note: "午餐" },
       { date: "2026-08-18", type: "income", category: "薪資", amount: 50000, note: "八月薪資" },
     ]);
@@ -82,13 +86,14 @@ describe("Excel import", () => {
       ["2025-12-27", "其他交易", "銀行轉帳", -600, "非標準類型扣款"],
     ]));
 
-    expect(result.valid).toEqual([
+    expect(drafts(result)).toEqual([
       { date: "2025-12-31", type: "expense", category: "交通/Uber", amount: 179, note: "未填類型的扣款" },
       { date: "2025-12-30", type: "income", category: "其他收入", amount: 880, note: "未填類型的入帳" },
       { date: "2025-12-29", type: "expense", category: "購物", amount: 300, note: "已填類型優先" },
       { date: "2025-12-28", type: "income", category: "薪資", amount: 50000, note: "已填類型優先" },
       { date: "2025-12-27", type: "expense", category: "銀行轉帳", amount: 600, note: "非標準類型扣款" },
     ]);
+    expect(result.valid.map((item) => item.typeResolution)).toEqual(["inferred", "inferred", "explicit", "explicit", "inferred"]);
   });
 
   it("returns sheet diagnostics when no recognizable transaction headers are present", () => {
@@ -134,5 +139,18 @@ describe("Excel import", () => {
     const updated = mergeExcelImports(existing, drafts, "update", () => "new");
     expect(updated).toMatchObject({ added: 1, updated: 1, skipped: 0 });
     expect(updated.transactions.find((item) => item.id === "stored")).toMatchObject({ amount: 180, note: "午餐調整" });
+  });
+
+  it("imports a manually corrected preview row without saving preview-only fields", () => {
+    const preview = parseExcelTransactions(workbookBuffer([
+      ["交易日期", "類型", "分類", "金額", "摘要"],
+      ["2025-12-31", "其他交易", "銀行轉帳", -600, "先自動推斷為支出"],
+    ]));
+    const corrected = { ...preview.valid[0]!, type: "income" as const, typeResolution: "manual" as const };
+    const merged = mergeExcelImports([], [corrected], "skip", () => "manual-id");
+
+    expect(merged.transactions).toEqual([
+      { id: "manual-id", date: "2025-12-31", type: "income", category: "銀行轉帳", amount: 600, note: "先自動推斷為支出" },
+    ]);
   });
 });

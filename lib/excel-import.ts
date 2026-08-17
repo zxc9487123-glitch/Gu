@@ -5,9 +5,11 @@ import { currentDateInput, type Transaction, type TransactionType } from "./fina
 export type ImportDraft = Omit<Transaction, "id">;
 export type ExcelImportMode = "skip" | "update";
 export type ImportIssue = { row: number; message: string };
+export type TypeResolution = "explicit" | "inferred" | "manual";
+export type ImportPreviewTransaction = ImportDraft & { row: number; typeResolution: TypeResolution };
 
 export type ExcelImportPreview = {
-  valid: ImportDraft[];
+  valid: ImportPreviewTransaction[];
   issues: ImportIssue[];
   scannedRows: number;
   worksheetName: string;
@@ -157,6 +159,7 @@ function categoryFor(row: unknown[], indexes: ColumnIndexes) {
 
 function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
   let type = indexes.type >= 0 ? parseType(row[indexes.type]) : null;
+  let typeResolution: TypeResolution | null = type ? "explicit" : null;
   let amount = indexes.amount >= 0 ? parseAmount(row[indexes.amount]) : Number.NaN;
   const directAmountSign = indexes.amount >= 0 ? amountSign(row[indexes.amount]) : 0;
   const income = indexes.income >= 0 ? parseAmount(row[indexes.income]) : Number.NaN;
@@ -165,17 +168,26 @@ function amountAndTypeFor(row: unknown[], indexes: ColumnIndexes) {
   if ((!Number.isFinite(amount) || amount <= 0) && Number.isFinite(income) && income > 0) {
     amount = income;
     type = "income";
+    typeResolution = "inferred";
   }
   if ((!Number.isFinite(amount) || amount <= 0) && Number.isFinite(expense) && expense > 0) {
     amount = expense;
     type = "expense";
+    typeResolution = "inferred";
   }
-  if (!type && Number.isFinite(income) && income > 0) type = "income";
-  if (!type && Number.isFinite(expense) && expense > 0) type = "expense";
+  if (!type && Number.isFinite(income) && income > 0) {
+    type = "income";
+    typeResolution = "inferred";
+  }
+  if (!type && Number.isFinite(expense) && expense > 0) {
+    type = "expense";
+    typeResolution = "inferred";
+  }
   if (!type && Number.isFinite(amount) && amount > 0 && directAmountSign !== 0) {
     type = directAmountSign > 0 ? "income" : "expense";
+    typeResolution = "inferred";
   }
-  return { amount, type };
+  return { amount, type, typeResolution };
 }
 
 export function parseExcelTransactions(buffer: ArrayBuffer): ExcelImportPreview {
@@ -200,7 +212,7 @@ export function parseExcelTransactions(buffer: ArrayBuffer): ExcelImportPreview 
 
   const candidate = candidates[0];
   const detectedHeaders = candidate.rows[candidate.headerIndex].map(text).filter(Boolean);
-  const valid: ImportDraft[] = [];
+  const valid: ImportPreviewTransaction[] = [];
   const issues: ImportIssue[] = [];
   const dataRows = candidate.rows.slice(candidate.headerIndex + 1, candidate.headerIndex + 1 + MAX_ROWS);
 
@@ -208,7 +220,7 @@ export function parseExcelTransactions(buffer: ArrayBuffer): ExcelImportPreview 
     const rowNumber = candidate.headerIndex + offset + 2;
     if (emptyRow(row)) return;
     const date = parseDate(row[candidate.indexes.date]);
-    const { amount, type } = amountAndTypeFor(row, candidate.indexes);
+    const { amount, type, typeResolution } = amountAndTypeFor(row, candidate.indexes);
     const category = categoryFor(row, candidate.indexes);
     const note = candidate.indexes.note >= 0 ? text(row[candidate.indexes.note]) : "";
     if (!date) {
@@ -223,7 +235,7 @@ export function parseExcelTransactions(buffer: ArrayBuffer): ExcelImportPreview 
       issues.push({ row: rowNumber, message: "找不到大於 0 的金額。" });
       return;
     }
-    valid.push({ date, type, category, amount, note });
+    valid.push({ date, type, category, amount, note, row: rowNumber, typeResolution: typeResolution ?? "inferred" });
   });
 
   if (dataRows.length === 0) issues.push({ row: candidate.headerIndex + 1, message: "已辨識欄位列，但該工作表在欄位列之後沒有資料。" });
@@ -237,6 +249,16 @@ function fingerprint(transaction: Omit<Transaction, "id">) {
   return [transaction.date, transaction.type, transaction.category, transaction.amount, transaction.note.trim()].join("|");
 }
 
+function cleanDraft(transaction: ImportDraft): ImportDraft {
+  return {
+    date: transaction.date,
+    type: transaction.type,
+    category: transaction.category,
+    amount: transaction.amount,
+    note: transaction.note,
+  };
+}
+
 function identityKey(transaction: Omit<Transaction, "id">) {
   return [transaction.date, transaction.type, transaction.category].join("|");
 }
@@ -246,13 +268,14 @@ export function deduplicateExcelImports(existing: Transaction[], drafts: ImportD
   const accepted: ImportDraft[] = [];
   let skipped = 0;
   drafts.forEach((draft) => {
-    const key = fingerprint(draft);
+    const clean = cleanDraft(draft);
+    const key = fingerprint(clean);
     if (seen.has(key)) {
       skipped += 1;
       return;
     }
     seen.add(key);
-    accepted.push(draft);
+    accepted.push(clean);
   });
   return { accepted, skipped };
 }
@@ -267,20 +290,21 @@ export function mergeExcelImports(existing: Transaction[], drafts: ImportDraft[]
   let updated = 0;
   let skipped = 0;
   drafts.forEach((draft) => {
-    const key = identityKey(draft);
+    const clean = cleanDraft(draft);
+    const key = identityKey(clean);
     const existingIndex = byIdentity.get(key);
     if (existingIndex === undefined) {
-      transactions.push({ ...draft, id: createId() });
+      transactions.push({ ...clean, id: createId() });
       byIdentity.set(key, transactions.length - 1);
       added += 1;
       return;
     }
     const current = transactions[existingIndex];
-    if (mode === "skip" || fingerprint(current) === fingerprint(draft)) {
+    if (mode === "skip" || fingerprint(current) === fingerprint(clean)) {
       skipped += 1;
       return;
     }
-    transactions[existingIndex] = { ...current, ...draft };
+    transactions[existingIndex] = { ...current, ...clean };
     updated += 1;
   });
   return { transactions, added, updated, skipped };
