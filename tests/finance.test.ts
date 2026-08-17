@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
+import { availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, type Transaction } from "../lib/finance";
 import { budgetAlertFor, budgetProgressPercentFor } from "../lib/budget-status";
 import { annualLivingBudgetFor } from "../lib/annual-living";
 import { livingAmountFor } from "../lib/living-amount";
@@ -43,6 +43,13 @@ describe("finance calculations", () => {
     expect(points).toHaveLength(12);
     expect(points[0]?.balance).toBe(48800);
     expect(points[1]?.balance).toBe(46800);
+  });
+
+  it("creates annual trend points from every imported transaction year in all-years mode", () => {
+    expect(trendPointsFor(records, "all")).toEqual([
+      { label: "2025年", income: 0, expense: 600, balance: -600 },
+      { label: "2026年", income: 50000, expense: 3200, balance: 46200 },
+    ]);
   });
 
   it("labels a selected year as a monthly trend and all years as an annual trend", () => {

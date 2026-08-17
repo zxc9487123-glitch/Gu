@@ -128,5 +128,27 @@ export const monthPointsFor = (transactions: Transaction[], period: "all" | numb
   });
 };
 
+export const annualPointsFor = (transactions: Transaction[]): MonthPoint[] => {
+  const totalsByYear = transactions.reduce<Record<number, { income: number; expense: number }>>((totals, transaction) => {
+    const year = new Date(`${transaction.date}T12:00:00`).getFullYear();
+    const total = totals[year] ?? { income: 0, expense: 0 };
+    total[transaction.type] += transaction.amount;
+    totals[year] = total;
+    return totals;
+  }, {});
+  let runningBalance = 0;
+
+  return Object.entries(totalsByYear)
+    .map(([year, total]) => ({ year: Number(year), ...total }))
+    .sort((a, b) => a.year - b.year)
+    .map(({ year, income, expense }) => {
+      runningBalance += income - expense;
+      return { label: `${year}年`, income, expense, balance: runningBalance };
+    });
+};
+
+export const trendPointsFor = (transactions: Transaction[], period: "all" | number) =>
+  period === "all" ? annualPointsFor(transactions) : monthPointsFor(transactions, period);
+
 export const sortedTransactions = (transactions: Transaction[]) =>
   [...transactions].sort((a, b) => new Date(`${b.date}T12:00:00`).getTime() - new Date(`${a.date}T12:00:00`).getTime());

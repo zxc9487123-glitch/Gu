@@ -8,7 +8,7 @@ import { useFinance } from "@/hooks/use-finance";
 import { useLivingBudget } from "@/hooks/use-living-budget";
 import { annualLivingBudgetFor } from "@/lib/annual-living";
 import { budgetAlertFor, budgetProgressPercentFor, type BudgetAlert } from "@/lib/budget-status";
-import { availableYears, categoryTotalsFor, money, monthPointsFor, summaryFor, transactionsForPeriod } from "@/lib/finance";
+import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, trendPointsFor } from "@/lib/finance";
 import { monthlyLivingComparison } from "@/lib/monthly-living";
 import { trendCopyFor } from "@/lib/trend-copy";
 
@@ -107,7 +107,7 @@ export default function HomeScreen() {
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
-  const points = useMemo(() => monthPointsFor(filtered, period), [filtered, period]);
+  const points = useMemo(() => trendPointsFor(filtered, period), [filtered, period]);
   const firstYear = years[0] ?? new Date().getFullYear();
   const trendCopy = trendCopyFor(period);
   const monthComparison = useMemo(() => monthlyLivingComparison(transactions), [transactions]);

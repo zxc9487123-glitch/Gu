@@ -67,6 +67,10 @@ export function TrendLine({ points }: { points: MonthPoint[] }) {
       return `${x},${y}`;
     })
     .join(" ");
+  const labelCount = Math.min(points.length, 5);
+  const labelIndexes = points.length === 1
+    ? [0]
+    : Array.from({ length: labelCount }, (_, index) => Math.round((index * (points.length - 1)) / (labelCount - 1)));
 
   return (
     <View>
@@ -77,7 +81,7 @@ export function TrendLine({ points }: { points: MonthPoint[] }) {
         <Polyline points={plotPoints} fill="none" stroke="#C85F3A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </Svg>
       <View style={styles.monthLabels}>
-        {[0, 3, 6, 9, 11].map((index) => (
+        {labelIndexes.map((index) => (
           <Text key={index} style={styles.axisText}>{points[index]?.label}</Text>
         ))}
       </View>
