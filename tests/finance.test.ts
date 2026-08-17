@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
+import { availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, type Transaction } from "../lib/finance";
 import { budgetAlertFor, budgetProgressPercentFor } from "../lib/budget-status";
 import { annualLivingBudgetFor } from "../lib/annual-living";
 import { livingAmountFor } from "../lib/living-amount";
@@ -23,6 +23,12 @@ describe("finance calculations", () => {
     const selected = transactionsForPeriod(records, 2026);
     expect(selected).toHaveLength(3);
     expect(summaryFor(selected)).toEqual({ income: 50000, expense: 3200, net: 46800 });
+  });
+
+  it("lists every transaction year in descending order for the year selector", () => {
+    const years = availableYears(records);
+    expect(years).toEqual(expect.arrayContaining([2026, 2025]));
+    expect(years).toEqual([...years].sort((a, b) => b - a));
   });
 
   it("orders expense categories by their calculated amount", () => {
