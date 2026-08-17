@@ -13,5 +13,8 @@ export function livingExpenseSharePercentFor(livingAmount: number, expense: numb
 
 export function livingExpenseAlertFor(livingAmount: number, expense: number) {
   const overage = expense - livingAmount;
-  return overage > 0 ? { status: "over" as const, overage } : { status: "normal" as const, overage: 0 };
+  const usagePercent = livingAmount > 0 ? Math.round((expense / livingAmount) * 100) : 0;
+  if (overage > 0) return { status: "over" as const, overage, usagePercent };
+  if (livingAmount > 0 && usagePercent >= 80) return { status: "warning" as const, overage: 0, usagePercent };
+  return { status: "normal" as const, overage: 0, usagePercent };
 }

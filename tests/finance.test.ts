@@ -97,8 +97,9 @@ describe("finance calculations", () => {
   });
 
   it("flags spending that exceeds the living amount", () => {
-    expect(livingExpenseAlertFor(2000, 1200)).toEqual({ status: "normal", overage: 0 });
-    expect(livingExpenseAlertFor(2000, 3500)).toEqual({ status: "over", overage: 1500 });
+    expect(livingExpenseAlertFor(2000, 1200)).toEqual({ status: "normal", overage: 0, usagePercent: 60 });
+    expect(livingExpenseAlertFor(2000, 1600)).toEqual({ status: "warning", overage: 0, usagePercent: 80 });
+    expect(livingExpenseAlertFor(2000, 3500)).toEqual({ status: "over", overage: 1500, usagePercent: 175 });
   });
 
   it("compares this month’s living amount with the previous month", () => {

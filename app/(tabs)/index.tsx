@@ -65,6 +65,7 @@ function LivingAmountCard({ amount, expense, budget, difference }: { amount: num
           </View>
         </View>
         <Text style={[styles.expenseShareText, expenseSharePercent !== null && expenseSharePercent < 0 && styles.expenseComparisonNegative]}>生活金額占本月生活支出：{expenseSharePercent === null ? "不適用" : `${expenseSharePercent}%`}</Text>
+        {expenseAlert.status === "warning" ? <View style={[styles.expenseOverAlert, styles.expenseWarningAlert]}><Text style={[styles.expenseOverAlertText, styles.expenseWarningAlertText]}>接近上限：本月生活支出已達生活金額 {expenseAlert.usagePercent}%</Text></View> : null}
         {expenseAlert.status === "over" ? <View style={styles.expenseOverAlert}><Text style={styles.expenseOverAlertText}>超標警示：本月生活支出超過生活金額 {money(expenseAlert.overage)}</Text></View> : null}
         <View style={styles.livingDivider} />
         {budget === null ? <Text style={styles.livingMeta}>尚未設定每月生活預算上限</Text> : <Text style={styles.livingMeta}>生活支出 {money(expense)} ／上限 {money(budget)}</Text>}
@@ -267,6 +268,8 @@ const styles = StyleSheet.create({
   expenseShareText: { color: "#587066", fontSize: 10, fontWeight: "800", marginTop: 6 },
   expenseOverAlert: { marginTop: 7, borderRadius: 8, backgroundColor: "#FBE0D7", paddingHorizontal: 8, paddingVertical: 6, borderWidth: 1, borderColor: "#EDB4A3" },
   expenseOverAlertText: { color: "#B5472C", fontSize: 10, lineHeight: 14, fontWeight: "900" },
+  expenseWarningAlert: { backgroundColor: "#FFF0C8", borderColor: "#E9C46A" },
+  expenseWarningAlertText: { color: "#8A5E05" },
   livingDivider: { height: 1, backgroundColor: "#D6E5DD", marginVertical: 9 },
   livingMeta: { color: "#587066", fontSize: 10, lineHeight: 15 },
   livingMetaNegative: { color: "#C85F3A", fontWeight: "800" },
