@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
 
-import type { CategoryTotal, MonthPoint } from "@/lib/finance";
+import { money, type CategoryTotal, type MonthPoint } from "@/lib/finance";
 
 const PLOT_WIDTH = 316;
 const PLOT_HEIGHT = 128;
@@ -52,7 +52,7 @@ function TreemapBlock({ item, compact = false }: { item: CategoryTotal; compact?
   );
 }
 
-export function TrendLine({ points }: { points: MonthPoint[] }) {
+export function TrendLine({ points, showAnnualSummary = false }: { points: MonthPoint[]; showAnnualSummary?: boolean }) {
   const hasActivity = points.some((point) => point.income !== 0 || point.expense !== 0);
   if (!hasActivity) return <EmptyChart label="新增交易後，這裡會顯示年度收支趨勢" />;
 
@@ -85,6 +85,33 @@ export function TrendLine({ points }: { points: MonthPoint[] }) {
           <Text key={index} style={styles.axisText}>{points[index]?.label}</Text>
         ))}
       </View>
+      {showAnnualSummary ? (
+        <View style={styles.annualSummary}>
+          <Text style={styles.annualSummaryTitle}>年度數字摘要</Text>
+          {points.map((point) => {
+            const net = point.income - point.expense;
+            return (
+              <View key={point.label} style={styles.annualSummaryRow}>
+                <Text style={styles.annualSummaryYear}>{point.label}</Text>
+                <View style={styles.annualSummaryMetrics}>
+                  <View style={styles.annualMetric}>
+                    <Text style={styles.annualMetricLabel}>收入</Text>
+                    <Text style={styles.annualIncomeValue}>{money(point.income)}</Text>
+                  </View>
+                  <View style={styles.annualMetric}>
+                    <Text style={styles.annualMetricLabel}>支出</Text>
+                    <Text style={styles.annualExpenseValue}>{money(point.expense)}</Text>
+                  </View>
+                  <View style={styles.annualMetric}>
+                    <Text style={styles.annualMetricLabel}>淨結餘</Text>
+                    <Text style={[styles.annualNetValue, net < 0 && styles.annualNetValueNegative]}>{money(net, true)}</Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -156,6 +183,17 @@ const styles = StyleSheet.create({
   treemapBlockRatio: { color: "#FFFFFF", fontSize: 17, fontWeight: "900", marginTop: 2 },
   monthLabels: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 6, marginTop: 4 },
   axisText: { color: "#7A837D", fontSize: 11 },
+  annualSummary: { marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#ECE7DE", gap: 9 },
+  annualSummaryTitle: { color: "#34473D", fontSize: 12, fontWeight: "900" },
+  annualSummaryRow: { borderRadius: 10, padding: 10, backgroundColor: "#F8F6F1" },
+  annualSummaryYear: { color: "#1F2421", fontSize: 13, fontWeight: "900", marginBottom: 8 },
+  annualSummaryMetrics: { flexDirection: "row", gap: 7 },
+  annualMetric: { flex: 1, minWidth: 0 },
+  annualMetricLabel: { color: "#7A837D", fontSize: 10, fontWeight: "800" },
+  annualIncomeValue: { color: "#0E6B56", fontSize: 11, fontWeight: "900", marginTop: 3 },
+  annualExpenseValue: { color: "#C85F3A", fontSize: 11, fontWeight: "900", marginTop: 3 },
+  annualNetValue: { color: "#315E96", fontSize: 11, fontWeight: "900", marginTop: 3 },
+  annualNetValueNegative: { color: "#C85F3A" },
   donutLayout: { flexDirection: "row", alignItems: "center", gap: 12 },
   donutWrap: { width: 132, height: 132, alignItems: "center", justifyContent: "center" },
   donutCenter: { position: "absolute", alignItems: "center" },
