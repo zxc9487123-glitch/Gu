@@ -54,6 +54,23 @@ describe("Excel import", () => {
     ]);
   });
 
+  it("recognizes bank-export headers with currency units and parentheses", () => {
+    const result = parseExcelTransactions(workbookWithSheets([
+      { name: "匯出資訊", rows: [["銀行交易明細匯出"]] },
+      { name: "交易明細", rows: [
+        ["交易日期", "類型", "分類", "摘要", "金額 (NT$)", "交易後餘額 (NT$)", "銀行摘要", "備註"],
+        ["2026-08-17", "支出", "餐飲／食品", "午餐", -150, 12500, "卡片消費", ""],
+        ["2026-08-18", "收入", "薪資", "八月薪資", 50000, 62500, "轉入", ""],
+      ] },
+    ]));
+
+    expect(result.worksheetName).toBe("交易明細");
+    expect(result.valid).toEqual([
+      { date: "2026-08-17", type: "expense", category: "餐飲／食品", amount: 150, note: "午餐" },
+      { date: "2026-08-18", type: "income", category: "薪資", amount: 50000, note: "八月薪資" },
+    ]);
+  });
+
   it("returns sheet diagnostics when no recognizable transaction headers are present", () => {
     const result = parseExcelTransactions(workbookWithSheets([
       { name: "封面", rows: [["我的財務摘要"], ["本月結餘", 1000]] },

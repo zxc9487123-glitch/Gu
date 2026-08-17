@@ -44,7 +44,7 @@ const HEADER_ALIASES: Record<keyof ColumnIndexes, string[]> = {
   amount: ["金額", "交易金額", "總額", "總計", "amount", "value", "total", "transactionamount"],
   income: ["收入", "收入金額", "income", "credit"],
   expense: ["支出", "支出金額", "expense", "debit"],
-  note: ["備註", "說明", "備考", "描述", "note", "memo", "description", "remark"],
+  note: ["備註", "摘要", "說明", "備考", "描述", "note", "memo", "description", "remark"],
 };
 
 const REQUIRED_LABELS: Record<"date" | "category" | "amount", string> = {
@@ -56,7 +56,11 @@ const REQUIRED_LABELS: Record<"date" | "category" | "amount", string> = {
 const MAX_ROWS = 1000;
 const MAX_HEADER_SCAN_ROWS = 60;
 const text = (value: unknown) => String(value ?? "").trim();
-const normalized = (value: unknown) => text(value).replace(/[\s_－–—-]/g, "").toLowerCase();
+const normalized = (value: unknown) =>
+  text(value)
+    .toLowerCase()
+    .replace(/(?:新臺幣|新台幣|ntd|nt\$|twd|currency|元|幣)/g, "")
+    .replace(/[^\p{L}\p{N}]/gu, "");
 
 function emptyPreview(worksheetName: string, workbookSheets: string[], message: string, detectedHeaders: string[] = []): ExcelImportPreview {
   return { valid: [], issues: [{ row: 0, message }], scannedRows: 0, worksheetName, workbookSheets, headerRow: null, detectedHeaders };
