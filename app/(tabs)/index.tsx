@@ -125,7 +125,8 @@ export default function HomeScreen() {
   const currentMonth = today.getMonth() + 1;
   const isCurrentMonthSelected = typeof period === "object" && period.year === currentYear && period.month === currentMonth;
   const isMonthlyPeriod = typeof period === "object";
-  const summaryScope = isMonthlyPeriod ? `${period.month}月` : "總";
+  const isYearlyPeriod = typeof period === "number";
+  const summaryScope = isMonthlyPeriod ? `${period.month}月` : isYearlyPeriod ? `${period}年` : "總";
   const selectPeriod = (nextPeriod: TransactionPeriod) => {
     setPeriod(nextPeriod);
     setIsYearMenuOpen(false);
