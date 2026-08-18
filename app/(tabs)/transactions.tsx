@@ -39,7 +39,7 @@ function TransactionRow({ item, onRemove }: { item: Transaction; onRemove: () =>
 
 export function TransactionsContent({ initialCategory, onClearCategory }: { initialCategory?: string; onClearCategory?: () => void }) {
   const router = useRouter();
-  const { transactions, removeTransaction } = useFinance();
+  const { transactions, isLoading, storageError, removeTransaction } = useFinance();
   const { category } = useLocalSearchParams<{ category?: string }>();
   const routeCategory = Array.isArray(category) ? category[0] : category;
   const selectedCategory = initialCategory ?? routeCategory;
@@ -134,7 +134,7 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
                 <Text numberOfLines={1} style={styles.filterSummaryText}>{dateSummary}　·　{amountSummary}　·　{sortSummary}</Text>
               </View>
               <View style={styles.filterSummaryTrailing}>
-                <Text style={styles.filterRecordCount}>{records.length} 筆</Text>
+                <Text style={styles.filterRecordCount}>{isLoading ? "載入中" : `${records.length} 筆`}</Text>
                 <Text style={styles.filterSummaryChevron}>⌄</Text>
               </View>
             </Pressable>
@@ -142,8 +142,8 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
         }
         ListEmptyComponent={
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>{hasFilters ? "沒有符合篩選條件的交易" : selectedCategory ? "此分類尚無交易紀錄" : "尚未有交易紀錄"}</Text>
-            <Text style={styles.emptyText}>{hasFilters ? "請調整日期或金額範圍，或按「清除」查看所有交易。" : selectedCategory ? "可返回分析頁選擇其他分類，或新增一筆交易。" : "請按右上角「新增」記下你的第一筆收支。"}</Text>
+            <Text style={styles.emptyTitle}>{isLoading ? "正在載入本機交易資料" : storageError ? "無法讀取本機交易資料" : hasFilters ? "沒有符合篩選條件的交易" : selectedCategory ? "此分類尚無交易紀錄" : "尚未有交易紀錄"}</Text>
+            <Text style={styles.emptyText}>{isLoading ? "請稍候，資料讀取完成後會自動顯示。" : storageError ?? (hasFilters ? "請調整日期或金額範圍，或按「清除」查看所有交易。" : selectedCategory ? "可返回分析頁選擇其他分類，或新增一筆交易。" : "請按右上角「新增」記下你的第一筆收支。")}</Text>
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}

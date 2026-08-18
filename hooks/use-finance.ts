@@ -1,6 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useEffect, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useState, type PropsWithChildren } from "react";
 
 import { mergeExcelImports, type ExcelImportMode, type ImportDraft } from "@/lib/excel-import";
 import { currentDateInput, type Transaction, type TransactionType } from "@/lib/finance";
@@ -15,14 +14,20 @@ type NewTransaction = {
   date: string;
 };
 
-export function useFinance() {
+function useFinanceStore() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
-      setTransactions(saved ? (JSON.parse(saved) as Transaction[]) : []);
+      const parsed = saved ? (JSON.parse(saved) as unknown) : [];
+      if (!Array.isArray(parsed)) throw new Error("交易資料格式不正確");
+      setTransactions(parsed as Transaction[]);
+      setStorageError(null);
+    } catch {
+      setStorageError("無法讀取本機交易資料，請稍後重試。");
     } finally {
       setIsLoading(false);
     }
@@ -31,12 +36,6 @@ export function useFinance() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  useFocusEffect(
-    useCallback(() => {
-      void load();
-    }, [load]),
-  );
 
   const persist = useCallback(async (nextTransactions: Transaction[]) => {
     setTransactions(nextTransactions);
@@ -80,5 +79,20 @@ export function useFinance() {
     await persist([]);
   }, [persist]);
 
-  return { transactions, isLoading, addTransaction, removeTransaction, importTransactions, clearTransactions };
+  return { transactions, isLoading, storageError, addTransaction, removeTransaction, importTransactions, clearTransactions };
+}
+
+type FinanceStore = ReturnType<typeof useFinanceStore>;
+
+const FinanceContext = createContext<FinanceStore | null>(null);
+
+export function FinanceProvider({ children }: PropsWithChildren) {
+  const finance = useFinanceStore();
+  return createElement(FinanceContext.Provider, { value: finance }, children);
+}
+
+export function useFinance() {
+  const finance = useContext(FinanceContext);
+  if (finance === null) throw new Error("useFinance 必須在 FinanceProvider 內使用。");
+  return finance;
 }

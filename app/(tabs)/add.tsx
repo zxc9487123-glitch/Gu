@@ -7,7 +7,7 @@ import { useFinance } from "@/hooks/use-finance";
 import { categoriesFor, currentDateInput, type TransactionType } from "@/lib/finance";
 
 export default function AddTransactionScreen() {
-  const { addTransaction } = useFinance();
+  const { addTransaction, isLoading } = useFinance();
   const [type, setType] = useState<TransactionType>("expense");
   const categoryOptions = useMemo(() => categoriesFor(type), [type]);
   const [amount, setAmount] = useState("");
@@ -24,6 +24,10 @@ export default function AddTransactionScreen() {
   };
 
   const save = async () => {
+    if (isLoading) {
+      setError("本機交易資料載入中，請稍後再儲存，避免覆蓋既有紀錄。");
+      return;
+    }
     const parsedAmount = Number(amount.replace(/,/g, ""));
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       setError("請輸入大於 0 的金額。");
