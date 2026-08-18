@@ -25,3 +25,12 @@ export function monthlyLivingComparison(transactions: Transaction[], reference =
   const previous = summaryForMonth(transactions, previousReference.getFullYear(), previousReference.getMonth());
   return { current, previous, difference: current.livingAmount - previous.livingAmount };
 }
+
+export function latestMonthlyLivingComparison(transactions: Transaction[], focusTransactions: Transaction[] = transactions) {
+  const latest = focusTransactions.reduce<Date | null>((latestDate, transaction) => {
+    const date = new Date(`${transaction.date}T12:00:00`);
+    return latestDate === null || date > latestDate ? date : latestDate;
+  }, null);
+
+  return latest === null ? null : monthlyLivingComparison(transactions, latest);
+}

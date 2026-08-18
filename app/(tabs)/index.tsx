@@ -8,6 +8,7 @@ import { useFinance } from "@/hooks/use-finance";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
 import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod } from "@/lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseUsageFor } from "@/lib/living-amount";
+import { latestMonthlyLivingComparison } from "@/lib/monthly-living";
 import { savingsGoalProgressFor } from "@/lib/savings-goal";
 
 type Period = "all" | number;
@@ -27,12 +28,17 @@ function MetricCard({ label, amount, tone }: { label: string; amount: string; to
   );
 }
 
-function LivingAmountCard({ amount, expense }: { amount: number; expense: number }) {
+function LivingAmountCard({ amount, expense, monthChange }: { amount: number; expense: number; monthChange: ReturnType<typeof latestMonthlyLivingComparison> }) {
   const positive = amount >= 0;
   const expenseComparison = livingExpenseComparisonFor(amount, expense);
   const exceedsExpense = expenseComparison.difference >= 0;
   const expenseUsage = livingExpenseUsageFor(amount, expense);
   const expenseAlert = livingExpenseAlertFor(amount, expense);
+  const monthlyChangeText = monthChange === null
+    ? null
+    : monthChange.difference === 0
+      ? "持平"
+      : `${monthChange.difference > 0 ? "↑" : "↓"} ${money(Math.abs(monthChange.difference))}`;
   return (
     <View style={[styles.livingCard, styles.annualLivingCard]}>
       <View style={styles.livingHeading}>
@@ -47,9 +53,15 @@ function LivingAmountCard({ amount, expense }: { amount: number; expense: number
       <View>
         <Text style={[styles.livingAmount, positive ? styles.livingAmountPositive : styles.livingAmountNegative]}>{money(amount, positive)}</Text>
         <Text style={styles.livingHint}>{positive ? "本年度可用於日常生活的金額" : "年度支出已超出生活金額"}</Text>
+        {monthlyChangeText ? (
+          <View style={styles.monthlyLivingChange}>
+            <Text style={styles.monthlyLivingChangeLabel}>{monthChange!.current.month + 1}月較上月</Text>
+            <Text style={[styles.monthlyLivingChangeValue, monthChange!.difference > 0 ? styles.monthlyLivingChangeUp : monthChange!.difference < 0 ? styles.monthlyLivingChangeDown : styles.monthlyLivingChangeSame]}>{monthlyChangeText}</Text>
+          </View>
+        ) : null}
         <View style={styles.expenseComparisonRow}>
           <View style={styles.expenseComparisonDetail}>
-            <Text style={styles.expenseComparisonLabel}>年度生活金額{exceedsExpense ? "高於" : "低於"}支出</Text>
+            <Text style={styles.expenseComparisonLabel}>{exceedsExpense ? "高於支出" : "低於支出"}</Text>
             <Text style={[styles.expenseComparisonAmount, exceedsExpense ? styles.expenseComparisonPositive : styles.expenseComparisonNegative]}>{money(Math.abs(expenseComparison.difference))}</Text>
           </View>
         </View>
@@ -124,6 +136,7 @@ export default function HomeScreen() {
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
+  const latestMonthChange = useMemo(() => latestMonthlyLivingComparison(transactions, filtered), [transactions, filtered]);
   const firstYear = years[0] ?? new Date().getFullYear();
 
   return (
@@ -168,7 +181,7 @@ export default function HomeScreen() {
               <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
             </View>
             <View style={styles.metricSideColumn}>
-              <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
+              <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} monthChange={latestMonthChange} />
             </View>
           </View>
           {period === "all" ? <SavingsGoalCard saved={summary.net} goal={savingsGoal} /> : null}
@@ -210,7 +223,7 @@ const styles = StyleSheet.create({
   yearMenuTextSelected: { color: "#0E6B56" },
   yearMenuCheck: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
   metricGrid: { gap: 10, marginTop: 34 },
-  metricTopRow: { flexDirection: "row", gap: 10 },
+  metricTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   metricColumn: { flex: 1, gap: 10 },
   metricSideColumn: { flex: 1, gap: 10 },
   metricCard: { borderRadius: 17, backgroundColor: "#FFFFFF", padding: 14, borderWidth: 1, borderColor: "#ECE7DE", minHeight: 112 },
@@ -222,7 +235,7 @@ const styles = StyleSheet.create({
   metricIconTextExpense: { color: "#C85F3A" },
   metricAmount: { color: "#0E6B56", fontSize: 19, lineHeight: 24, fontWeight: "900", marginTop: 18 },
   expenseAmount: { color: "#C85F3A" },
-  livingCard: { flex: 1, borderRadius: 17, backgroundColor: "#EEF5F1", padding: 14, borderWidth: 1, borderColor: "#CEE1D8", minHeight: 278, justifyContent: "space-between" },
+  livingCard: { borderRadius: 17, backgroundColor: "#EEF5F1", padding: 12, borderWidth: 1, borderColor: "#CEE1D8", gap: 9 },
   annualLivingCard: { backgroundColor: "#EEF3FA", borderColor: "#D3DFEF" },
   livingHeading: { flexDirection: "row", justifyContent: "space-between", gap: 7 },
   livingLabel: { color: "#34473D", fontSize: 13, fontWeight: "900" },
@@ -231,8 +244,14 @@ const styles = StyleSheet.create({
   livingAmount: { fontSize: 19, lineHeight: 24, fontWeight: "900" },
   livingAmountPositive: { color: "#0E6B56" },
   livingAmountNegative: { color: "#C85F3A" },
-  livingHint: { color: "#6D7B72", fontSize: 10, lineHeight: 15, marginTop: 5 },
-  expenseComparisonRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "flex-end", marginTop: 9 },
+  livingHint: { color: "#6D7B72", fontSize: 10, lineHeight: 14, marginTop: 2 },
+  monthlyLivingChange: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
+  monthlyLivingChangeLabel: { color: "#587066", fontSize: 9, fontWeight: "800" },
+  monthlyLivingChangeValue: { fontSize: 10, fontWeight: "900" },
+  monthlyLivingChangeUp: { color: "#0E6B56" },
+  monthlyLivingChangeDown: { color: "#C85F3A" },
+  monthlyLivingChangeSame: { color: "#6D7B72" },
+  expenseComparisonRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "flex-end", marginTop: 4 },
   expenseComparisonDetail: { alignItems: "flex-end" },
   expenseComparisonLabel: { color: "#6D7B72", fontSize: 9, fontWeight: "800" },
   expenseComparisonAmount: { color: "#34473D", fontSize: 12, lineHeight: 16, fontWeight: "900", marginTop: 2 },

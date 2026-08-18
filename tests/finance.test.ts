@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, monthlyExpenseRankingsFor, monthPointsFor, sortTransactionsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
-import { monthlyLivingComparison } from "../lib/monthly-living";
+import { latestMonthlyLivingComparison, monthlyLivingComparison } from "../lib/monthly-living";
 import { savingsGoalProgressFor } from "../lib/savings-goal";
 import { trendCopyFor } from "../lib/trend-copy";
 
@@ -204,6 +204,15 @@ describe("finance calculations", () => {
     expect(comparison.current).toMatchObject({ year: 2026, month: 1, income: 0, expense: 2000, livingAmount: 0 });
     expect(comparison.previous).toMatchObject({ year: 2026, month: 0, income: 50000, expense: 1200, livingAmount: 16666.666666666668 });
     expect(comparison.difference).toBeCloseTo(-16666.666666666668);
+  });
+
+  it("compares the latest focused month’s living amount with the preceding month", () => {
+    const comparison = latestMonthlyLivingComparison(records, transactionsForPeriod(records, 2026));
+
+    expect(comparison?.current).toMatchObject({ year: 2026, month: 1, income: 0, expense: 2000, livingAmount: 0 });
+    expect(comparison?.previous).toMatchObject({ year: 2026, month: 0, income: 50000, expense: 1200, livingAmount: 16666.666666666668 });
+    expect(comparison?.difference).toBeCloseTo(-16666.666666666668);
+    expect(latestMonthlyLivingComparison([], [])).toBeNull();
   });
 
 });
