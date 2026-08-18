@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, monthlyExpenseRankingsFor, monthPointsFor, sortTransactionsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
 import { latestMonthlyLivingComparison, monthlyLivingComparison } from "../lib/monthly-living";
+import { latestMonthlySavingsComparison, monthlySavingsComparison } from "../lib/monthly-savings";
 import { savingsGoalProgressFor } from "../lib/savings-goal";
 import { trendCopyFor } from "../lib/trend-copy";
 
@@ -213,6 +214,23 @@ describe("finance calculations", () => {
     expect(comparison?.previous).toMatchObject({ year: 2026, month: 0, income: 50000, expense: 1200, livingAmount: 16666.666666666668 });
     expect(comparison?.difference).toBeCloseTo(-16666.666666666668);
     expect(latestMonthlyLivingComparison([], [])).toBeNull();
+  });
+
+  it("compares this month’s net savings with the previous month", () => {
+    const comparison = monthlySavingsComparison(records, new Date(2026, 1, 15));
+
+    expect(comparison.current).toEqual({ year: 2026, month: 1, net: -2000 });
+    expect(comparison.previous).toEqual({ year: 2026, month: 0, net: 48800 });
+    expect(comparison.difference).toBe(-50800);
+  });
+
+  it("compares the latest focused month’s net savings with the preceding month", () => {
+    const comparison = latestMonthlySavingsComparison(records, transactionsForPeriod(records, 2026));
+
+    expect(comparison?.current).toEqual({ year: 2026, month: 1, net: -2000 });
+    expect(comparison?.previous).toEqual({ year: 2026, month: 0, net: 48800 });
+    expect(comparison?.difference).toBe(-50800);
+    expect(latestMonthlySavingsComparison([], [])).toBeNull();
   });
 
 });

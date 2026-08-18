@@ -1,5 +1,6 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useMemo, useState } from "react";
+import { useRouter } from "expo-router";
 
 import { DonutChart, Treemap } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
@@ -9,6 +10,7 @@ import { useSavingsGoal } from "@/hooks/use-savings-goal";
 import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod } from "@/lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseUsageFor } from "@/lib/living-amount";
 import { latestMonthlyLivingComparison } from "@/lib/monthly-living";
+import { latestMonthlySavingsComparison } from "@/lib/monthly-savings";
 import { savingsGoalProgressFor } from "@/lib/savings-goal";
 
 type Period = "all" | number;
@@ -79,24 +81,30 @@ function LivingAmountCard({ amount, expense, monthChange }: { amount: number; ex
   );
 }
 
-function SavingsGoalCard({ saved, goal }: { saved: number; goal: number | null }) {
+function SavingsGoalCard({ saved, goal, monthChange, onPress }: { saved: number; goal: number | null; monthChange: ReturnType<typeof latestMonthlySavingsComparison>; onPress: () => void }) {
   const progress = savingsGoalProgressFor(saved, goal);
   const savedPositive = saved >= 0;
   const progressWidth = `${Math.round(progress.progressFraction * 100)}%` as const;
+  const monthlyChangeText = monthChange === null
+    ? null
+    : monthChange.difference === 0
+      ? "持平"
+      : `${monthChange.difference > 0 ? "↑" : "↓"} ${money(Math.abs(monthChange.difference))}`;
 
   return (
-    <View style={styles.savingsGoalCard}>
+    <Pressable accessibilityLabel="前往設定存款目標" accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.savingsGoalCard, pressed && styles.savingsGoalPressed]}>
       <View style={styles.savingsGoalBarTop}>
-        <View style={styles.savingsGoalHeading}>
-          <View>
-            <Text style={styles.savingsGoalTitle}>存款目標</Text>
-          </View>
-          <View style={styles.savingsGoalIcon}><Text style={styles.savingsGoalIconText}>目</Text></View>
-        </View>
+        <Text style={styles.savingsGoalTitle}>存款目標</Text>
         <View style={styles.savingsGoalValueRow}>
           <Text style={[styles.savingsGoalAmount, savedPositive ? styles.savingsGoalAmountPositive : styles.savingsGoalAmountNegative]}>{money(saved, savedPositive)}</Text>
           <Text style={styles.savingsGoalCaption}>目前累積存款</Text>
         </View>
+        {monthlyChangeText ? (
+          <View style={styles.savingsGoalChange}>
+            <Text style={styles.savingsGoalChangeLabel}>{monthChange!.current.month + 1}月較上月</Text>
+            <Text style={[styles.savingsGoalChangeValue, monthChange!.difference > 0 ? styles.savingsGoalChangeUp : monthChange!.difference < 0 ? styles.savingsGoalChangeDown : styles.savingsGoalChangeSame]}>{monthlyChangeText}</Text>
+          </View>
+        ) : null}
       </View>
       {progress.status === "not-set" ? (
         <View style={styles.savingsGoalEmpty}><Text style={styles.savingsGoalEmptyText}>請至「設定」輸入存款目標金額</Text></View>
@@ -110,7 +118,7 @@ function SavingsGoalCard({ saved, goal }: { saved: number; goal: number | null }
           <Text style={[styles.savingsGoalRemaining, progress.status === "achieved" && styles.savingsGoalAchieved]}>{progress.status === "achieved" ? `已超越目標 ${money(Math.max(saved - (progress.goal ?? 0), 0))}` : `距離目標尚差 ${money(progress.remaining ?? 0)}`}</Text>
         </>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -127,6 +135,7 @@ function Panel({ title, subtitle, children, compact = false }: { title: string; 
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { transactions, isLoading } = useFinance();
   const { savingsGoal } = useSavingsGoal();
   const years = availableYears(transactions);
@@ -136,6 +145,7 @@ export default function HomeScreen() {
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const latestMonthChange = useMemo(() => latestMonthlyLivingComparison(transactions, filtered), [transactions, filtered]);
+  const latestSavingsChange = useMemo(() => latestMonthlySavingsComparison(transactions, filtered), [transactions, filtered]);
   const firstYear = years[0] ?? new Date().getFullYear();
 
   return (
@@ -183,7 +193,7 @@ export default function HomeScreen() {
               <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} monthChange={latestMonthChange} />
             </View>
           </View>
-          {period === "all" ? <SavingsGoalCard saved={summary.net} goal={savingsGoal} /> : null}
+          {period === "all" ? <SavingsGoalCard saved={summary.net} goal={savingsGoal} monthChange={latestSavingsChange} onPress={() => router.navigate("/settings")} /> : null}
         </View>
 
         <Panel title="支出分類地圖" subtitle="依金額查看分類結構" compact>
@@ -278,16 +288,21 @@ const styles = StyleSheet.create({
   monthDifferencePositive: { color: "#0E6B56" },
   monthDifferenceNegative: { color: "#C85F3A" },
   savingsGoalCard: { borderRadius: 18, backgroundColor: "#F3F0FB", padding: 14, borderWidth: 1, borderColor: "#DDD5F0" },
-  savingsGoalBarTop: { gap: 8 },
-  savingsGoalHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
+  savingsGoalPressed: { opacity: 0.84 },
+  savingsGoalBarTop: { gap: 5 },
+  savingsGoalHeading: { flexDirection: "row", alignItems: "center" },
   savingsGoalValueRow: { alignItems: "flex-end" },
   savingsGoalTitle: { color: "#3E365F", fontSize: 19, fontWeight: "900" },
-  savingsGoalIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#E6DFFC", alignItems: "center", justifyContent: "center" },
-  savingsGoalIconText: { color: "#69529D", fontSize: 12, fontWeight: "900" },
   savingsGoalAmount: { color: "#0E6B56", fontSize: 20, lineHeight: 26, fontWeight: "900", textAlign: "right" },
   savingsGoalAmountPositive: { color: "#0E6B56" },
   savingsGoalAmountNegative: { color: "#C85F3A" },
   savingsGoalCaption: { color: "#7A7192", fontSize: 10, marginTop: 1, textAlign: "right" },
+  savingsGoalChange: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  savingsGoalChangeLabel: { color: "#7A7192", fontSize: 10, fontWeight: "800" },
+  savingsGoalChangeValue: { fontSize: 11, fontWeight: "900" },
+  savingsGoalChangeUp: { color: "#0E6B56" },
+  savingsGoalChangeDown: { color: "#C85F3A" },
+  savingsGoalChangeSame: { color: "#7A7192" },
   savingsGoalEmpty: { marginTop: 10, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#FFFFFF" },
   savingsGoalEmptyText: { color: "#69529D", fontSize: 11, fontWeight: "800" },
   savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
