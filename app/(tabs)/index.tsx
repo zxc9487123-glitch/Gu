@@ -86,7 +86,7 @@ function SavingsGoalCard({ saved, goal }: { saved: number; goal: number | null }
           </View>
           <View style={styles.savingsGoalIcon}><Text style={styles.savingsGoalIconText}>目</Text></View>
         </View>
-        <View>
+        <View style={styles.savingsGoalValueRow}>
           <Text style={[styles.savingsGoalAmount, savedPositive ? styles.savingsGoalAmountPositive : styles.savingsGoalAmountNegative]}>{money(saved, savedPositive)}</Text>
           <Text style={styles.savingsGoalCaption}>目前累積存款</Text>
         </View>
@@ -264,8 +264,9 @@ const styles = StyleSheet.create({
   monthDifferencePositive: { color: "#0E6B56" },
   monthDifferenceNegative: { color: "#C85F3A" },
   savingsGoalCard: { borderRadius: 18, backgroundColor: "#F3F0FB", padding: 14, borderWidth: 1, borderColor: "#DDD5F0" },
-  savingsGoalBarTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  savingsGoalHeading: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 8 },
+  savingsGoalBarTop: { gap: 8 },
+  savingsGoalHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
+  savingsGoalValueRow: { alignItems: "flex-end" },
   savingsGoalTitle: { color: "#3E365F", fontSize: 19, fontWeight: "900" },
   savingsGoalSubtitle: { color: "#7A7192", fontSize: 11, marginTop: 2 },
   savingsGoalIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#E6DFFC", alignItems: "center", justifyContent: "center" },
