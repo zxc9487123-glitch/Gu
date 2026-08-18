@@ -1,9 +1,19 @@
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import { useMemo, useState } from "react";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
-import { dateLabel, money, sortedTransactions, type Transaction } from "@/lib/finance";
+import { dateLabel, filteredTransactionsFor, money, sortedTransactions, type Transaction } from "@/lib/finance";
+
+const parseAmount = (value: string) => {
+  const normalized = value.replace(/[\s,]/g, "");
+  if (!normalized) return undefined;
+  const amount = Number(normalized);
+  return Number.isFinite(amount) && amount >= 0 ? amount : undefined;
+};
+
+const isDateInput = (value: string) => value === "" || /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 function TransactionRow({ item, onRemove }: { item: Transaction; onRemove: () => void }) {
   const isIncome = item.type === "income";
@@ -31,7 +41,29 @@ export default function TransactionsScreen() {
   const { transactions, removeTransaction } = useFinance();
   const { category } = useLocalSearchParams<{ category?: string }>();
   const selectedCategory = Array.isArray(category) ? category[0] : category;
-  const records = sortedTransactions(selectedCategory ? transactions.filter((item) => item.category === selectedCategory) : transactions);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [minimumAmount, setMinimumAmount] = useState("");
+  const [maximumAmount, setMaximumAmount] = useState("");
+  const validDates = isDateInput(dateFrom) && isDateInput(dateTo);
+  const minimum = parseAmount(minimumAmount);
+  const maximum = parseAmount(maximumAmount);
+  const validAmounts = (minimumAmount === "" || minimum !== undefined) && (maximumAmount === "" || maximum !== undefined);
+  const hasInvalidRange = validDates && validAmounts && ((dateFrom !== "" && dateTo !== "" && dateFrom > dateTo) || (minimum !== undefined && maximum !== undefined && minimum > maximum));
+  const hasFilters = Boolean(dateFrom || dateTo || minimumAmount || maximumAmount);
+  const records = useMemo(() => sortedTransactions(filteredTransactionsFor(transactions, {
+    category: selectedCategory,
+    dateFrom: validDates ? dateFrom || undefined : undefined,
+    dateTo: validDates ? dateTo || undefined : undefined,
+    minimumAmount: validAmounts ? minimum : undefined,
+    maximumAmount: validAmounts ? maximum : undefined,
+  })), [transactions, selectedCategory, dateFrom, dateTo, minimum, maximum, validDates, validAmounts]);
+  const clearFilters = () => {
+    setDateFrom("");
+    setDateTo("");
+    setMinimumAmount("");
+    setMaximumAmount("");
+  };
   const confirmRemove = (item: Transaction) => {
     Alert.alert("刪除這筆記錄？", `${item.category}・${money(item.amount)}`, [
       { text: "取消", style: "cancel" },
@@ -49,13 +81,32 @@ export default function TransactionsScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title}>{selectedCategory ? `${selectedCategory}明細` : "交易明細"}</Text>
-            <Text style={styles.subtitle}>{selectedCategory ? `目前僅顯示「${selectedCategory}」的交易。` : "長按任一筆紀錄即可刪除。"}</Text>
+            <Text style={styles.subtitle}>{selectedCategory ? `目前僅顯示「${selectedCategory}」的交易；長按可刪除。` : "長按任一筆紀錄即可刪除。"}</Text>
+            <View style={styles.filterCard}>
+              <View style={styles.filterHeader}>
+                <View><Text style={styles.filterTitle}>篩選交易</Text><Text style={styles.filterHint}>日期請輸入 YYYY-MM-DD；金額包含上下限。</Text></View>
+                <Pressable disabled={!hasFilters} onPress={clearFilters} style={({ pressed }) => [styles.clearButton, !hasFilters && styles.clearButtonDisabled, pressed && hasFilters && styles.clearButtonPressed]}><Text style={[styles.clearButtonText, !hasFilters && styles.clearButtonTextDisabled]}>清除</Text></Pressable>
+              </View>
+              <Text style={styles.filterLabel}>日期區間</Text>
+              <View style={styles.inputRow}>
+                <TextInput value={dateFrom} onChangeText={setDateFrom} placeholder="開始日期" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
+                <Text style={styles.rangeDivider}>至</Text>
+                <TextInput value={dateTo} onChangeText={setDateTo} placeholder="結束日期" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
+              </View>
+              <Text style={styles.filterLabel}>金額範圍</Text>
+              <View style={styles.inputRow}>
+                <TextInput value={minimumAmount} onChangeText={setMinimumAmount} placeholder="最低金額" placeholderTextColor="#9CA59F" inputMode="decimal" keyboardType="decimal-pad" style={styles.filterInput} />
+                <Text style={styles.rangeDivider}>至</Text>
+                <TextInput value={maximumAmount} onChangeText={setMaximumAmount} placeholder="最高金額" placeholderTextColor="#9CA59F" inputMode="decimal" keyboardType="decimal-pad" style={styles.filterInput} />
+              </View>
+              {!validDates ? <Text style={styles.filterError}>日期格式請使用 YYYY-MM-DD。</Text> : !validAmounts ? <Text style={styles.filterError}>金額請輸入零或正數。</Text> : hasInvalidRange ? <Text style={styles.filterError}>起始值不可大於結束值。</Text> : <Text style={styles.filterResult}>符合條件：{records.length} 筆</Text>}
+            </View>
           </View>
         }
         ListEmptyComponent={
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>{selectedCategory ? "此分類尚無交易紀錄" : "尚未有交易紀錄"}</Text>
-            <Text style={styles.emptyText}>{selectedCategory ? "可返回分析頁選擇其他分類，或新增一筆交易。" : "請由中間的「新增」分頁開始記下你的第一筆收支。"}</Text>
+            <Text style={styles.emptyTitle}>{hasFilters ? "沒有符合篩選條件的交易" : selectedCategory ? "此分類尚無交易紀錄" : "尚未有交易紀錄"}</Text>
+            <Text style={styles.emptyText}>{hasFilters ? "請調整日期或金額範圍，或按「清除」查看所有交易。" : selectedCategory ? "可返回分析頁選擇其他分類，或新增一筆交易。" : "請由中間的「新增」分頁開始記下你的第一筆收支。"}</Text>
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -70,6 +121,21 @@ const styles = StyleSheet.create({
   header: { marginBottom: 18 },
   title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },
   subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13 },
+  filterCard: { backgroundColor: "#FFFFFF", borderColor: "#EDE8DF", borderRadius: 16, borderWidth: 1, marginTop: 16, padding: 14 },
+  filterHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
+  filterTitle: { color: "#1F2421", fontSize: 15, fontWeight: "900" },
+  filterHint: { color: "#7A837D", fontSize: 11, marginTop: 3 },
+  clearButton: { alignItems: "center", backgroundColor: "#E7F2ED", borderRadius: 9, justifyContent: "center", minHeight: 32, minWidth: 46, paddingHorizontal: 10 },
+  clearButtonDisabled: { backgroundColor: "#F3F1EC" },
+  clearButtonPressed: { opacity: 0.7 },
+  clearButtonText: { color: "#0E6B56", fontSize: 12, fontWeight: "900" },
+  clearButtonTextDisabled: { color: "#A6ACA7" },
+  filterLabel: { color: "#526058", fontSize: 12, fontWeight: "800", marginTop: 13, marginBottom: 6 },
+  inputRow: { alignItems: "center", flexDirection: "row" },
+  filterInput: { backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 10, borderWidth: 1, color: "#1F2421", flex: 1, fontSize: 13, minHeight: 42, paddingHorizontal: 10 },
+  rangeDivider: { color: "#7A837D", fontSize: 12, fontWeight: "700", marginHorizontal: 8 },
+  filterError: { color: "#B54C3A", fontSize: 11, fontWeight: "700", marginTop: 10 },
+  filterResult: { color: "#0E6B56", fontSize: 11, fontWeight: "800", marginTop: 10 },
   row: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", paddingHorizontal: 14, paddingVertical: 14 },
   rowPressed: { opacity: 0.72 },
   typeBadge: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },

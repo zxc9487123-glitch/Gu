@@ -9,6 +9,14 @@ export type Transaction = {
   date: string;
 };
 
+export type TransactionFilters = {
+  category?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  minimumAmount?: number;
+  maximumAmount?: number;
+};
+
 export type Category = {
   name: string;
   color: string;
@@ -104,6 +112,16 @@ export const transactionsForPeriod = (transactions: Transaction[], period: "all"
   period === "all"
     ? transactions
     : transactions.filter((item) => new Date(`${item.date}T12:00:00`).getFullYear() === period);
+
+export const filteredTransactionsFor = (transactions: Transaction[], filters: TransactionFilters) =>
+  transactions.filter((item) => {
+    if (filters.category && item.category !== filters.category) return false;
+    if (filters.dateFrom && item.date < filters.dateFrom) return false;
+    if (filters.dateTo && item.date > filters.dateTo) return false;
+    if (filters.minimumAmount !== undefined && item.amount < filters.minimumAmount) return false;
+    if (filters.maximumAmount !== undefined && item.amount > filters.maximumAmount) return false;
+    return true;
+  });
 
 export const summaryFor = (transactions: Transaction[]) => {
   const income = transactions

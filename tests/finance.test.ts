@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, monthlyExpenseRankingsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
+import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, monthlyExpenseRankingsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { savingsGoalProgressFor } from "../lib/savings-goal";
@@ -22,6 +22,22 @@ describe("finance calculations", () => {
     const selected = transactionsForPeriod(records, 2026);
     expect(selected).toHaveLength(3);
     expect(summaryFor(selected)).toEqual({ income: 50000, expense: 3200, net: 46800 });
+  });
+
+  it("filters a selected category by date and inclusive amount range", () => {
+    const selected = filteredTransactionsFor(records, {
+      category: "餐飲／食品",
+      dateFrom: "2026-01-01",
+      dateTo: "2026-01-31",
+      minimumAmount: 1200,
+      maximumAmount: 1200,
+    });
+
+    expect(selected.map((item) => item.id)).toEqual(["2"]);
+  });
+
+  it("keeps every transaction when no detail filters are selected", () => {
+    expect(filteredTransactionsFor(records, {})).toEqual(records);
   });
 
   it("lists every transaction year in descending order for the year selector", () => {
