@@ -75,9 +75,9 @@ function SavingsGoalCard({ saved, goal, onPress }: { saved: number; goal: number
   return (
     <Pressable accessibilityLabel="前往設定存款目標" accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.savingsGoalCard, pressed && styles.savingsGoalPressed]}>
       <View style={styles.savingsGoalBarTop}>
-        <Text style={styles.savingsGoalTitle}>存款目標</Text>
+        <Text numberOfLines={1} style={styles.savingsGoalTitle}>存款目標</Text>
         <View style={styles.savingsGoalValueRow}>
-          <Text style={[styles.savingsGoalAmount, savedPositive ? styles.savingsGoalAmountPositive : styles.savingsGoalAmountNegative]}>{money(saved, savedPositive)}</Text>
+          <Text adjustsFontSizeToFit minimumFontScale={0.78} numberOfLines={1} style={[styles.savingsGoalAmount, savedPositive ? styles.savingsGoalAmountPositive : styles.savingsGoalAmountNegative]}>{money(saved, savedPositive)}</Text>
           <Text style={styles.savingsGoalCaption}>目前累積存款</Text>
         </View>
       </View>
@@ -256,10 +256,10 @@ const styles = StyleSheet.create({
   monthDifferenceNegative: { color: "#C85F3A" },
   savingsGoalCard: { borderRadius: 18, backgroundColor: "#F3F0FB", padding: 14, borderWidth: 1, borderColor: "#DDD5F0" },
   savingsGoalPressed: { opacity: 0.84 },
-  savingsGoalBarTop: { gap: 5 },
+  savingsGoalBarTop: { alignItems: "flex-start", flexDirection: "row", gap: 8, justifyContent: "space-between" },
   savingsGoalHeading: { flexDirection: "row", alignItems: "center" },
-  savingsGoalValueRow: { alignItems: "flex-end" },
-  savingsGoalTitle: { color: "#3E365F", fontSize: 19, fontWeight: "900" },
+  savingsGoalValueRow: { alignItems: "flex-end", flexShrink: 1, minWidth: 0 },
+  savingsGoalTitle: { color: "#3E365F", flexShrink: 1, fontSize: 19, fontWeight: "900", lineHeight: 26, minWidth: 0 },
   savingsGoalAmount: { color: "#0E6B56", fontSize: 20, lineHeight: 26, fontWeight: "900", textAlign: "right" },
   savingsGoalAmountPositive: { color: "#0E6B56" },
   savingsGoalAmountNegative: { color: "#C85F3A" },
