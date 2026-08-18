@@ -103,7 +103,7 @@ export function ExcelImportCard({ onConfirm }: Props) {
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>匯入 Excel</Text>
-      <Text style={styles.description}>系統會自動掃描所有工作表。可使用「日期、類型、分類、金額、備註」，或以「收入金額／支出金額」分欄；若格式不符，預覽會標示工作表、Excel 實際列號與欄位原因。</Text>
+      <Text style={styles.description}>支援 .xlsx／.xls；格式問題會在預覽中標示。</Text>
       <Pressable onPress={() => void selectFile()} disabled={isParsing || isSaving} style={({ pressed }) => [styles.selectButton, pressed && styles.pressed, (isParsing || isSaving) && styles.disabled]}>
         <Text style={styles.selectText}>{isParsing ? "正在讀取檔案…" : "選擇 Excel 檔案"}</Text>
       </Pressable>
@@ -197,10 +197,10 @@ export function ExcelImportCard({ onConfirm }: Props) {
 }
 
 const styles = StyleSheet.create({
-  panel: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 17, borderWidth: 1, borderColor: "#ECE7DE" },
-  title: { color: "#1F2421", fontSize: 17, fontWeight: "900" },
-  description: { color: "#7A837D", fontSize: 13, lineHeight: 20, marginTop: 8 },
-  selectButton: { marginTop: 14, borderRadius: 13, paddingVertical: 12, alignItems: "center", backgroundColor: "#E8F2ED", borderWidth: 1, borderColor: "#B9D6CA" },
+  panel: { backgroundColor: "#FFFFFF", borderRadius: 18, padding: 14, borderWidth: 1, borderColor: "#ECE7DE" },
+  title: { color: "#1F2421", fontSize: 16, fontWeight: "900" },
+  description: { color: "#7A837D", fontSize: 12, lineHeight: 18, marginTop: 5 },
+  selectButton: { marginTop: 10, borderRadius: 12, paddingVertical: 10, alignItems: "center", backgroundColor: "#E8F2ED", borderWidth: 1, borderColor: "#B9D6CA" },
   selectText: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
   pressed: { opacity: 0.75 },
   disabled: { opacity: 0.5 },
