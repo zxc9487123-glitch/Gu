@@ -90,7 +90,6 @@ function SavingsGoalCard({ saved, goal }: { saved: number; goal: number | null }
         <View style={styles.savingsGoalHeading}>
           <View>
             <Text style={styles.savingsGoalTitle}>存款目標</Text>
-            <Text style={styles.savingsGoalSubtitle}>以總收入減總支出計算目前存款</Text>
           </View>
           <View style={styles.savingsGoalIcon}><Text style={styles.savingsGoalIconText}>目</Text></View>
         </View>
@@ -283,7 +282,6 @@ const styles = StyleSheet.create({
   savingsGoalHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
   savingsGoalValueRow: { alignItems: "flex-end" },
   savingsGoalTitle: { color: "#3E365F", fontSize: 19, fontWeight: "900" },
-  savingsGoalSubtitle: { color: "#7A7192", fontSize: 11, marginTop: 2 },
   savingsGoalIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#E6DFFC", alignItems: "center", justifyContent: "center" },
   savingsGoalIconText: { color: "#69529D", fontSize: 12, fontWeight: "900" },
   savingsGoalAmount: { color: "#0E6B56", fontSize: 20, lineHeight: 26, fontWeight: "900", textAlign: "right" },
