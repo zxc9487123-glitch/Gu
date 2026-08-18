@@ -226,8 +226,8 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Panel title="支出分類佔比" subtitle="各分類支出金額比例">
-          <DonutChart data={categories} />
+        <Panel title="支出分類佔比" subtitle="點選分類查看交易明細">
+          <DonutChart data={categories} onCategoryPress={(category) => router.push({ pathname: "/accounting", params: { mode: "details", category } })} />
         </Panel>
 
       </ScrollView>

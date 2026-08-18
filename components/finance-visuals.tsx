@@ -140,7 +140,7 @@ export function TrendLine({ points, showAnnualSummary = false, annualExpenseInsi
   );
 }
 
-export function DonutChart({ data }: { data: CategoryTotal[] }) {
+export function DonutChart({ data, onCategoryPress }: { data: CategoryTotal[]; onCategoryPress?: (category: string) => void }) {
   if (data.length === 0) return <EmptyChart label="尚無支出分類資料" />;
 
   const radius = 54;
@@ -167,6 +167,7 @@ export function DonutChart({ data }: { data: CategoryTotal[] }) {
                 strokeLinecap="butt"
                 rotation="-90"
                 origin="66,66"
+                onPress={onCategoryPress ? () => onCategoryPress(item.name) : undefined}
               />
             );
             offset += item.ratio * circumference;
@@ -180,11 +181,11 @@ export function DonutChart({ data }: { data: CategoryTotal[] }) {
       </View>
       <View style={styles.legend}>
         {data.slice(0, 6).map((item) => (
-          <View key={item.name} style={styles.legendRow}>
+          <Pressable key={item.name} accessibilityRole={onCategoryPress ? "button" : undefined} accessibilityLabel={onCategoryPress ? `查看${item.name}交易明細` : undefined} disabled={!onCategoryPress} onPress={onCategoryPress ? () => onCategoryPress(item.name) : undefined} style={({ pressed }) => [styles.legendRow, pressed && onCategoryPress && styles.legendRowPressed]}>
             <View style={[styles.legendDot, { backgroundColor: item.color }]} />
             <Text numberOfLines={1} style={styles.legendName}>{item.name}</Text>
             <Text style={styles.legendRatio}>{Math.round(item.ratio * 100)}%</Text>
-          </View>
+          </Pressable>
         ))}
       </View>
     </View>
@@ -234,6 +235,7 @@ const styles = StyleSheet.create({
   donutCenterText: { color: "#1F2421", fontSize: 14, fontWeight: "800" },
   legend: { flex: 1, gap: 6 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendRowPressed: { opacity: 0.64 },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
   legendName: { flex: 1, color: "#4C5650", fontSize: 12 },
   legendRatio: { color: "#1F2421", fontSize: 12, fontWeight: "800" },
