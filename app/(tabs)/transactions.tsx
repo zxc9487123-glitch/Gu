@@ -1,4 +1,4 @@
-import { Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 
@@ -51,7 +51,7 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
   const [sortField, setSortField] = useState<"date" | "amount">("date");
   const [sortDirection, setSortDirection] = useState<"ascending" | "descending">("descending");
   const [isFilterDrawerVisible, setIsFilterDrawerVisible] = useState(false);
-  const [isRecurringExpanded, setIsRecurringExpanded] = useState(false);
+  const [isRecurringDrawerVisible, setIsRecurringDrawerVisible] = useState(false);
   const [isRecurringEditorOpen, setIsRecurringEditorOpen] = useState(false);
   const [recurringName, setRecurringName] = useState("");
   const [recurringType, setRecurringType] = useState<TransactionType>("expense");
@@ -62,6 +62,7 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
   const [recurringError, setRecurringError] = useState("");
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const drawerProgress = useRef(new Animated.Value(1)).current;
+  const recurringDrawerProgress = useRef(new Animated.Value(1)).current;
   const validDates = isDateInput(dateFrom) && isDateInput(dateTo);
   const minimum = parseAmount(minimumAmount);
   const maximum = parseAmount(maximumAmount);
@@ -74,6 +75,7 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
   const amountSummary = minimumAmount || maximumAmount ? `金額：${minimumAmount || "不限"} 至 ${maximumAmount || "不限"}` : "金額：全部";
   const sortSummary = `${sortField === "date" ? "日期" : "金額"}${sortDirection === "ascending" ? "↑" : "↓"}`;
   const drawerTranslateY = drawerProgress.interpolate({ inputRange: [0, 1], outputRange: [0, 560] });
+  const recurringDrawerTranslateY = recurringDrawerProgress.interpolate({ inputRange: [0, 1], outputRange: [0, 680] });
   const pendingRecurring = pendingRecurringTransactions();
   const recurringCategoryOptions = categoriesFor(recurringType);
   const records = useMemo(() => sortTransactionsFor(filteredTransactionsFor(transactions, {
@@ -112,6 +114,28 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
       useNativeDriver: true,
     }).start(({ finished }) => {
       if (finished) setIsFilterDrawerVisible(false);
+    });
+  };
+  const openRecurringDrawer = () => {
+    recurringDrawerProgress.setValue(1);
+    setIsRecurringDrawerVisible(true);
+    requestAnimationFrame(() => {
+      Animated.timing(recurringDrawerProgress, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+  const closeRecurringDrawer = () => {
+    Animated.timing(recurringDrawerProgress, {
+      toValue: 1,
+      duration: 170,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) setIsRecurringDrawerVisible(false);
     });
   };
   const confirmRemove = (item: Transaction) => {
@@ -203,7 +227,7 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
               </Pressable>
             </View>
             <View style={styles.recurringCard}>
-              <Pressable accessibilityRole="button" accessibilityLabel="展開或收合固定收支" onPress={() => setIsRecurringExpanded((value) => !value)} style={({ pressed }) => [styles.recurringHeader, pressed && styles.recurringHeaderPressed]}>
+              <Pressable accessibilityRole="button" accessibilityLabel="開啟固定收支設定" onPress={openRecurringDrawer} style={({ pressed }) => [styles.recurringHeader, pressed && styles.recurringHeaderPressed]}>
                 <View style={styles.recurringHeaderCopy}>
                   <View style={styles.recurringTitleRow}>
                     <Text style={styles.recurringTitle}>固定收支</Text>
@@ -211,9 +235,9 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
                   </View>
                   <Text numberOfLines={1} style={styles.recurringHint}>{pendingRecurring.length > 0 ? `本月有 ${pendingRecurring.length} 筆待確認交易` : recurringRules.length > 0 ? `已設定 ${recurringRules.length} 項・進入明細時自動產生待確認` : "設定薪資、房租或訂閱費，按月建立待確認交易"}</Text>
                 </View>
-                <Text style={styles.recurringChevron}>{isRecurringExpanded ? "⌃" : "⌄"}</Text>
+                <Text style={styles.recurringChevron}>⌃</Text>
               </Pressable>
-              {isRecurringExpanded ? (
+              {false ? (
                 <View style={styles.recurringBody}>
                   {pendingRecurring.length > 0 ? (
                     <View style={styles.pendingSection}>
@@ -331,6 +355,36 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
           </Animated.View>
         </KeyboardAvoidingView>
       </Modal>
+      <Modal transparent visible={isRecurringDrawerVisible} animationType="none" onRequestClose={closeRecurringDrawer}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.drawerModal}>
+          <Pressable accessibilityRole="button" accessibilityLabel="關閉固定收支面板" onPress={closeRecurringDrawer} style={styles.drawerBackdrop} />
+          <Animated.View style={[styles.recurringDrawerSheet, { transform: [{ translateY: recurringDrawerTranslateY }] }]}>
+            <View style={styles.drawerHandle} />
+            <View style={styles.drawerHeader}>
+              <View><Text style={styles.drawerTitle}>固定收支</Text><Text style={styles.drawerHint}>每月到期項目會在開啟明細時列為待確認交易。</Text></View>
+              <Pressable accessibilityRole="button" onPress={closeRecurringDrawer} style={({ pressed }) => [styles.drawerCloseButton, pressed && styles.drawerCloseButtonPressed]}><Text style={styles.drawerCloseText}>完成</Text></Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.recurringDrawerContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {pendingRecurring.length > 0 ? <View style={styles.pendingSection}><Text style={styles.recurringSectionTitle}>本月待確認</Text>{pendingRecurring.map((pending) => {
+                const isIncome = pending.type === "income";
+                const isPending = pendingActionId === pending.id;
+                return <View key={pending.id} style={styles.pendingRow}><View style={[styles.pendingTypeBadge, isIncome ? styles.incomeBadge : styles.expenseBadge]}><Text style={[styles.typeBadgeText, isIncome ? styles.incomeText : styles.expenseText]}>{isIncome ? "入" : "出"}</Text></View><View style={styles.pendingMain}><Text numberOfLines={1} style={styles.pendingName}>{pending.name}</Text><Text numberOfLines={1} style={styles.pendingMeta}>{pending.date}・{pending.category}</Text></View><View style={styles.pendingActions}><Text style={[styles.pendingAmount, isIncome ? styles.incomeText : styles.expenseText]}>{isIncome ? "+" : "−"}{money(pending.amount).replace("NT$ ", "")}</Text><View style={styles.pendingActionRow}><Pressable disabled={isPending} onPress={() => void dismissPendingRecurring(pending)} style={({ pressed }) => [styles.pendingDismissButton, pressed && !isPending && styles.recurringActionPressed, isPending && styles.recurringActionDisabled]}><Text style={styles.pendingDismissText}>略過</Text></Pressable><Pressable disabled={isPending} onPress={() => void confirmPendingRecurring(pending)} style={({ pressed }) => [styles.pendingConfirmButton, pressed && !isPending && styles.recurringActionPressed, isPending && styles.recurringActionDisabled]}><Text style={styles.pendingConfirmText}>{isPending ? "處理中" : "確認"}</Text></Pressable></View></View></View>;
+              })}</View> : <Text style={styles.recurringEmptyText}>{recurringRules.length > 0 ? "本月目前沒有到期的固定收支。" : "尚未設定固定收支。"}</Text>}
+              {recurringRules.length > 0 ? <View style={styles.ruleSection}><Text style={styles.recurringSectionTitle}>已設定規則</Text>{recurringRules.map((rule) => <View key={rule.id} style={styles.ruleRow}><View style={styles.ruleCopy}><Text numberOfLines={1} style={styles.ruleName}>{rule.name}</Text><Text numberOfLines={1} style={styles.ruleMeta}>每月 {rule.dayOfMonth} 日・{rule.category}・{money(rule.amount)}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`移除${rule.name}固定收支`} onPress={() => confirmRemoveRecurringRule(rule.id, rule.name)} style={({ pressed }) => [styles.ruleRemoveButton, pressed && styles.recurringActionPressed]}><Text style={styles.ruleRemoveText}>移除</Text></Pressable></View>)}</View> : null}
+              {isRecurringEditorOpen ? <View style={styles.recurringEditor}>
+                <View style={styles.recurringEditorHeader}><Text style={styles.recurringSectionTitle}>新增固定收支</Text><Pressable accessibilityRole="button" onPress={resetRecurringEditor} style={({ pressed }) => [styles.editorCancelButton, pressed && styles.recurringActionPressed]}><Text style={styles.editorCancelText}>取消</Text></Pressable></View>
+                <TextInput value={recurringName} onChangeText={(value) => { setRecurringName(value); setRecurringError(""); }} placeholder="名稱，例如薪資、房租、影音訂閱" placeholderTextColor="#9CA59F" style={styles.recurringInput} returnKeyType="next" />
+                <View style={styles.recurringTypeRow}><Pressable onPress={() => chooseRecurringType("expense")} style={({ pressed }) => [styles.recurringTypeButton, recurringType === "expense" && styles.recurringTypeExpenseActive, pressed && styles.recurringActionPressed]}><Text style={[styles.recurringTypeText, recurringType === "expense" && styles.expenseText]}>支出</Text></Pressable><Pressable onPress={() => chooseRecurringType("income")} style={({ pressed }) => [styles.recurringTypeButton, recurringType === "income" && styles.recurringTypeIncomeActive, pressed && styles.recurringActionPressed]}><Text style={[styles.recurringTypeText, recurringType === "income" && styles.incomeText]}>收入</Text></Pressable></View>
+                <View style={styles.recurringInputRow}><View style={styles.recurringInputField}><Text style={styles.recurringInputPrefix}>NT$</Text><TextInput value={recurringAmount} onChangeText={(value) => { setRecurringAmount(value); setRecurringError(""); }} placeholder="金額" placeholderTextColor="#9CA59F" inputMode="decimal" keyboardType="decimal-pad" style={styles.recurringInlineInput} /></View><View style={styles.recurringDayField}><Text style={styles.recurringInputPrefix}>每月</Text><TextInput value={recurringDay} onChangeText={(value) => { setRecurringDay(value); setRecurringError(""); }} placeholder="日" placeholderTextColor="#9CA59F" inputMode="numeric" keyboardType="number-pad" maxLength={2} style={styles.recurringDayInput} /><Text style={styles.recurringInputPrefix}>日</Text></View></View>
+                <View style={styles.recurringCategoryGrid}>{recurringCategoryOptions.map((item) => <Pressable key={item.name} onPress={() => setRecurringCategory(item.name)} style={({ pressed }) => [styles.recurringCategoryChip, recurringCategory === item.name && styles.recurringCategoryChipActive, pressed && styles.recurringActionPressed]}><Text style={[styles.recurringCategoryText, recurringCategory === item.name && styles.recurringCategoryTextActive]}>{item.name}</Text></Pressable>)}</View>
+                <TextInput value={recurringNote} onChangeText={setRecurringNote} placeholder="備註（可留空）" placeholderTextColor="#9CA59F" style={styles.recurringInput} returnKeyType="done" onSubmitEditing={() => void saveRecurringRule()} />
+                {recurringError ? <Text style={styles.recurringError}>{recurringError}</Text> : null}
+                <Pressable onPress={() => void saveRecurringRule()} style={({ pressed }) => [styles.recurringSaveButton, pressed && styles.recurringActionPressed]}><Text style={styles.recurringSaveText}>儲存固定收支</Text></Pressable>
+              </View> : <Pressable accessibilityRole="button" onPress={() => { setIsRecurringEditorOpen(true); setRecurringError(""); }} style={({ pressed }) => [styles.addRecurringButton, pressed && styles.recurringActionPressed]}><Text style={styles.addRecurringText}>＋ 新增固定收支</Text></Pressable>}
+            </ScrollView>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Modal>
     </>
   );
 }
@@ -364,6 +418,8 @@ const styles = StyleSheet.create({
   recurringHint: { color: "#6D7B72", fontSize: 11, marginTop: 4 },
   recurringChevron: { color: "#0E6B56", fontSize: 17, fontWeight: "900" },
   recurringBody: { borderTopColor: "#E5EEE9", borderTopWidth: 1, padding: 12 },
+  recurringDrawerSheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "88%", paddingBottom: 18, paddingHorizontal: 16, paddingTop: 9 },
+  recurringDrawerContent: { gap: 11, paddingBottom: 12, paddingTop: 12 },
   recurringSectionTitle: { color: "#415048", fontSize: 12, fontWeight: "900" },
   pendingSection: { gap: 8 },
   pendingRow: { alignItems: "center", backgroundColor: "#F6FAF8", borderColor: "#D8E8DF", borderRadius: 11, borderWidth: 1, flexDirection: "row", padding: 9 },
