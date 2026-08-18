@@ -114,6 +114,7 @@ export default function HomeScreen() {
   const years = availableYears(transactions);
   const [period, setPeriod] = useState<TransactionPeriod>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
@@ -164,17 +165,40 @@ export default function HomeScreen() {
                   </Pressable>
                 ))}
               </View>
-              <Text style={styles.periodMenuSectionLabel}>月份（{selectedYear} 年）</Text>
-              <View style={styles.periodOptionGrid}>
-                {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => {
-                  const candidate = { year: selectedYear, month };
-                  return (
-                    <Pressable key={month} onPress={() => selectPeriod(candidate)} style={[styles.periodChip, isPeriodSelected(candidate) && styles.periodChipSelected]}>
-                      <Text style={[styles.periodChipText, isPeriodSelected(candidate) && styles.periodChipTextSelected]}>{month}月</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.monthPickerSection}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="展開或收合月份選擇"
+            onPress={() => setIsMonthPickerOpen((value) => !value)}
+            style={({ pressed }) => [styles.monthPickerToggle, pressed && styles.monthPickerTogglePressed]}
+          >
+            <View>
+              <Text style={styles.monthPickerTitle}>月份</Text>
+              <Text style={styles.monthPickerSubtitle}>{typeof period === "object" ? `${period.month} 月已選取` : `選擇 ${selectedYear} 年月份`}</Text>
+            </View>
+            <Text style={styles.monthPickerChevron}>{isMonthPickerOpen ? "⌃" : "⌄"}</Text>
+          </Pressable>
+          {isMonthPickerOpen ? (
+            <View style={styles.monthPickerGrid}>
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => {
+                const candidate = { year: selectedYear, month };
+                return (
+                  <Pressable
+                    key={month}
+                    onPress={() => {
+                      selectPeriod(candidate);
+                      setIsMonthPickerOpen(false);
+                    }}
+                    style={[styles.monthPickerChip, isPeriodSelected(candidate) && styles.monthPickerChipSelected]}
+                  >
+                    <Text style={[styles.monthPickerChipText, isPeriodSelected(candidate) && styles.monthPickerChipTextSelected]}>{month}月</Text>
+                  </Pressable>
+                );
+              })}
             </View>
           ) : null}
         </View>
@@ -229,6 +253,17 @@ const styles = StyleSheet.create({
   periodChipSelected: { backgroundColor: "#E8F1EC", borderColor: "#98C4B2" },
   periodChipText: { color: "#59655E", fontSize: 11, fontWeight: "800" },
   periodChipTextSelected: { color: "#0E6B56" },
+  monthPickerSection: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 14, borderWidth: 1, marginTop: 10, overflow: "hidden" },
+  monthPickerToggle: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 13, paddingVertical: 10 },
+  monthPickerTogglePressed: { backgroundColor: "#F7F8F5" },
+  monthPickerTitle: { color: "#34473D", fontSize: 12, fontWeight: "900" },
+  monthPickerSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2 },
+  monthPickerChevron: { color: "#0E6B56", fontSize: 15, fontWeight: "900" },
+  monthPickerGrid: { borderTopColor: "#ECE7DE", borderTopWidth: 1, flexDirection: "row", flexWrap: "wrap", gap: 7, padding: 11 },
+  monthPickerChip: { alignItems: "center", borderColor: "#E2DED5", borderRadius: 8, borderWidth: 1, minWidth: 42, paddingHorizontal: 7, paddingVertical: 7 },
+  monthPickerChipSelected: { backgroundColor: "#E8F1EC", borderColor: "#98C4B2" },
+  monthPickerChipText: { color: "#59655E", fontSize: 11, fontWeight: "800" },
+  monthPickerChipTextSelected: { color: "#0E6B56" },
   metricGrid: { gap: 10, marginTop: 34 },
   metricTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   metricColumn: { flex: 1, gap: 10 },
