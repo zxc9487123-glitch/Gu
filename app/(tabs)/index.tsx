@@ -78,15 +78,19 @@ function SavingsGoalCard({ saved, goal }: { saved: number; goal: number | null }
 
   return (
     <View style={styles.savingsGoalCard}>
-      <View style={styles.savingsGoalHeading}>
-        <View>
-          <Text style={styles.savingsGoalTitle}>存款目標</Text>
-          <Text style={styles.savingsGoalSubtitle}>以總收入減總支出計算目前存款</Text>
+      <View style={styles.savingsGoalBarTop}>
+        <View style={styles.savingsGoalHeading}>
+          <View>
+            <Text style={styles.savingsGoalTitle}>存款目標</Text>
+            <Text style={styles.savingsGoalSubtitle}>以總收入減總支出計算目前存款</Text>
+          </View>
+          <View style={styles.savingsGoalIcon}><Text style={styles.savingsGoalIconText}>目</Text></View>
         </View>
-        <View style={styles.savingsGoalIcon}><Text style={styles.savingsGoalIconText}>目</Text></View>
+        <View>
+          <Text style={[styles.savingsGoalAmount, savedPositive ? styles.savingsGoalAmountPositive : styles.savingsGoalAmountNegative]}>{money(saved, savedPositive)}</Text>
+          <Text style={styles.savingsGoalCaption}>目前累積存款</Text>
+        </View>
       </View>
-      <Text style={[styles.savingsGoalAmount, savedPositive ? styles.savingsGoalAmountPositive : styles.savingsGoalAmountNegative]}>{money(saved, savedPositive)}</Text>
-      <Text style={styles.savingsGoalCaption}>目前累積存款</Text>
       {progress.status === "not-set" ? (
         <View style={styles.savingsGoalEmpty}><Text style={styles.savingsGoalEmptyText}>請至「設定」輸入存款目標金額</Text></View>
       ) : (
@@ -169,9 +173,9 @@ export default function HomeScreen() {
             </View>
             <View style={styles.metricSideColumn}>
               <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
-              {period === "all" ? <SavingsGoalCard saved={summary.net} goal={savingsGoal} /> : null}
             </View>
           </View>
+          {period === "all" ? <SavingsGoalCard saved={summary.net} goal={savingsGoal} /> : null}
         </View>
 
         <Panel title="支出分類地圖" subtitle="依金額查看分類結構" compact>
@@ -259,19 +263,20 @@ const styles = StyleSheet.create({
   monthDifference: { fontSize: 10, lineHeight: 15, fontWeight: "900", marginTop: 7 },
   monthDifferencePositive: { color: "#0E6B56" },
   monthDifferenceNegative: { color: "#C85F3A" },
-  savingsGoalCard: { borderRadius: 20, backgroundColor: "#F3F0FB", padding: 14, borderWidth: 1, borderColor: "#DDD5F0" },
-  savingsGoalHeading: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  savingsGoalCard: { borderRadius: 18, backgroundColor: "#F3F0FB", padding: 14, borderWidth: 1, borderColor: "#DDD5F0" },
+  savingsGoalBarTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  savingsGoalHeading: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 8 },
   savingsGoalTitle: { color: "#3E365F", fontSize: 19, fontWeight: "900" },
   savingsGoalSubtitle: { color: "#7A7192", fontSize: 11, marginTop: 2 },
   savingsGoalIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#E6DFFC", alignItems: "center", justifyContent: "center" },
   savingsGoalIconText: { color: "#69529D", fontSize: 12, fontWeight: "900" },
-  savingsGoalAmount: { fontSize: 20, lineHeight: 26, fontWeight: "900", marginTop: 10 },
+  savingsGoalAmount: { color: "#0E6B56", fontSize: 20, lineHeight: 26, fontWeight: "900", textAlign: "right" },
   savingsGoalAmountPositive: { color: "#0E6B56" },
   savingsGoalAmountNegative: { color: "#C85F3A" },
-  savingsGoalCaption: { color: "#7A7192", fontSize: 11, marginTop: 2 },
-  savingsGoalEmpty: { marginTop: 9, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#FFFFFF" },
+  savingsGoalCaption: { color: "#7A7192", fontSize: 10, marginTop: 1, textAlign: "right" },
+  savingsGoalEmpty: { marginTop: 10, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#FFFFFF" },
   savingsGoalEmptyText: { color: "#69529D", fontSize: 11, fontWeight: "800" },
-  savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 9 },
+  savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
   savingsGoalMetaText: { color: "#665D7D", fontSize: 11, fontWeight: "800" },
   savingsGoalPercent: { color: "#69529D", fontSize: 15, fontWeight: "900" },
   savingsGoalTrack: { height: 7, borderRadius: 4, backgroundColor: "#DED7EE", overflow: "hidden", marginTop: 5 },
