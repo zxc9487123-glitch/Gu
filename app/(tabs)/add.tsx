@@ -37,7 +37,7 @@ export default function AddTransactionScreen() {
     setSaving(true);
     try {
       await addTransaction({ type, amount: parsedAmount, category, note: note.trim(), date });
-      router.replace("/transactions");
+      router.replace("/accounting?mode=details");
     } finally {
       setSaving(false);
     }

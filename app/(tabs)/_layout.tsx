@@ -29,9 +29,9 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="analysis"
+        name="accounting"
         options={{
-          title: "分析",
+          title: "帳務",
           tabBarIcon: ({ color }) => <IconSymbol size={27} name="chart.bar.xaxis" color={color} />,
         }}
       />
@@ -43,13 +43,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="transactions"
-        options={{
-          title: "明細",
-          tabBarIcon: ({ color }) => <IconSymbol size={27} name="list.bullet" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{
           title: "設定",
@@ -57,6 +50,8 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen name="add" options={{ href: null }} />
+      <Tabs.Screen name="analysis" options={{ href: null }} />
+      <Tabs.Screen name="transactions" options={{ href: null }} />
     </Tabs>
   );
 }

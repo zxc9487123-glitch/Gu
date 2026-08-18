@@ -9,7 +9,7 @@ import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthlyExpens
 type Period = TransactionPeriod;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
-export default function AnalysisScreen() {
+export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (category: string) => void }) {
   const router = useRouter();
   const { transactions } = useFinance();
   const years = availableYears(transactions);
@@ -41,8 +41,7 @@ export default function AnalysisScreen() {
   };
 
   return (
-    <ScreenContainer containerClassName="bg-background">
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Text style={styles.title}>花費分析</Text>
           <Text style={styles.subtitle}>{periodSubtitle}</Text>
@@ -97,7 +96,7 @@ export default function AnalysisScreen() {
               const trendText = trend?.direction === "up" ? `↑ 第${trend.previousRank}名→第${trend.currentRank}名` : trend?.direction === "down" ? `↓ 第${trend.previousRank}名→第${trend.currentRank}名` : trend?.direction === "same" ? `→ 維持第${trend.currentRank}名` : trend?.direction === "new" ? `新上榜第${trend.currentRank}名` : trend?.direction === "inactive" ? `上月第${trend.previousRank}名` : "尚無月度比較";
               const trendStyle = trend?.direction === "up" ? styles.rankTrendUp : trend?.direction === "down" ? styles.rankTrendDown : trend?.direction === "new" ? styles.rankTrendNew : styles.rankTrendNeutral;
               return (
-                <Pressable key={item.name} onPress={() => router.push({ pathname: "/transactions", params: { category: item.name } })} style={({ pressed }) => [styles.rankRow, pressed && styles.rankRowPressed]}>
+                <Pressable key={item.name} onPress={() => onCategoryPress ? onCategoryPress(item.name) : router.push({ pathname: "/transactions", params: { category: item.name } })} style={({ pressed }) => [styles.rankRow, pressed && styles.rankRowPressed]}>
                   {index < 3 ? <View style={[styles.rankBadge, index === 0 ? styles.rankBadgeFirst : index === 1 ? styles.rankBadgeSecond : styles.rankBadgeThird]}><Text style={styles.rankBadgeText}>#{index + 1}</Text></View> : <Text style={styles.rankNumber}>{String(index + 1).padStart(2, "0")}</Text>}
                   <View style={[styles.rankDot, { backgroundColor: item.color }]} />
                   <View style={styles.rankCopy}><Text style={styles.rankName}>{item.name}</Text><Text numberOfLines={1} style={[styles.rankTrend, trendStyle]}>{trendText}</Text></View>
@@ -124,12 +123,16 @@ export default function AnalysisScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
-    </ScreenContainer>
+    </ScrollView>
   );
 }
 
+export default function AnalysisScreen() {
+  return <ScreenContainer containerClassName="bg-background"><AnalysisContent /></ScreenContainer>;
+}
+
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   content: { padding: 20, paddingBottom: 34, gap: 15 },
   header: { marginTop: 4 },
   title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },

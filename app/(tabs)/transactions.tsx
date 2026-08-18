@@ -37,11 +37,12 @@ function TransactionRow({ item, onRemove }: { item: Transaction; onRemove: () =>
   );
 }
 
-export default function TransactionsScreen() {
+export function TransactionsContent({ initialCategory, onClearCategory }: { initialCategory?: string; onClearCategory?: () => void }) {
   const router = useRouter();
   const { transactions, removeTransaction } = useFinance();
   const { category } = useLocalSearchParams<{ category?: string }>();
-  const selectedCategory = Array.isArray(category) ? category[0] : category;
+  const routeCategory = Array.isArray(category) ? category[0] : category;
+  const selectedCategory = initialCategory ?? routeCategory;
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [minimumAmount, setMinimumAmount] = useState("");
@@ -75,8 +76,7 @@ export default function TransactionsScreen() {
   };
 
   return (
-    <ScreenContainer containerClassName="bg-background">
-      <FlatList
+    <FlatList
         data={records}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <TransactionRow item={item} onRemove={() => confirmRemove(item)} />}
@@ -85,7 +85,7 @@ export default function TransactionsScreen() {
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <View style={styles.headerTitleCopy}>
-                <Text style={styles.title}>{selectedCategory ? `${selectedCategory}明細` : "交易明細"}</Text>
+                <View style={styles.titleLine}><Text style={styles.title}>{selectedCategory ? `${selectedCategory}明細` : "交易明細"}</Text>{selectedCategory && onClearCategory ? <Pressable accessibilityRole="button" onPress={onClearCategory} style={styles.categoryClearButton}><Text style={styles.categoryClearText}>全部</Text></Pressable> : null}</View>
                 <Text style={styles.subtitle}>{selectedCategory ? `目前僅顯示「${selectedCategory}」的交易；長按可刪除。` : "長按任一筆紀錄即可刪除。"}</Text>
               </View>
               <Pressable accessibilityRole="button" accessibilityLabel="新增交易" onPress={() => router.push("/add")} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
@@ -128,8 +128,11 @@ export default function TransactionsScreen() {
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
-    </ScreenContainer>
   );
+}
+
+export default function TransactionsScreen() {
+  return <ScreenContainer containerClassName="bg-background"><TransactionsContent /></ScreenContainer>;
 }
 
 const styles = StyleSheet.create({
@@ -138,7 +141,10 @@ const styles = StyleSheet.create({
   header: { marginBottom: 18 },
   headerTitleRow: { alignItems: "flex-start", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   headerTitleCopy: { flex: 1, minWidth: 0 },
+  titleLine: { alignItems: "center", flexDirection: "row", gap: 7 },
   title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },
+  categoryClearButton: { backgroundColor: "#E7F2ED", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4 },
+  categoryClearText: { color: "#0E6B56", fontSize: 10, fontWeight: "900" },
   subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13 },
   addButton: { alignItems: "center", backgroundColor: "#0E6B56", borderRadius: 10, justifyContent: "center", minHeight: 36, paddingHorizontal: 10 },
   addButtonPressed: { opacity: 0.78, transform: [{ scale: 0.97 }] },
