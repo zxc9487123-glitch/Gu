@@ -29,13 +29,6 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          title: "總覽",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="analysis"
         options={{
           title: "分析",
@@ -47,6 +40,13 @@ export default function TabLayout() {
         options={{
           title: "新增",
           tabBarIcon: ({ color }) => <IconSymbol size={31} name="plus.circle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "總覽",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
