@@ -7,11 +7,9 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
-import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod } from "@/lib/finance";
+import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseUsageFor } from "@/lib/living-amount";
 import { savingsGoalProgressFor } from "@/lib/savings-goal";
-
-type Period = "all" | number;
 
 function MetricCard({ label, amount, tone }: { label: string; amount: string; tone: "income" | "expense" }) {
   const icon = tone === "income" ? "↗" : "↘";
@@ -114,12 +112,24 @@ export default function HomeScreen() {
   const { transactions, isLoading } = useFinance();
   const { savingsGoal } = useSavingsGoal();
   const years = availableYears(transactions);
-  const [period, setPeriod] = useState<Period>("all");
+  const [period, setPeriod] = useState<TransactionPeriod>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const firstYear = years[0] ?? new Date().getFullYear();
+  const selectedYear = period === "all" ? firstYear : typeof period === "number" ? period : period.year;
+  const periodLabel = period === "all" ? "全年度" : typeof period === "number" ? `${period} 年度` : `${period.year} 年 ${period.month} 月`;
+  const selectPeriod = (nextPeriod: TransactionPeriod) => {
+    setPeriod(nextPeriod);
+    setIsYearMenuOpen(false);
+  };
+  const isPeriodSelected = (candidate: TransactionPeriod) =>
+    candidate === "all"
+      ? period === "all"
+      : typeof candidate === "number"
+        ? period === candidate
+        : typeof period === "object" && period.year === candidate.year && period.month === candidate.month;
 
   return (
     <ScreenContainer containerClassName="bg-background">
@@ -129,31 +139,44 @@ export default function HomeScreen() {
             <Image source={require("../../assets/images/icon.png")} style={styles.brandIcon} />
             <View>
               <Text style={styles.title}>財務總覽</Text>
-              <Text style={styles.subtitle}>{period === "all" ? "全年度收支概況與趨勢分析" : `${period} 年度收支概況與趨勢分析`}</Text>
+              <Text style={styles.subtitle}>{period === "all" ? "全年度收支概況與趨勢分析" : `${periodLabel}收支概況與趨勢分析`}</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.segmentControl}>
-          <Pressable onPress={() => { setPeriod("all"); setIsYearMenuOpen(false); }} style={[styles.segment, styles.allYearsSegment, period === "all" && styles.segmentSelected]}>
-            <Text style={[styles.segmentText, period === "all" && styles.segmentTextSelected]}>全年度</Text>
+        <View style={styles.periodPicker}>
+          <Pressable accessibilityRole="button" accessibilityLabel="選擇統計期間" onPress={() => setIsYearMenuOpen((value) => !value)} style={({ pressed }) => [styles.periodPickerButton, pressed && styles.periodPickerPressed]}>
+            <Text style={styles.periodPickerLabel}>{periodLabel}</Text>
+            <Text style={styles.periodPickerChevron}>{isYearMenuOpen ? "⌃" : "⌄"}</Text>
           </Pressable>
-          <View style={styles.yearPicker}>
-            <Pressable onPress={() => setIsYearMenuOpen((value) => !value)} style={[styles.segment, styles.yearPickerButton, period !== "all" && styles.segmentSelected]}>
-              <Text style={[styles.segmentText, period !== "all" && styles.segmentTextSelected]}>{period === "all" ? firstYear : period} 年度</Text>
-              <Text style={[styles.yearPickerChevron, period !== "all" && styles.segmentTextSelected]}>{isYearMenuOpen ? "⌃" : "⌄"}</Text>
-            </Pressable>
-            {isYearMenuOpen ? (
-              <View style={styles.yearMenu}>
+          {isYearMenuOpen ? (
+            <View style={styles.periodMenu}>
+              <Text style={styles.periodMenuSectionLabel}>期間</Text>
+              <Pressable onPress={() => selectPeriod("all")} style={[styles.periodMenuOption, isPeriodSelected("all") && styles.periodMenuOptionSelected]}>
+                <Text style={[styles.periodMenuOptionText, isPeriodSelected("all") && styles.periodMenuOptionTextSelected]}>全年度</Text>
+                {isPeriodSelected("all") ? <Text style={styles.periodMenuCheck}>✓</Text> : null}
+              </Pressable>
+              <Text style={styles.periodMenuSectionLabel}>年度</Text>
+              <View style={styles.periodOptionGrid}>
                 {years.map((year) => (
-                  <Pressable key={year} onPress={() => { setPeriod(year); setIsYearMenuOpen(false); }} style={[styles.yearMenuItem, period === year && styles.yearMenuItemSelected]}>
-                    <Text style={[styles.yearMenuText, period === year && styles.yearMenuTextSelected]}>{year} 年度</Text>
-                    {period === year ? <Text style={styles.yearMenuCheck}>✓</Text> : null}
+                  <Pressable key={year} onPress={() => selectPeriod(year)} style={[styles.periodChip, isPeriodSelected(year) && styles.periodChipSelected]}>
+                    <Text style={[styles.periodChipText, isPeriodSelected(year) && styles.periodChipTextSelected]}>{year}</Text>
                   </Pressable>
                 ))}
               </View>
-            ) : null}
-          </View>
+              <Text style={styles.periodMenuSectionLabel}>月份（{selectedYear} 年）</Text>
+              <View style={styles.periodOptionGrid}>
+                {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => {
+                  const candidate = { year: selectedYear, month };
+                  return (
+                    <Pressable key={month} onPress={() => selectPeriod(candidate)} style={[styles.periodChip, isPeriodSelected(candidate) && styles.periodChipSelected]}>
+                      <Text style={[styles.periodChipText, isPeriodSelected(candidate) && styles.periodChipTextSelected]}>{month}月</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.metricGrid}>
@@ -189,21 +212,23 @@ const styles = StyleSheet.create({
   brandIcon: { width: 52, height: 52, borderRadius: 14, borderWidth: 1, borderColor: "#D7C9B8" },
   title: { fontSize: 27, lineHeight: 34, fontWeight: "900", color: "#1F2421" },
   subtitle: { marginTop: 2, fontSize: 12, color: "#7A837D" },
-  segmentControl: { flexDirection: "row", alignSelf: "flex-end", borderWidth: 1, borderColor: "#DED8CE", borderRadius: 12, backgroundColor: "#FFFFFF", marginTop: -48, position: "relative", zIndex: 20, elevation: 20 },
-  segment: { paddingVertical: 9, paddingHorizontal: 14 },
-  allYearsSegment: { borderTopLeftRadius: 11, borderBottomLeftRadius: 11 },
-  segmentSelected: { backgroundColor: "#E8F1EC" },
-  segmentText: { color: "#6E7871", fontSize: 12, fontWeight: "700" },
-  segmentTextSelected: { color: "#0E6B56" },
-  yearPicker: { position: "relative" },
-  yearPickerButton: { flexDirection: "row", alignItems: "center", gap: 4, borderLeftWidth: 1, borderLeftColor: "#DED8CE", borderTopRightRadius: 11, borderBottomRightRadius: 11 },
-  yearPickerChevron: { color: "#6E7871", fontSize: 14, lineHeight: 16, fontWeight: "900" },
-  yearMenu: { position: "absolute", top: 45, right: 0, minWidth: 116, backgroundColor: "#FFFFFF", borderRadius: 12, borderWidth: 1, borderColor: "#DED8CE", overflow: "hidden", shadowColor: "#34473D", shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 12, zIndex: 30 },
-  yearMenuItem: { minHeight: 43, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  yearMenuItemSelected: { backgroundColor: "#E8F1EC" },
-  yearMenuText: { color: "#47534C", fontSize: 12, fontWeight: "800" },
-  yearMenuTextSelected: { color: "#0E6B56" },
-  yearMenuCheck: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
+  periodPicker: { alignSelf: "flex-end", marginTop: -48, position: "relative", zIndex: 20, elevation: 20 },
+  periodPickerButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#DED8CE", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 8, minWidth: 128, paddingHorizontal: 14, paddingVertical: 10 },
+  periodPickerPressed: { opacity: 0.78 },
+  periodPickerLabel: { color: "#0E6B56", flex: 1, fontSize: 12, fontWeight: "900" },
+  periodPickerChevron: { color: "#6E7871", fontSize: 14, lineHeight: 16, fontWeight: "900" },
+  periodMenu: { backgroundColor: "#FFFFFF", borderColor: "#DED8CE", borderRadius: 14, borderWidth: 1, maxWidth: 232, minWidth: 218, padding: 10, position: "absolute", right: 0, shadowColor: "#34473D", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 12, top: 46, zIndex: 30, elevation: 12 },
+  periodMenuSectionLabel: { color: "#7A837D", fontSize: 10, fontWeight: "800", marginBottom: 6, marginTop: 8 },
+  periodMenuOption: { alignItems: "center", borderRadius: 9, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 10, paddingVertical: 8 },
+  periodMenuOptionSelected: { backgroundColor: "#E8F1EC" },
+  periodMenuOptionText: { color: "#47534C", fontSize: 12, fontWeight: "800" },
+  periodMenuOptionTextSelected: { color: "#0E6B56" },
+  periodMenuCheck: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
+  periodOptionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  periodChip: { alignItems: "center", borderColor: "#E2DED5", borderRadius: 8, borderWidth: 1, minWidth: 42, paddingHorizontal: 7, paddingVertical: 7 },
+  periodChipSelected: { backgroundColor: "#E8F1EC", borderColor: "#98C4B2" },
+  periodChipText: { color: "#59655E", fontSize: 11, fontWeight: "800" },
+  periodChipTextSelected: { color: "#0E6B56" },
   metricGrid: { gap: 10, marginTop: 34 },
   metricTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   metricColumn: { flex: 1, gap: 10 },
