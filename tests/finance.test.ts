@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
+import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, monthlyExpenseRankingsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { savingsGoalProgressFor } from "../lib/savings-goal";
@@ -62,6 +62,20 @@ describe("finance calculations", () => {
     expect(trends["餐飲／食品"]).toMatchObject({ currentRank: 1, previousRank: 3, direction: "up", change: 2 });
     expect(trends["購物"]).toMatchObject({ currentRank: 2, previousRank: 1, direction: "down", change: 1 });
     expect(trends["娛樂／訂閱"]).toMatchObject({ currentRank: 3, previousRank: 2, direction: "down", change: 1 });
+  });
+
+  it("creates up to six months of top-three expense rankings for the trend chart", () => {
+    const rankings = monthlyExpenseRankingsFor([
+      { id: "t1", type: "expense", amount: 100, category: "餐飲／食品", note: "", date: "2026-01-03" },
+      { id: "t2", type: "expense", amount: 300, category: "購物", note: "", date: "2026-01-04" },
+      { id: "t3", type: "expense", amount: 200, category: "娛樂／訂閱", note: "", date: "2026-02-03" },
+      { id: "t4", type: "expense", amount: 500, category: "網購", note: "", date: "2026-02-04" },
+    ]);
+
+    expect(rankings).toHaveLength(2);
+    expect(rankings[0]).toMatchObject({ key: "2026-01", label: "1月" });
+    expect(rankings[0]?.rankings.map((item) => item.name)).toEqual(["購物", "餐飲／食品"]);
+    expect(rankings[1]?.rankings.map((item) => item.name)).toEqual(["網購", "娛樂／訂閱"]);
   });
 
   it("creates twelve monthly balance points for the selected year", () => {

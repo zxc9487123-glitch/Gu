@@ -1,4 +1,5 @@
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
@@ -28,7 +29,9 @@ function TransactionRow({ item, onRemove }: { item: Transaction; onRemove: () =>
 
 export default function TransactionsScreen() {
   const { transactions, removeTransaction } = useFinance();
-  const records = sortedTransactions(transactions);
+  const { category } = useLocalSearchParams<{ category?: string }>();
+  const selectedCategory = Array.isArray(category) ? category[0] : category;
+  const records = sortedTransactions(selectedCategory ? transactions.filter((item) => item.category === selectedCategory) : transactions);
   const confirmRemove = (item: Transaction) => {
     Alert.alert("刪除這筆記錄？", `${item.category}・${money(item.amount)}`, [
       { text: "取消", style: "cancel" },
@@ -45,14 +48,14 @@ export default function TransactionsScreen() {
         contentContainerStyle={[styles.listContent, records.length === 0 && styles.emptyList]}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.title}>交易明細</Text>
-            <Text style={styles.subtitle}>長按任一筆紀錄即可刪除。</Text>
+            <Text style={styles.title}>{selectedCategory ? `${selectedCategory}明細` : "交易明細"}</Text>
+            <Text style={styles.subtitle}>{selectedCategory ? `目前僅顯示「${selectedCategory}」的交易。` : "長按任一筆紀錄即可刪除。"}</Text>
           </View>
         }
         ListEmptyComponent={
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>尚未有交易紀錄</Text>
-            <Text style={styles.emptyText}>請由中間的「新增」分頁開始記下你的第一筆收支。</Text>
+            <Text style={styles.emptyTitle}>{selectedCategory ? "此分類尚無交易紀錄" : "尚未有交易紀錄"}</Text>
+            <Text style={styles.emptyText}>{selectedCategory ? "可返回分析頁選擇其他分類，或新增一筆交易。" : "請由中間的「新增」分頁開始記下你的第一筆收支。"}</Text>
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}

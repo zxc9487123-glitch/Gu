@@ -27,6 +27,12 @@ export type CategoryRankTrend = {
   change: number | null;
 };
 
+export type MonthlyExpenseRanking = {
+  key: string;
+  label: string;
+  rankings: CategoryTotal[];
+};
+
 export type MonthPoint = {
   label: string;
   income: number;
@@ -169,6 +175,18 @@ export const categoryRankTrendsFor = (transactions: Transaction[], focusTransact
     const change = previousRank - currentRank;
     return [name, { currentRank, previousRank, direction: change > 0 ? "up" : change < 0 ? "down" : "same", change: Math.abs(change) } satisfies CategoryRankTrend];
   }));
+};
+
+export const monthlyExpenseRankingsFor = (transactions: Transaction[]): MonthlyExpenseRanking[] => {
+  const monthKeys = [...new Set(transactions.filter((transaction) => transaction.type === "expense").map((transaction) => transaction.date.slice(0, 7)))].sort();
+  return monthKeys.slice(-6).map((key) => {
+    const [, rawMonth] = key.split("-");
+    return {
+      key,
+      label: `${Number(rawMonth)}月`,
+      rankings: categoryTotalsFor(transactions.filter((transaction) => transaction.type === "expense" && transaction.date.startsWith(key))).slice(0, 3),
+    };
+  });
 };
 
 export const monthPointsFor = (transactions: Transaction[], period: "all" | number): MonthPoint[] => {
