@@ -1,4 +1,4 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 
@@ -141,7 +141,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer containerClassName="bg-background">
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.brandRow}>
             <Image source={require("../../assets/images/icon.png")} style={styles.brandIcon} />
@@ -230,20 +230,20 @@ export default function HomeScreen() {
           <DonutChart data={categories} onCategoryPress={(category) => router.push({ pathname: "/accounting", params: { mode: "details", category } })} />
         </Panel>
 
-      </ScrollView>
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 28, gap: 14 },
-  header: { marginTop: 4 },
+  content: { flex: 1, overflow: "hidden", padding: 12, paddingBottom: 8, gap: 8 },
+  header: { marginTop: 1 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  brandIcon: { width: 52, height: 52, borderRadius: 14, borderWidth: 1, borderColor: "#D7C9B8" },
-  title: { fontSize: 27, lineHeight: 34, fontWeight: "900", color: "#1F2421" },
-  subtitle: { marginTop: 2, fontSize: 12, color: "#7A837D" },
-  periodPicker: { alignSelf: "flex-end", marginTop: -48, position: "relative", zIndex: 20, elevation: 20 },
-  periodPickerButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#DED8CE", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 8, minWidth: 128, paddingHorizontal: 14, paddingVertical: 10 },
+  brandIcon: { width: 42, height: 42, borderRadius: 12, borderWidth: 1, borderColor: "#D7C9B8" },
+  title: { fontSize: 22, lineHeight: 27, fontWeight: "900", color: "#1F2421" },
+  subtitle: { marginTop: 1, fontSize: 10, color: "#7A837D" },
+  periodPicker: { alignSelf: "flex-end", marginTop: -40, position: "relative", zIndex: 20, elevation: 20 },
+  periodPickerButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#DED8CE", borderRadius: 10, borderWidth: 1, flexDirection: "row", gap: 6, minWidth: 112, paddingHorizontal: 11, paddingVertical: 8 },
   periodPickerPressed: { opacity: 0.78 },
   periodPickerLabel: { color: "#0E6B56", flex: 1, fontSize: 12, fontWeight: "900" },
   periodPickerChevron: { color: "#6E7871", fontSize: 14, lineHeight: 16, fontWeight: "900" },
@@ -259,45 +259,45 @@ const styles = StyleSheet.create({
   periodChipSelected: { backgroundColor: "#E8F1EC", borderColor: "#98C4B2" },
   periodChipText: { color: "#59655E", fontSize: 11, fontWeight: "800" },
   periodChipTextSelected: { color: "#0E6B56" },
-  monthPickerSection: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 14, borderWidth: 1, marginTop: 10, overflow: "hidden" },
-  monthPickerHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 8 },
+  monthPickerSection: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 12, borderWidth: 1, marginTop: 4, overflow: "visible", position: "relative", zIndex: 15, elevation: 15 },
+  monthPickerHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 10, paddingVertical: 6 },
   monthPickerInfo: { flex: 1, minWidth: 0 },
   monthPickerActions: { alignItems: "center", flexDirection: "row", gap: 7 },
   monthPickerTitle: { color: "#34473D", fontSize: 12, fontWeight: "900" },
   monthPickerSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2 },
-  monthPickerIconButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 15, height: 30, justifyContent: "center", width: 30 },
+  monthPickerIconButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 13, height: 26, justifyContent: "center", width: 26 },
   monthPickerIconButtonPressed: { opacity: 0.72 },
   monthPickerChevron: { color: "#0E6B56", fontSize: 15, fontWeight: "900", marginTop: -2 },
-  monthCurrentButton: { alignItems: "center", borderColor: "#BCD8CB", borderRadius: 8, borderWidth: 1, justifyContent: "center", minWidth: 43, paddingHorizontal: 8, paddingVertical: 6 },
+  monthCurrentButton: { alignItems: "center", borderColor: "#BCD8CB", borderRadius: 7, borderWidth: 1, justifyContent: "center", minWidth: 39, paddingHorizontal: 7, paddingVertical: 5 },
   monthCurrentButtonSelected: { backgroundColor: "#E8F1EC", borderColor: "#0E6B56" },
   monthCurrentButtonPressed: { opacity: 0.72 },
   monthCurrentButtonText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
   monthCurrentButtonTextSelected: { color: "#075543" },
-  monthPickerGrid: { borderTopColor: "#ECE7DE", borderTopWidth: 1, flexDirection: "row", flexWrap: "wrap", gap: 7, padding: 11 },
-  monthPickerChip: { alignItems: "center", borderColor: "#E2DED5", borderRadius: 8, borderWidth: 1, minWidth: 42, paddingHorizontal: 7, paddingVertical: 7 },
+  monthPickerGrid: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 12, borderWidth: 1, elevation: 14, flexDirection: "row", flexWrap: "wrap", gap: 6, left: 0, padding: 10, position: "absolute", right: 0, shadowColor: "#34473D", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 12, top: 44, zIndex: 30 },
+  monthPickerChip: { alignItems: "center", borderColor: "#E2DED5", borderRadius: 7, borderWidth: 1, minWidth: 38, paddingHorizontal: 6, paddingVertical: 6 },
   monthPickerChipSelected: { backgroundColor: "#E8F1EC", borderColor: "#98C4B2" },
   monthPickerChipText: { color: "#59655E", fontSize: 11, fontWeight: "800" },
   monthPickerChipTextSelected: { color: "#0E6B56" },
-  metricGrid: { gap: 10, marginTop: 34 },
-  metricTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  metricColumn: { flex: 1, gap: 10 },
-  metricSideColumn: { flex: 1, gap: 10 },
-  metricCard: { borderRadius: 17, backgroundColor: "#FFFFFF", padding: 14, borderWidth: 1, borderColor: "#ECE7DE", minHeight: 112 },
+  metricGrid: { gap: 8, marginTop: 0 },
+  metricTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  metricColumn: { flex: 1, gap: 8 },
+  metricSideColumn: { flex: 1, gap: 8 },
+  metricCard: { borderRadius: 14, backgroundColor: "#FFFFFF", padding: 10, borderWidth: 1, borderColor: "#ECE7DE", minHeight: 78 },
   metricHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   metricLabel: { color: "#657069", fontSize: 12, fontWeight: "800" },
   metricIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#E6F3ED" },
   metricIconExpense: { backgroundColor: "#F8E9E6" },
   metricIconText: { color: "#0E6B56", fontSize: 17, fontWeight: "900" },
   metricIconTextExpense: { color: "#C85F3A" },
-  metricAmount: { color: "#0E6B56", fontSize: 19, lineHeight: 24, fontWeight: "900", marginTop: 18 },
+  metricAmount: { color: "#0E6B56", fontSize: 16, lineHeight: 20, fontWeight: "900", marginTop: 9 },
   expenseAmount: { color: "#C85F3A" },
-  livingCard: { borderRadius: 17, backgroundColor: "#EEF5F1", padding: 12, borderWidth: 1, borderColor: "#CEE1D8", gap: 9 },
+  livingCard: { borderRadius: 14, backgroundColor: "#EEF5F1", padding: 9, borderWidth: 1, borderColor: "#CEE1D8", gap: 5 },
   annualLivingCard: { backgroundColor: "#EEF3FA", borderColor: "#D3DFEF" },
   livingHeading: { flexDirection: "row", justifyContent: "space-between", gap: 7 },
-  livingLabel: { color: "#34473D", fontSize: 13, fontWeight: "900" },
-  livingFormula: { color: "#6D7B72", fontSize: 10, marginTop: 4 },
-  livingIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#DCEDE5", alignItems: "center", justifyContent: "center" },
-  livingAmount: { fontSize: 19, lineHeight: 24, fontWeight: "900" },
+  livingLabel: { color: "#34473D", fontSize: 11, fontWeight: "900" },
+  livingFormula: { color: "#6D7B72", fontSize: 9, marginTop: 2 },
+  livingIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#DCEDE5", alignItems: "center", justifyContent: "center" },
+  livingAmount: { fontSize: 16, lineHeight: 20, fontWeight: "900" },
   livingAmountPositive: { color: "#0E6B56" },
   livingAmountNegative: { color: "#C85F3A" },
   livingHint: { color: "#6D7B72", fontSize: 10, lineHeight: 14, marginTop: 2 },
@@ -307,14 +307,14 @@ const styles = StyleSheet.create({
   expenseComparisonAmount: { color: "#34473D", fontSize: 12, lineHeight: 16, fontWeight: "900", marginTop: 2 },
   expenseComparisonPositive: { color: "#0E6B56" },
   expenseComparisonNegative: { color: "#C85F3A" },
-  expenseUsageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 7 },
+  expenseUsageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 },
   expenseUsageLabel: { color: "#587066", fontSize: 10, fontWeight: "800" },
   expenseUsagePercent: { fontSize: 11, fontWeight: "900" },
   expenseUsageGreen: { color: "#0E6B56" },
   expenseUsageYellow: { color: "#B47A0B" },
   expenseUsageOrange: { color: "#C85F3A" },
   expenseUsageRed: { color: "#B5472C" },
-  expenseUsageTrack: { height: 8, borderRadius: 4, backgroundColor: "#E2E9E5", overflow: "hidden", marginTop: 5 },
+  expenseUsageTrack: { height: 6, borderRadius: 3, backgroundColor: "#E2E9E5", overflow: "hidden", marginTop: 3 },
   expenseUsageFill: { height: "100%", borderRadius: 4 },
   expenseUsageFillGreen: { backgroundColor: "#0E6B56" },
   expenseUsageFillYellow: { backgroundColor: "#D7A62A" },
@@ -328,13 +328,13 @@ const styles = StyleSheet.create({
   monthDifference: { fontSize: 10, lineHeight: 15, fontWeight: "900", marginTop: 7 },
   monthDifferencePositive: { color: "#0E6B56" },
   monthDifferenceNegative: { color: "#C85F3A" },
-  savingsGoalCard: { borderRadius: 15, backgroundColor: "#F3F0FB", paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: "#DDD5F0" },
+  savingsGoalCard: { borderRadius: 12, backgroundColor: "#F3F0FB", paddingHorizontal: 11, paddingVertical: 7, borderWidth: 1, borderColor: "#DDD5F0" },
   savingsGoalPressed: { opacity: 0.84 },
   savingsGoalBarTop: { alignItems: "flex-start", flexDirection: "row", gap: 8, justifyContent: "space-between" },
   savingsGoalHeading: { flexDirection: "row", alignItems: "center" },
   savingsGoalValueRow: { alignItems: "flex-end", flexShrink: 1, minWidth: 0 },
-  savingsGoalTitle: { color: "#3E365F", flexShrink: 1, fontSize: 17, fontWeight: "900", lineHeight: 22, minWidth: 0 },
-  savingsGoalAmount: { color: "#0E6B56", fontSize: 18, lineHeight: 22, fontWeight: "900", textAlign: "right" },
+  savingsGoalTitle: { color: "#3E365F", flexShrink: 1, fontSize: 14, fontWeight: "900", lineHeight: 18, minWidth: 0 },
+  savingsGoalAmount: { color: "#0E6B56", fontSize: 15, lineHeight: 18, fontWeight: "900", textAlign: "right" },
   savingsGoalAmountPositive: { color: "#0E6B56" },
   savingsGoalAmountNegative: { color: "#C85F3A" },
   savingsGoalCaption: { color: "#7A7192", fontSize: 9, marginTop: 0, textAlign: "right" },
@@ -346,8 +346,8 @@ const styles = StyleSheet.create({
   savingsGoalFillAchieved: { backgroundColor: "#0E6B56" },
   savingsGoalRemaining: { color: "#665D7D", fontSize: 10, fontWeight: "800", marginTop: 4 },
   savingsGoalAchieved: { color: "#0E6B56" },
-  panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
-  panelHeading: { marginBottom: 14 },
-  panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },
-  panelSubtitle: { color: "#7A837D", fontSize: 12, marginTop: 3 },
+  panel: { borderRadius: 15, backgroundColor: "#FFFFFF", padding: 10, borderWidth: 1, borderColor: "#ECE7DE" },
+  panelHeading: { marginBottom: 7 },
+  panelTitle: { color: "#1F2421", fontSize: 16, fontWeight: "900" },
+  panelSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2 },
 });
