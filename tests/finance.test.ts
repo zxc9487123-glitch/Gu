@@ -24,6 +24,13 @@ describe("finance calculations", () => {
     expect(summaryFor(selected)).toEqual({ income: 50000, expense: 3200, net: 46800 });
   });
 
+  it("filters data by a selected month within an individual year", () => {
+    const selected = transactionsForPeriod(records, { year: 2026, month: 2 });
+
+    expect(selected.map((item) => item.id)).toEqual(["3"]);
+    expect(summaryFor(selected)).toEqual({ income: 0, expense: 2000, net: -2000 });
+  });
+
   it("filters a selected category by date and inclusive amount range", () => {
     const selected = filteredTransactionsFor(records, {
       category: "餐飲／食品",

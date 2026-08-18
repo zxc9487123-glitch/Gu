@@ -4,9 +4,10 @@ import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
-import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthlyExpenseRankingsFor, money, transactionsForPeriod } from "@/lib/finance";
+import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthlyExpenseRankingsFor, money, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
 
-type Period = "all" | number;
+type Period = TransactionPeriod;
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
 export default function AnalysisScreen() {
   const router = useRouter();
@@ -20,33 +21,65 @@ export default function AnalysisScreen() {
   const monthlyRankings = useMemo(() => monthlyExpenseRankingsFor(filtered), [filtered]);
   const monthlyRankMaximum = Math.max(...monthlyRankings.flatMap((month) => month.rankings.map((item) => item.amount)), 1);
   const firstYear = years[0] ?? new Date().getFullYear();
+  const selectedMonth = typeof period === "object" ? period : null;
+  const selectedYear = typeof period === "number" ? period : selectedMonth?.year ?? firstYear;
+  const isAllPeriod = period === "all";
+  const periodSubtitle = isAllPeriod
+    ? "查看累積支出的分類排行。"
+    : selectedMonth
+      ? `查看 ${selectedMonth.year} 年 ${selectedMonth.month} 月支出的分類排行。`
+      : `查看 ${period} 年度支出的分類排行。`;
+  const trendTitle = selectedMonth ? `${selectedMonth.month}月支出排行` : "每月支出排行趨勢";
+  const trendSubtitle = selectedMonth
+    ? `顯示 ${selectedMonth.year} 年 ${selectedMonth.month} 月前三名支出；點選排行可查看交易明細。`
+    : "顯示每月前三名支出的相對金額；點選排行可查看交易明細。";
+  const selectMonth = (month: number) => {
+    setPeriod({ year: selectedYear, month });
+    setIsYearMenuOpen(false);
+  };
 
   return (
     <ScreenContainer containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Text style={styles.title}>花費分析</Text>
-          <Text style={styles.subtitle}>{period === "all" ? "查看累積支出的分類排行。" : `查看 ${period} 年度支出的分類排行。`}</Text>
+          <Text style={styles.subtitle}>{periodSubtitle}</Text>
         </View>
         <View style={styles.segmentControl}>
-          <Pressable onPress={() => { setPeriod("all"); setIsYearMenuOpen(false); }} style={[styles.segment, styles.totalSegment, period === "all" && styles.segmentSelected]}>
-            <Text style={[styles.segmentText, period === "all" && styles.segmentTextSelected]}>總年度</Text>
+          <Pressable onPress={() => { setPeriod("all"); setIsYearMenuOpen(false); }} style={[styles.segment, styles.totalSegment, isAllPeriod && styles.segmentSelected]}>
+            <Text style={[styles.segmentText, isAllPeriod && styles.segmentTextSelected]}>總年度</Text>
           </Pressable>
           <View style={styles.yearPicker}>
-            <Pressable onPress={() => setIsYearMenuOpen((value) => !value)} style={[styles.segment, styles.yearPickerButton, period !== "all" && styles.segmentSelected]}>
-              <Text style={[styles.segmentText, period !== "all" && styles.segmentTextSelected]}>{period === "all" ? firstYear : period} 年度</Text>
-              <Text style={[styles.yearPickerChevron, period !== "all" && styles.segmentTextSelected]}>{isYearMenuOpen ? "⌃" : "⌄"}</Text>
+            <Pressable onPress={() => setIsYearMenuOpen((value) => !value)} style={[styles.segment, styles.yearPickerButton, !isAllPeriod && styles.segmentSelected]}>
+              <Text style={[styles.segmentText, !isAllPeriod && styles.segmentTextSelected]}>{selectedYear} 年度</Text>
+              <Text style={[styles.yearPickerChevron, !isAllPeriod && styles.segmentTextSelected]}>{isYearMenuOpen ? "⌃" : "⌄"}</Text>
             </Pressable>
             {isYearMenuOpen ? (
               <View style={styles.yearMenu}>
                 {years.map((year) => (
-                  <Pressable key={year} onPress={() => { setPeriod(year); setIsYearMenuOpen(false); }} style={[styles.yearMenuItem, period === year && styles.yearMenuItemSelected]}>
-                    <Text style={[styles.yearMenuText, period === year && styles.yearMenuTextSelected]}>{year} 年度</Text>
-                    {period === year ? <Text style={styles.yearMenuCheck}>✓</Text> : null}
+                  <Pressable key={year} onPress={() => { setPeriod(year); setIsYearMenuOpen(false); }} style={[styles.yearMenuItem, selectedYear === year && !isAllPeriod && styles.yearMenuItemSelected]}>
+                    <Text style={[styles.yearMenuText, selectedYear === year && !isAllPeriod && styles.yearMenuTextSelected]}>{year} 年度</Text>
+                    {selectedYear === year && !isAllPeriod ? <Text style={styles.yearMenuCheck}>✓</Text> : null}
                   </Pressable>
                 ))}
               </View>
             ) : null}
+          </View>
+        </View>
+        <View style={styles.monthSwitcher}>
+          <View style={styles.monthSwitcherHeader}>
+            <Text style={styles.monthSwitcherTitle}>快速月份</Text>
+            <Text style={styles.monthSwitcherYear}>{selectedYear} 年</Text>
+          </View>
+          <View style={styles.monthGrid}>
+            {MONTH_OPTIONS.map((month) => {
+              const isSelected = selectedMonth?.year === selectedYear && selectedMonth.month === month;
+              return (
+                <Pressable key={month} onPress={() => selectMonth(month)} style={({ pressed }) => [styles.monthButton, isSelected && styles.monthButtonSelected, pressed && styles.monthButtonPressed]}>
+                  <Text style={[styles.monthButtonText, isSelected && styles.monthButtonTextSelected]}>{month}月</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
         <View style={styles.panel}>
@@ -68,8 +101,8 @@ export default function AnalysisScreen() {
           </View>
         </View>
         <View style={styles.panel}>
-          <Text style={styles.panelTitle}>每月支出排行趨勢</Text>
-          <Text style={styles.panelSubtitle}>顯示每月前三名支出的相對金額；點選排行可查看交易明細。</Text>
+          <Text style={styles.panelTitle}>{trendTitle}</Text>
+          <Text style={styles.panelSubtitle}>{trendSubtitle}</Text>
           {monthlyRankings.length === 0 ? <Text style={styles.emptyText}>尚無可比較的月度支出資料。</Text> : (
             <View style={styles.monthlyTrendChart}>
               {monthlyRankings.map((month) => (
@@ -109,6 +142,16 @@ const styles = StyleSheet.create({
   yearMenuText: { color: "#47534C", fontSize: 12, fontWeight: "800" },
   yearMenuTextSelected: { color: "#0E6B56" },
   yearMenuCheck: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
+  monthSwitcher: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 16, borderWidth: 1, padding: 12 },
+  monthSwitcherHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 9 },
+  monthSwitcherTitle: { color: "#47534C", fontSize: 12, fontWeight: "900" },
+  monthSwitcherYear: { color: "#0E6B56", fontSize: 11, fontWeight: "800" },
+  monthGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  monthButton: { alignItems: "center", backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 8, borderWidth: 1, flexBasis: "23.5%", flexGrow: 1, justifyContent: "center", minHeight: 32, paddingHorizontal: 4 },
+  monthButtonSelected: { backgroundColor: "#E7F2ED", borderColor: "#0E6B56" },
+  monthButtonPressed: { opacity: 0.7 },
+  monthButtonText: { color: "#657069", fontSize: 11, fontWeight: "800" },
+  monthButtonTextSelected: { color: "#0E6B56" },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
   panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },
   panelSubtitle: { color: "#7A837D", fontSize: 12, marginTop: 3, marginBottom: 14 },

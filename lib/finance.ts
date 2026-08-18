@@ -22,6 +22,8 @@ export type TransactionSort = {
   direction: "ascending" | "descending";
 };
 
+export type TransactionPeriod = "all" | number | { year: number; month: number };
+
 export type Category = {
   name: string;
   color: string;
@@ -113,10 +115,16 @@ export const availableYears = (transactions: Transaction[]) => {
   return [...years].sort((a, b) => b - a);
 };
 
-export const transactionsForPeriod = (transactions: Transaction[], period: "all" | number) =>
-  period === "all"
-    ? transactions
-    : transactions.filter((item) => new Date(`${item.date}T12:00:00`).getFullYear() === period);
+export const transactionsForPeriod = (transactions: Transaction[], period: TransactionPeriod) => {
+  if (period === "all") return transactions;
+
+  return transactions.filter((item) => {
+    const date = new Date(`${item.date}T12:00:00`);
+    return typeof period === "number"
+      ? date.getFullYear() === period
+      : date.getFullYear() === period.year && date.getMonth() + 1 === period.month;
+  });
+};
 
 export const filteredTransactionsFor = (transactions: Transaction[], filters: TransactionFilters) =>
   transactions.filter((item) => {
