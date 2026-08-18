@@ -2,7 +2,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 
-import { DonutChart, Treemap } from "@/components/finance-visuals";
+import { DonutChart } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
@@ -94,10 +94,10 @@ function SavingsGoalCard({ saved, goal, onPress }: { saved: number; goal: number
   );
 }
 
-function Panel({ title, subtitle, children, compact = false }: { title: string; subtitle?: string; children: React.ReactNode; compact?: boolean }) {
+function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <View style={[styles.panel, compact && styles.compactPanel]}>
-      <View style={[styles.panelHeading, compact && styles.compactPanelHeading]}>
+    <View style={styles.panel}>
+      <View style={styles.panelHeading}>
         <Text style={styles.panelTitle}>{title}</Text>
         {subtitle ? <Text style={styles.panelSubtitle}>{subtitle}</Text> : null}
       </View>
@@ -226,10 +226,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Panel title="支出分類地圖" subtitle="依金額查看分類結構" compact>
-          <Treemap data={categories} />
-        </Panel>
-
         <Panel title="支出分類佔比" subtitle="各分類支出金額比例">
           <DonutChart data={categories} />
         </Panel>
@@ -351,9 +347,7 @@ const styles = StyleSheet.create({
   savingsGoalRemaining: { color: "#665D7D", fontSize: 10, fontWeight: "800", marginTop: 4 },
   savingsGoalAchieved: { color: "#0E6B56" },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
-  compactPanel: { padding: 14 },
   panelHeading: { marginBottom: 14 },
-  compactPanelHeading: { marginBottom: 9 },
   panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },
   panelSubtitle: { color: "#7A837D", fontSize: 12, marginTop: 3 },
 });
