@@ -37,7 +37,7 @@ export default function AddTransactionScreen() {
     setSaving(true);
     try {
       await addTransaction({ type, amount: parsedAmount, category, note: note.trim(), date });
-      router.replace("/(tabs)");
+      router.replace("/transactions");
     } finally {
       setSaving(false);
     }
@@ -47,9 +47,14 @@ export default function AddTransactionScreen() {
     <ScreenContainer containerClassName="bg-background">
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.title}>新增記帳</Text>
-            <Text style={styles.subtitle}>記下一筆收支，總覽與圖表會立即更新。</Text>
+          <View style={styles.headerRow}>
+            <View style={styles.headerCopy}>
+              <Text style={styles.title}>新增記帳</Text>
+              <Text style={styles.subtitle}>記下一筆收支，總覽與圖表會立即更新。</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel="取消新增交易" onPress={() => router.back()} style={({ pressed }) => [styles.cancelButton, pressed && styles.cancelPressed]}>
+              <Text style={styles.cancelText}>取消</Text>
+            </Pressable>
           </View>
 
           <View style={styles.typeSwitch}>
@@ -117,8 +122,13 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 20, paddingBottom: 36, gap: 20 },
   header: { marginTop: 4 },
+  headerRow: { alignItems: "flex-start", flexDirection: "row", gap: 12, justifyContent: "space-between", marginTop: 4 },
+  headerCopy: { flex: 1, minWidth: 0 },
   title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },
   subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13 },
+  cancelButton: { alignItems: "center", backgroundColor: "#F3F1EC", borderRadius: 10, justifyContent: "center", minHeight: 36, paddingHorizontal: 10 },
+  cancelPressed: { opacity: 0.72 },
+  cancelText: { color: "#5E6962", fontSize: 12, fontWeight: "900" },
   typeSwitch: { flexDirection: "row", borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: "#E6E2DA", backgroundColor: "#FFFFFF" },
   typeOption: { flex: 1, paddingVertical: 13, alignItems: "center" },
   typeOptionExpense: { backgroundColor: "#F9E9E5" },

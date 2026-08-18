@@ -1,5 +1,5 @@
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -38,6 +38,7 @@ function TransactionRow({ item, onRemove }: { item: Transaction; onRemove: () =>
 }
 
 export default function TransactionsScreen() {
+  const router = useRouter();
   const { transactions, removeTransaction } = useFinance();
   const { category } = useLocalSearchParams<{ category?: string }>();
   const selectedCategory = Array.isArray(category) ? category[0] : category;
@@ -82,8 +83,15 @@ export default function TransactionsScreen() {
         contentContainerStyle={[styles.listContent, records.length === 0 && styles.emptyList]}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.title}>{selectedCategory ? `${selectedCategory}明細` : "交易明細"}</Text>
-            <Text style={styles.subtitle}>{selectedCategory ? `目前僅顯示「${selectedCategory}」的交易；長按可刪除。` : "長按任一筆紀錄即可刪除。"}</Text>
+            <View style={styles.headerTitleRow}>
+              <View style={styles.headerTitleCopy}>
+                <Text style={styles.title}>{selectedCategory ? `${selectedCategory}明細` : "交易明細"}</Text>
+                <Text style={styles.subtitle}>{selectedCategory ? `目前僅顯示「${selectedCategory}」的交易；長按可刪除。` : "長按任一筆紀錄即可刪除。"}</Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="新增交易" onPress={() => router.push("/add")} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
+                <Text style={styles.addButtonText}>＋ 新增</Text>
+              </Pressable>
+            </View>
             <View style={styles.filterCard}>
               <View style={styles.filterHeader}>
                 <View style={styles.filterHeaderCopy}><Text style={styles.filterTitle}>篩選交易</Text><Text numberOfLines={1} style={styles.filterHint}>日期 YYYY-MM-DD；金額上下限</Text></View>
@@ -115,7 +123,7 @@ export default function TransactionsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>{hasFilters ? "沒有符合篩選條件的交易" : selectedCategory ? "此分類尚無交易紀錄" : "尚未有交易紀錄"}</Text>
-            <Text style={styles.emptyText}>{hasFilters ? "請調整日期或金額範圍，或按「清除」查看所有交易。" : selectedCategory ? "可返回分析頁選擇其他分類，或新增一筆交易。" : "請由中間的「新增」分頁開始記下你的第一筆收支。"}</Text>
+            <Text style={styles.emptyText}>{hasFilters ? "請調整日期或金額範圍，或按「清除」查看所有交易。" : selectedCategory ? "可返回分析頁選擇其他分類，或新增一筆交易。" : "請按右上角「新增」記下你的第一筆收支。"}</Text>
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -128,8 +136,13 @@ const styles = StyleSheet.create({
   listContent: { padding: 20, paddingBottom: 34 },
   emptyList: { flexGrow: 1 },
   header: { marginBottom: 18 },
+  headerTitleRow: { alignItems: "flex-start", flexDirection: "row", gap: 10, justifyContent: "space-between" },
+  headerTitleCopy: { flex: 1, minWidth: 0 },
   title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },
   subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13 },
+  addButton: { alignItems: "center", backgroundColor: "#0E6B56", borderRadius: 10, justifyContent: "center", minHeight: 36, paddingHorizontal: 10 },
+  addButtonPressed: { opacity: 0.78, transform: [{ scale: 0.97 }] },
+  addButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900" },
   filterCard: { backgroundColor: "#FFFFFF", borderColor: "#EDE8DF", borderRadius: 16, borderWidth: 1, marginTop: 16, padding: 12 },
   filterHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
   filterHeaderCopy: { flex: 1, minWidth: 0, paddingRight: 8 },

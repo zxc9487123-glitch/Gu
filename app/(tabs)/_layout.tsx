@@ -36,13 +36,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="add"
-        options={{
-          title: "新增",
-          tabBarIcon: ({ color }) => <IconSymbol size={31} name="plus.circle.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="index"
         options={{
           title: "總覽",
@@ -63,6 +56,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={27} name="gearshape.fill" color={color} />,
         }}
       />
+      <Tabs.Screen name="add" options={{ href: null }} />
     </Tabs>
   );
 }
