@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
+import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { savingsGoalProgressFor } from "../lib/savings-goal";
@@ -46,6 +46,22 @@ describe("finance calculations", () => {
     ]);
 
     expect(totals.map((item) => item.color)).toEqual(["#C64B42", "#DF7A31", "#B88A16", "#A3AAA5"]);
+  });
+
+  it("compares the latest month's category ranks with the previous month", () => {
+    const transactions: Transaction[] = [
+      { id: "m1", type: "expense", amount: 100, category: "餐飲／食品", note: "", date: "2026-01-03" },
+      { id: "m2", type: "expense", amount: 300, category: "購物", note: "", date: "2026-01-04" },
+      { id: "m3", type: "expense", amount: 200, category: "娛樂／訂閱", note: "", date: "2026-01-05" },
+      { id: "m4", type: "expense", amount: 400, category: "餐飲／食品", note: "", date: "2026-02-03" },
+      { id: "m5", type: "expense", amount: 300, category: "購物", note: "", date: "2026-02-04" },
+      { id: "m6", type: "expense", amount: 200, category: "娛樂／訂閱", note: "", date: "2026-02-05" },
+    ];
+    const trends = categoryRankTrendsFor(transactions, transactions);
+
+    expect(trends["餐飲／食品"]).toMatchObject({ currentRank: 1, previousRank: 3, direction: "up", change: 2 });
+    expect(trends["購物"]).toMatchObject({ currentRank: 2, previousRank: 1, direction: "down", change: 1 });
+    expect(trends["娛樂／訂閱"]).toMatchObject({ currentRank: 3, previousRank: 2, direction: "down", change: 1 });
   });
 
   it("creates twelve monthly balance points for the selected year", () => {

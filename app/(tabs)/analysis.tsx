@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { DonutChart } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
-import { availableYears, categoryTotalsFor, money, transactionsForPeriod } from "@/lib/finance";
+import { availableYears, categoryRankTrendsFor, categoryTotalsFor, money, transactionsForPeriod } from "@/lib/finance";
 
 type Period = "all" | number;
 
@@ -15,6 +15,7 @@ export default function AnalysisScreen() {
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
+  const rankTrends = useMemo(() => categoryRankTrendsFor(transactions, filtered), [transactions, filtered]);
   const topThree = categories.slice(0, 3);
   const firstYear = years[0] ?? new Date().getFullYear();
   const scopeLabel = period === "all" ? "所有已記錄支出" : `${period} 年度支出`;
@@ -60,14 +61,20 @@ export default function AnalysisScreen() {
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>支出排行</Text>
           <View style={styles.rankList}>
-            {categories.length === 0 ? <Text style={styles.emptyText}>尚無支出資料。</Text> : categories.map((item, index) => (
-              <View key={item.name} style={styles.rankRow}>
-                <Text style={styles.rankNumber}>{String(index + 1).padStart(2, "0")}</Text>
-                <View style={[styles.rankDot, { backgroundColor: item.color }]} />
-                <Text style={styles.rankName}>{item.name}</Text>
-                <Text style={styles.rankAmount}>{money(item.amount)}</Text>
-              </View>
-            ))}
+            {categories.length === 0 ? <Text style={styles.emptyText}>尚無支出資料。</Text> : categories.map((item, index) => {
+              const trend = rankTrends[item.name];
+              const trendText = trend?.direction === "up" ? `↑ ${trend.change}` : trend?.direction === "down" ? `↓ ${trend.change}` : trend?.direction === "same" ? "→" : trend?.direction === "new" ? "新" : "—";
+              const trendStyle = trend?.direction === "up" ? styles.rankTrendUp : trend?.direction === "down" ? styles.rankTrendDown : trend?.direction === "new" ? styles.rankTrendNew : styles.rankTrendNeutral;
+              return (
+                <View key={item.name} style={styles.rankRow}>
+                  {index < 3 ? <View style={[styles.rankBadge, index === 0 ? styles.rankBadgeFirst : index === 1 ? styles.rankBadgeSecond : styles.rankBadgeThird]}><Text style={styles.rankBadgeText}>#{index + 1}</Text></View> : <Text style={styles.rankNumber}>{String(index + 1).padStart(2, "0")}</Text>}
+                  <View style={[styles.rankDot, { backgroundColor: item.color }]} />
+                  <Text style={styles.rankName}>{item.name}</Text>
+                  <Text style={[styles.rankTrend, trendStyle]}>{trendText}</Text>
+                  <Text style={styles.rankAmount}>{money(item.amount)}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
       </ScrollView>
@@ -105,8 +112,18 @@ const styles = StyleSheet.create({
   rankList: { gap: 1 },
   rankRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   rankNumber: { color: "#929A94", fontSize: 12, fontWeight: "900", width: 28 },
+  rankBadge: { width: 28, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center", marginRight: 1 },
+  rankBadgeFirst: { backgroundColor: "#C64B42" },
+  rankBadgeSecond: { backgroundColor: "#DF7A31" },
+  rankBadgeThird: { backgroundColor: "#B88A16" },
+  rankBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
   rankDot: { width: 10, height: 10, borderRadius: 5, marginRight: 9 },
   rankName: { color: "#38443D", flex: 1, fontSize: 14, fontWeight: "700" },
+  rankTrend: { minWidth: 28, fontSize: 11, fontWeight: "900", textAlign: "right", marginRight: 8 },
+  rankTrendUp: { color: "#0E6B56" },
+  rankTrendDown: { color: "#C64B42" },
+  rankTrendNew: { color: "#315E96" },
+  rankTrendNeutral: { color: "#929A94" },
   rankAmount: { color: "#1F2421", fontSize: 13, fontWeight: "900" },
   emptyText: { color: "#7A837D", fontSize: 13, paddingVertical: 14 },
 });

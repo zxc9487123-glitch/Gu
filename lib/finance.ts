@@ -20,6 +20,13 @@ export type CategoryTotal = Category & {
   ratio: number;
 };
 
+export type CategoryRankTrend = {
+  currentRank: number | null;
+  previousRank: number | null;
+  direction: "up" | "down" | "same" | "new" | "inactive";
+  change: number | null;
+};
+
 export type MonthPoint = {
   label: string;
   income: number;
@@ -125,6 +132,42 @@ export const categoryTotalsFor = (transactions: Transaction[]): CategoryTotal[] 
   return rankedTotals.map((item, index) => ({
     ...item,
     color: EXPENSE_RANK_COLORS[index] ?? OTHER_EXPENSE_COLOR,
+  }));
+};
+
+const categoryRanksFor = (transactions: Transaction[]) =>
+  categoryTotalsFor(transactions).reduce<Record<string, number>>((ranks, category, index) => {
+    ranks[category.name] = index + 1;
+    return ranks;
+  }, {});
+
+export const categoryRankTrendsFor = (transactions: Transaction[], focusTransactions: Transaction[]): Record<string, CategoryRankTrend> => {
+  const latestDate = focusTransactions.reduce<Date | null>((latest, transaction) => {
+    const date = new Date(`${transaction.date}T12:00:00`);
+    return latest === null || date > latest ? date : latest;
+  }, null);
+  if (latestDate === null) return {};
+
+  const currentYear = latestDate.getFullYear();
+  const currentMonth = latestDate.getMonth();
+  const previousDate = new Date(currentYear, currentMonth - 1, 1);
+  const previousYear = previousDate.getFullYear();
+  const previousMonth = previousDate.getMonth();
+  const belongsTo = (year: number, month: number) => (transaction: Transaction) => {
+    const date = new Date(`${transaction.date}T12:00:00`);
+    return date.getFullYear() === year && date.getMonth() === month && transaction.type === "expense";
+  };
+  const currentRanks = categoryRanksFor(transactions.filter(belongsTo(currentYear, currentMonth)));
+  const previousRanks = categoryRanksFor(transactions.filter(belongsTo(previousYear, previousMonth)));
+  const names = new Set([...Object.keys(currentRanks), ...Object.keys(previousRanks)]);
+
+  return Object.fromEntries([...names].map((name) => {
+    const currentRank = currentRanks[name] ?? null;
+    const previousRank = previousRanks[name] ?? null;
+    if (currentRank === null) return [name, { currentRank, previousRank, direction: "inactive", change: null } satisfies CategoryRankTrend];
+    if (previousRank === null) return [name, { currentRank, previousRank, direction: "new", change: null } satisfies CategoryRankTrend];
+    const change = previousRank - currentRank;
+    return [name, { currentRank, previousRank, direction: change > 0 ? "up" : change < 0 ? "down" : "same", change: Math.abs(change) } satisfies CategoryRankTrend];
   }));
 };
 
