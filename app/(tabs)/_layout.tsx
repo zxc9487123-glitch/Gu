@@ -36,10 +36,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="transactions"
+        name="analysis"
         options={{
-          title: "明細",
-          tabBarIcon: ({ color }) => <IconSymbol size={27} name="list.bullet" color={color} />,
+          title: "分析",
+          tabBarIcon: ({ color }) => <IconSymbol size={27} name="chart.bar.xaxis" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -50,10 +50,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="analysis"
+        name="transactions"
         options={{
-          title: "分析",
-          tabBarIcon: ({ color }) => <IconSymbol size={27} name="chart.bar.xaxis" color={color} />,
+          title: "明細",
+          tabBarIcon: ({ color }) => <IconSymbol size={27} name="list.bullet" color={color} />,
         }}
       />
       <Tabs.Screen
