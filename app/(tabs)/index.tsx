@@ -103,10 +103,10 @@ function SavingsGoalCard({ saved, goal }: { saved: number; goal: number | null }
   );
 }
 
-function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function Panel({ title, subtitle, children, compact = false }: { title: string; subtitle?: string; children: React.ReactNode; compact?: boolean }) {
   return (
-    <View style={styles.panel}>
-      <View style={styles.panelHeading}>
+    <View style={[styles.panel, compact && styles.compactPanel]}>
+      <View style={[styles.panelHeading, compact && styles.compactPanelHeading]}>
         <Text style={styles.panelTitle}>{title}</Text>
         {subtitle ? <Text style={styles.panelSubtitle}>{subtitle}</Text> : null}
       </View>
@@ -171,7 +171,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Panel title="支出分類地圖" subtitle="依金額查看分類結構">
+        <Panel title="支出分類地圖" subtitle="依金額查看分類結構" compact>
           <Treemap data={categories} />
         </Panel>
 
@@ -259,28 +259,30 @@ const styles = StyleSheet.create({
   monthDifference: { fontSize: 10, lineHeight: 15, fontWeight: "900", marginTop: 7 },
   monthDifferencePositive: { color: "#0E6B56" },
   monthDifferenceNegative: { color: "#C85F3A" },
-  savingsGoalCard: { borderRadius: 20, backgroundColor: "#F3F0FB", padding: 16, borderWidth: 1, borderColor: "#DDD5F0" },
+  savingsGoalCard: { borderRadius: 20, backgroundColor: "#F3F0FB", padding: 14, borderWidth: 1, borderColor: "#DDD5F0" },
   savingsGoalHeading: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   savingsGoalTitle: { color: "#3E365F", fontSize: 19, fontWeight: "900" },
-  savingsGoalSubtitle: { color: "#7A7192", fontSize: 11, marginTop: 4 },
+  savingsGoalSubtitle: { color: "#7A7192", fontSize: 11, marginTop: 2 },
   savingsGoalIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#E6DFFC", alignItems: "center", justifyContent: "center" },
   savingsGoalIconText: { color: "#69529D", fontSize: 12, fontWeight: "900" },
-  savingsGoalAmount: { fontSize: 25, lineHeight: 32, fontWeight: "900", marginTop: 18 },
+  savingsGoalAmount: { fontSize: 23, lineHeight: 29, fontWeight: "900", marginTop: 10 },
   savingsGoalAmountPositive: { color: "#0E6B56" },
   savingsGoalAmountNegative: { color: "#C85F3A" },
-  savingsGoalCaption: { color: "#7A7192", fontSize: 11, marginTop: 4 },
-  savingsGoalEmpty: { marginTop: 14, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, backgroundColor: "#FFFFFF" },
+  savingsGoalCaption: { color: "#7A7192", fontSize: 11, marginTop: 2 },
+  savingsGoalEmpty: { marginTop: 9, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#FFFFFF" },
   savingsGoalEmptyText: { color: "#69529D", fontSize: 11, fontWeight: "800" },
-  savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 14 },
+  savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 9 },
   savingsGoalMetaText: { color: "#665D7D", fontSize: 11, fontWeight: "800" },
   savingsGoalPercent: { color: "#69529D", fontSize: 15, fontWeight: "900" },
-  savingsGoalTrack: { height: 9, borderRadius: 5, backgroundColor: "#DED7EE", overflow: "hidden", marginTop: 7 },
+  savingsGoalTrack: { height: 7, borderRadius: 4, backgroundColor: "#DED7EE", overflow: "hidden", marginTop: 5 },
   savingsGoalFill: { height: "100%", borderRadius: 5, backgroundColor: "#69529D" },
   savingsGoalFillAchieved: { backgroundColor: "#0E6B56" },
-  savingsGoalRemaining: { color: "#665D7D", fontSize: 11, fontWeight: "800", marginTop: 8 },
+  savingsGoalRemaining: { color: "#665D7D", fontSize: 11, fontWeight: "800", marginTop: 6 },
   savingsGoalAchieved: { color: "#0E6B56" },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
+  compactPanel: { padding: 14 },
   panelHeading: { marginBottom: 14 },
+  compactPanelHeading: { marginBottom: 9 },
   panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },
   panelSubtitle: { color: "#7A837D", fontSize: 12, marginTop: 3 },
 });
