@@ -59,6 +59,9 @@ export const INCOME_CATEGORIES: Category[] = [
   { name: "其他收入", color: "#78A896", type: "income" },
 ];
 
+const EXPENSE_RANK_COLORS = ["#C64B42", "#DF7A31", "#B88A16"];
+const OTHER_EXPENSE_COLOR = "#A3AAA5";
+
 export const categoriesFor = (type: TransactionType) =>
   type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
@@ -108,16 +111,21 @@ export const categoryTotalsFor = (transactions: Transaction[]): CategoryTotal[] 
     return accumulator;
   }, {});
 
-  return Object.entries(totalByName)
+  const rankedTotals = Object.entries(totalByName)
     .map(([name, amount]) => {
       const category = EXPENSE_CATEGORIES.find((item) => item.name === name) ?? {
         name,
-        color: "#9AA5A0",
+        color: OTHER_EXPENSE_COLOR,
         type: "expense" as const,
       };
       return { ...category, amount, ratio: total === 0 ? 0 : amount / total };
     })
     .sort((a, b) => b.amount - a.amount);
+
+  return rankedTotals.map((item, index) => ({
+    ...item,
+    color: EXPENSE_RANK_COLORS[index] ?? OTHER_EXPENSE_COLOR,
+  }));
 };
 
 export const monthPointsFor = (transactions: Transaction[], period: "all" | number): MonthPoint[] => {

@@ -32,9 +32,20 @@ describe("finance calculations", () => {
 
   it("orders expense categories by their calculated amount", () => {
     const totals = categoryTotalsFor(records);
-    expect(totals[0]).toMatchObject({ name: "購物", amount: 2000 });
+    expect(totals[0]).toMatchObject({ name: "購物", amount: 2000, color: "#C64B42" });
     expect(totals[0]?.ratio).toBeCloseTo(2000 / 3800);
-    expect(totals[1]).toMatchObject({ name: "餐飲／食品", amount: 1800 });
+    expect(totals[1]).toMatchObject({ name: "餐飲／食品", amount: 1800, color: "#DF7A31" });
+  });
+
+  it("uses red, orange, yellow, and gray for expense category ranks", () => {
+    const totals = categoryTotalsFor([
+      { id: "r1", type: "expense", amount: 400, category: "餐飲／食品", note: "", date: "2026-01-01" },
+      { id: "r2", type: "expense", amount: 300, category: "購物", note: "", date: "2026-01-02" },
+      { id: "r3", type: "expense", amount: 200, category: "娛樂／訂閱", note: "", date: "2026-01-03" },
+      { id: "r4", type: "expense", amount: 100, category: "網購", note: "", date: "2026-01-04" },
+    ]);
+
+    expect(totals.map((item) => item.color)).toEqual(["#C64B42", "#DF7A31", "#B88A16", "#A3AAA5"]);
   });
 
   it("creates twelve monthly balance points for the selected year", () => {
