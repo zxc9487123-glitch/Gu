@@ -7,7 +7,7 @@ import { useFinance } from "@/hooks/use-finance";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
 
 export default function SettingsScreen() {
-  const { transactions, clearTransactions, importTransactions } = useFinance();
+  const { clearTransactions, importTransactions } = useFinance();
   const { savingsGoal, setSavingsGoal } = useSavingsGoal();
   const [savingsGoalInput, setSavingsGoalInput] = useState("");
 
@@ -38,15 +38,6 @@ export default function SettingsScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>設定</Text>
           <Text style={styles.subtitle}>此版本將資料儲存在目前裝置，未啟用雲端同步。</Text>
-        </View>
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>本機資料</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>已記錄交易</Text>
-            <Text style={styles.infoValue}>{transactions.length} 筆</Text>
-          </View>
-          <View style={styles.divider} />
-          <Text style={styles.infoText}>每筆收支會用於計算首頁摘要、分類結構、年度趨勢與支出排行。</Text>
         </View>
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>存款目標</Text>
@@ -80,10 +71,6 @@ const styles = StyleSheet.create({
   subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13, lineHeight: 20 },
   panel: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 17, borderWidth: 1, borderColor: "#ECE7DE" },
   panelTitle: { color: "#1F2421", fontSize: 17, fontWeight: "900", marginBottom: 12 },
-  infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  infoLabel: { color: "#657069", fontSize: 14 },
-  infoValue: { color: "#0E6B56", fontSize: 14, fontWeight: "900" },
-  divider: { height: 1, backgroundColor: "#ECE7DE", marginVertical: 13 },
   infoText: { color: "#7A837D", fontSize: 13, lineHeight: 20 },
   goalInputWrap: { flexDirection: "row", alignItems: "center", marginTop: 15, borderWidth: 1, borderColor: "#D6E4DE", backgroundColor: "#F6FAF8", borderRadius: 14, paddingHorizontal: 13 },
   goalCurrency: { color: "#0E6B56", fontSize: 15, fontWeight: "900", marginRight: 8 },
