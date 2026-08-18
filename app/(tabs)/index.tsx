@@ -48,10 +48,6 @@ function LivingAmountCard({ amount, expense }: { amount: number; expense: number
         <Text style={[styles.livingAmount, positive ? styles.livingAmountPositive : styles.livingAmountNegative]}>{money(amount, positive)}</Text>
         <Text style={styles.livingHint}>{positive ? "本年度可用於日常生活的金額" : "年度支出已超出生活金額"}</Text>
         <View style={styles.expenseComparisonRow}>
-          <View>
-            <Text style={styles.expenseComparisonLabel}>年度生活支出</Text>
-            <Text style={styles.expenseComparisonAmount}>{money(expense)}</Text>
-          </View>
           <View style={styles.expenseComparisonDetail}>
             <Text style={styles.expenseComparisonLabel}>年度生活金額{exceedsExpense ? "高於" : "低於"}支出</Text>
             <Text style={[styles.expenseComparisonAmount, exceedsExpense ? styles.expenseComparisonPositive : styles.expenseComparisonNegative]}>{money(Math.abs(expenseComparison.difference))}</Text>
@@ -236,7 +232,7 @@ const styles = StyleSheet.create({
   livingAmountPositive: { color: "#0E6B56" },
   livingAmountNegative: { color: "#C85F3A" },
   livingHint: { color: "#6D7B72", fontSize: 10, lineHeight: 15, marginTop: 5 },
-  expenseComparisonRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginTop: 9 },
+  expenseComparisonRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "flex-end", marginTop: 9 },
   expenseComparisonDetail: { alignItems: "flex-end" },
   expenseComparisonLabel: { color: "#6D7B72", fontSize: 9, fontWeight: "800" },
   expenseComparisonAmount: { color: "#34473D", fontSize: 12, lineHeight: 16, fontWeight: "900", marginTop: 2 },
