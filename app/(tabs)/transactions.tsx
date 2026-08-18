@@ -86,27 +86,27 @@ export default function TransactionsScreen() {
             <Text style={styles.subtitle}>{selectedCategory ? `目前僅顯示「${selectedCategory}」的交易；長按可刪除。` : "長按任一筆紀錄即可刪除。"}</Text>
             <View style={styles.filterCard}>
               <View style={styles.filterHeader}>
-                <View><Text style={styles.filterTitle}>篩選交易</Text><Text style={styles.filterHint}>日期請輸入 YYYY-MM-DD；金額包含上下限。</Text></View>
+                <View style={styles.filterHeaderCopy}><Text style={styles.filterTitle}>篩選交易</Text><Text numberOfLines={1} style={styles.filterHint}>日期 YYYY-MM-DD；金額上下限</Text></View>
                 <Pressable disabled={!hasFilters} onPress={clearFilters} style={({ pressed }) => [styles.clearButton, !hasFilters && styles.clearButtonDisabled, pressed && hasFilters && styles.clearButtonPressed]}><Text style={[styles.clearButtonText, !hasFilters && styles.clearButtonTextDisabled]}>清除</Text></Pressable>
               </View>
-              <Text style={styles.filterLabel}>日期區間</Text>
+              <Text style={styles.filterLabel}>日期</Text>
               <View style={styles.inputRow}>
-                <TextInput value={dateFrom} onChangeText={setDateFrom} placeholder="開始日期" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
-                <Text style={styles.rangeDivider}>至</Text>
-                <TextInput value={dateTo} onChangeText={setDateTo} placeholder="結束日期" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
+                <TextInput value={dateFrom} onChangeText={setDateFrom} placeholder="開始" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
+                <Text style={styles.rangeDivider}>–</Text>
+                <TextInput value={dateTo} onChangeText={setDateTo} placeholder="結束" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
               </View>
-              <Text style={styles.filterLabel}>金額範圍</Text>
+              <Text style={styles.filterLabel}>金額</Text>
               <View style={styles.inputRow}>
-                <TextInput value={minimumAmount} onChangeText={setMinimumAmount} placeholder="最低金額" placeholderTextColor="#9CA59F" inputMode="decimal" keyboardType="decimal-pad" style={styles.filterInput} />
-                <Text style={styles.rangeDivider}>至</Text>
-                <TextInput value={maximumAmount} onChangeText={setMaximumAmount} placeholder="最高金額" placeholderTextColor="#9CA59F" inputMode="decimal" keyboardType="decimal-pad" style={styles.filterInput} />
+                <TextInput value={minimumAmount} onChangeText={setMinimumAmount} placeholder="最低" placeholderTextColor="#9CA59F" inputMode="decimal" keyboardType="decimal-pad" style={styles.filterInput} />
+                <Text style={styles.rangeDivider}>–</Text>
+                <TextInput value={maximumAmount} onChangeText={setMaximumAmount} placeholder="最高" placeholderTextColor="#9CA59F" inputMode="decimal" keyboardType="decimal-pad" style={styles.filterInput} />
               </View>
-              <Text style={styles.filterLabel}>排序方式</Text>
+              <Text style={styles.filterLabel}>排序</Text>
               <View style={styles.sortRow}>
-                <Pressable onPress={() => setSortField("date")} style={({ pressed }) => [styles.sortButton, sortField === "date" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortField === "date" && styles.sortButtonTextActive]}>依日期</Text></Pressable>
-                <Pressable onPress={() => setSortField("amount")} style={({ pressed }) => [styles.sortButton, sortField === "amount" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortField === "amount" && styles.sortButtonTextActive]}>依金額</Text></Pressable>
-                <Pressable onPress={() => setSortDirection("ascending")} style={({ pressed }) => [styles.sortButton, sortDirection === "ascending" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortDirection === "ascending" && styles.sortButtonTextActive]}>遞增 ↑</Text></Pressable>
-                <Pressable onPress={() => setSortDirection("descending")} style={({ pressed }) => [styles.sortButton, sortDirection === "descending" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortDirection === "descending" && styles.sortButtonTextActive]}>遞減 ↓</Text></Pressable>
+                <Pressable onPress={() => setSortField("date")} style={({ pressed }) => [styles.sortButton, sortField === "date" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortField === "date" && styles.sortButtonTextActive]}>日期</Text></Pressable>
+                <Pressable onPress={() => setSortField("amount")} style={({ pressed }) => [styles.sortButton, sortField === "amount" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortField === "amount" && styles.sortButtonTextActive]}>金額</Text></Pressable>
+                <Pressable onPress={() => setSortDirection("ascending")} style={({ pressed }) => [styles.sortButton, sortDirection === "ascending" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortDirection === "ascending" && styles.sortButtonTextActive]}>↑ 遞增</Text></Pressable>
+                <Pressable onPress={() => setSortDirection("descending")} style={({ pressed }) => [styles.sortButton, sortDirection === "descending" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortDirection === "descending" && styles.sortButtonTextActive]}>↓ 遞減</Text></Pressable>
               </View>
               {!validDates ? <Text style={styles.filterError}>日期格式請使用 YYYY-MM-DD。</Text> : !validAmounts ? <Text style={styles.filterError}>金額請輸入零或正數。</Text> : hasInvalidRange ? <Text style={styles.filterError}>起始值不可大於結束值。</Text> : <Text style={styles.filterResult}>符合條件：{records.length} 筆</Text>}
             </View>
@@ -130,21 +130,22 @@ const styles = StyleSheet.create({
   header: { marginBottom: 18 },
   title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },
   subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13 },
-  filterCard: { backgroundColor: "#FFFFFF", borderColor: "#EDE8DF", borderRadius: 16, borderWidth: 1, marginTop: 16, padding: 14 },
+  filterCard: { backgroundColor: "#FFFFFF", borderColor: "#EDE8DF", borderRadius: 16, borderWidth: 1, marginTop: 16, padding: 12 },
   filterHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
+  filterHeaderCopy: { flex: 1, minWidth: 0, paddingRight: 8 },
   filterTitle: { color: "#1F2421", fontSize: 15, fontWeight: "900" },
   filterHint: { color: "#7A837D", fontSize: 11, marginTop: 3 },
-  clearButton: { alignItems: "center", backgroundColor: "#E7F2ED", borderRadius: 9, justifyContent: "center", minHeight: 32, minWidth: 46, paddingHorizontal: 10 },
+  clearButton: { alignItems: "center", backgroundColor: "#E7F2ED", borderRadius: 9, justifyContent: "center", minHeight: 30, minWidth: 42, paddingHorizontal: 8 },
   clearButtonDisabled: { backgroundColor: "#F3F1EC" },
   clearButtonPressed: { opacity: 0.7 },
   clearButtonText: { color: "#0E6B56", fontSize: 12, fontWeight: "900" },
   clearButtonTextDisabled: { color: "#A6ACA7" },
-  filterLabel: { color: "#526058", fontSize: 12, fontWeight: "800", marginTop: 13, marginBottom: 6 },
-  inputRow: { alignItems: "center", flexDirection: "row" },
-  filterInput: { backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 10, borderWidth: 1, color: "#1F2421", flex: 1, fontSize: 13, minHeight: 42, paddingHorizontal: 10 },
-  rangeDivider: { color: "#7A837D", fontSize: 12, fontWeight: "700", marginHorizontal: 8 },
-  sortRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  sortButton: { alignItems: "center", backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 9, borderWidth: 1, flexGrow: 1, justifyContent: "center", minHeight: 36, minWidth: "44%", paddingHorizontal: 8 },
+  filterLabel: { color: "#526058", fontSize: 12, fontWeight: "800", marginTop: 11, marginBottom: 5 },
+  inputRow: { alignItems: "center", flexDirection: "row", width: "100%" },
+  filterInput: { backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 10, borderWidth: 1, color: "#1F2421", flexBasis: 0, flexGrow: 1, flexShrink: 1, fontSize: 12, minHeight: 40, minWidth: 0, paddingHorizontal: 8 },
+  rangeDivider: { color: "#7A837D", flexShrink: 0, fontSize: 12, fontWeight: "700", marginHorizontal: 6 },
+  sortRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, width: "100%" },
+  sortButton: { alignItems: "center", backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 9, borderWidth: 1, flexBasis: "48%", flexGrow: 1, flexShrink: 1, justifyContent: "center", minHeight: 34, minWidth: 0, paddingHorizontal: 6 },
   sortButtonActive: { backgroundColor: "#E7F2ED", borderColor: "#0E6B56" },
   sortButtonPressed: { opacity: 0.7 },
   sortButtonText: { color: "#647068", fontSize: 12, fontWeight: "800" },
