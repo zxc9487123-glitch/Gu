@@ -15,6 +15,7 @@ export default function AnalysisScreen() {
   const years = availableYears(transactions);
   const [period, setPeriod] = useState<Period>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
+  const [isMonthSwitcherExpanded, setIsMonthSwitcherExpanded] = useState(false);
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const rankTrends = useMemo(() => categoryRankTrendsFor(transactions, filtered), [transactions, filtered]);
@@ -36,6 +37,7 @@ export default function AnalysisScreen() {
   const selectMonth = (month: number) => {
     setPeriod({ year: selectedYear, month });
     setIsYearMenuOpen(false);
+    setIsMonthSwitcherExpanded(false);
   };
 
   return (
@@ -69,9 +71,14 @@ export default function AnalysisScreen() {
         <View style={styles.monthSwitcher}>
           <View style={styles.monthSwitcherHeader}>
             <Text style={styles.monthSwitcherTitle}>快速月份</Text>
-            <Text style={styles.monthSwitcherYear}>{selectedYear} 年</Text>
+            <View style={styles.monthSwitcherActions}>
+              <Text style={styles.monthSwitcherYear}>{selectedYear} 年</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="展開或收合快速月份" onPress={() => setIsMonthSwitcherExpanded((value) => !value)} style={({ pressed }) => [styles.monthSwitcherIconButton, pressed && styles.monthSwitcherIconButtonPressed]}>
+                <Text style={styles.monthSwitcherChevron}>{isMonthSwitcherExpanded ? "⌃" : "⌄"}</Text>
+              </Pressable>
+            </View>
           </View>
-          <View style={styles.monthGrid}>
+          {isMonthSwitcherExpanded ? <View style={styles.monthGrid}>
             {MONTH_OPTIONS.map((month) => {
               const isSelected = selectedMonth?.year === selectedYear && selectedMonth.month === month;
               return (
@@ -80,7 +87,7 @@ export default function AnalysisScreen() {
                 </Pressable>
               );
             })}
-          </View>
+          </View> : null}
         </View>
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>支出排行</Text>
@@ -143,10 +150,14 @@ const styles = StyleSheet.create({
   yearMenuTextSelected: { color: "#0E6B56" },
   yearMenuCheck: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
   monthSwitcher: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 16, borderWidth: 1, padding: 12 },
-  monthSwitcherHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 9 },
+  monthSwitcherHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   monthSwitcherTitle: { color: "#47534C", fontSize: 12, fontWeight: "900" },
+  monthSwitcherActions: { alignItems: "center", flexDirection: "row", gap: 8 },
   monthSwitcherYear: { color: "#0E6B56", fontSize: 11, fontWeight: "800" },
-  monthGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  monthSwitcherIconButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 14, height: 28, justifyContent: "center", width: 28 },
+  monthSwitcherIconButtonPressed: { opacity: 0.72 },
+  monthSwitcherChevron: { color: "#0E6B56", fontSize: 15, fontWeight: "900", marginTop: -2 },
+  monthGrid: { borderTopColor: "#ECE7DE", borderTopWidth: 1, flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 9, paddingTop: 9 },
   monthButton: { alignItems: "center", backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 8, borderWidth: 1, flexBasis: "23.5%", flexGrow: 1, justifyContent: "center", minHeight: 32, paddingHorizontal: 4 },
   monthButtonSelected: { backgroundColor: "#E7F2ED", borderColor: "#0E6B56" },
   monthButtonPressed: { opacity: 0.7 },
