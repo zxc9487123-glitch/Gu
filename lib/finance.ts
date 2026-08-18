@@ -7,6 +7,8 @@ export type Transaction = {
   category: string;
   note: string;
   date: string;
+  recurringRuleId?: string;
+  recurringPeriod?: string;
 };
 
 export type TransactionFilters = {
