@@ -83,6 +83,7 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
     minimumAmount: validAmounts ? minimum : undefined,
     maximumAmount: validAmounts ? maximum : undefined,
   }), { field: sortField, direction: sortDirection }), [transactions, selectedCategory, dateFrom, dateTo, minimum, maximum, validDates, validAmounts, sortField, sortDirection]);
+  const visibleRecords = records.slice(0, 3);
   const clearFilters = () => {
     setDateFrom("");
     setDateTo("");
@@ -185,10 +186,11 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
   return (
     <>
     <FlatList
-        data={records}
+        data={visibleRecords}
+        scrollEnabled={false}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <TransactionRow item={item} onRemove={() => confirmRemove(item)} />}
-        contentContainerStyle={[styles.listContent, records.length === 0 && styles.emptyList]}
+        contentContainerStyle={[styles.listContent, visibleRecords.length === 0 && styles.emptyList]}
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
@@ -283,6 +285,7 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
                 <Text style={styles.filterSummaryChevron}>⌄</Text>
               </View>
             </Pressable>
+            {records.length > visibleRecords.length ? <Text style={styles.fixedListHint}>固定版面顯示最近 3 筆；可用篩選縮小範圍。</Text> : null}
           </View>
         }
         ListEmptyComponent={
@@ -337,16 +340,16 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  listContent: { padding: 20, paddingBottom: 34 },
+  listContent: { flexGrow: 1, padding: 12, paddingBottom: 8 },
   emptyList: { flexGrow: 1 },
-  header: { marginBottom: 18 },
+  header: { marginBottom: 8 },
   headerTitleRow: { alignItems: "flex-start", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   headerTitleCopy: { flex: 1, minWidth: 0 },
   titleLine: { alignItems: "center", flexDirection: "row", gap: 7 },
-  title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },
+  title: { color: "#1F2421", fontSize: 22, fontWeight: "900" },
   categoryClearButton: { backgroundColor: "#E7F2ED", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4 },
   categoryClearText: { color: "#0E6B56", fontSize: 10, fontWeight: "900" },
-  subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13 },
+  subtitle: { color: "#7A837D", marginTop: 3, fontSize: 10 },
   addButton: { alignItems: "center", backgroundColor: "#0E6B56", borderRadius: 10, justifyContent: "center", minHeight: 36, paddingHorizontal: 10 },
   addButtonPressed: { opacity: 0.78, transform: [{ scale: 0.97 }] },
   addButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900" },
@@ -411,7 +414,7 @@ const styles = StyleSheet.create({
   recurringError: { color: "#B5472C", fontSize: 10, fontWeight: "800", marginTop: 7 },
   recurringSaveButton: { alignItems: "center", backgroundColor: "#0E6B56", borderRadius: 9, justifyContent: "center", marginTop: 9, minHeight: 35 },
   recurringSaveText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900" },
-  filterSummary: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#EDE8DF", borderRadius: 14, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 16, minHeight: 62, paddingHorizontal: 13, paddingVertical: 10 },
+  filterSummary: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#EDE8DF", borderRadius: 12, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 8, minHeight: 50, paddingHorizontal: 10, paddingVertical: 7 },
   filterSummaryPressed: { opacity: 0.76 },
   filterSummaryLeading: { flex: 1, minWidth: 0, paddingRight: 12 },
   filterSummaryTitleRow: { alignItems: "center", flexDirection: "row", gap: 6 },
@@ -422,6 +425,7 @@ const styles = StyleSheet.create({
   filterSummaryTrailing: { alignItems: "flex-end", flexShrink: 0 },
   filterRecordCount: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
   filterSummaryChevron: { color: "#7A837D", fontSize: 16, lineHeight: 17, marginTop: 1 },
+  fixedListHint: { color: "#7A837D", fontSize: 10, marginTop: 5, paddingHorizontal: 2 },
   drawerModal: { flex: 1, justifyContent: "flex-end" },
   drawerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(22, 30, 26, 0.42)" },
   drawerSheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 26, paddingHorizontal: 20, paddingTop: 9 },
@@ -450,7 +454,7 @@ const styles = StyleSheet.create({
   drawerFooter: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: 14, minHeight: 30 },
   filterError: { color: "#B54C3A", fontSize: 11, fontWeight: "700", marginTop: 10 },
   filterResult: { color: "#0E6B56", fontSize: 11, fontWeight: "800", marginTop: 10 },
-  row: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", paddingHorizontal: 14, paddingVertical: 14 },
+  row: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", paddingHorizontal: 10, paddingVertical: 8 },
   rowPressed: { opacity: 0.72 },
   typeBadge: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   incomeBadge: { backgroundColor: "#E7F2ED" },
@@ -464,7 +468,7 @@ const styles = StyleSheet.create({
   rowValue: { alignItems: "flex-end", marginLeft: 8 },
   amount: { fontSize: 14, fontWeight: "900" },
   rowDate: { color: "#8B948E", fontSize: 11, marginTop: 3 },
-  separator: { height: 8 },
+  separator: { height: 4 },
   emptyCard: { marginTop: 60, padding: 24, alignItems: "center", borderRadius: 20, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EDE8DF" },
   emptyTitle: { color: "#1F2421", fontSize: 17, fontWeight: "900" },
   emptyText: { color: "#7A837D", textAlign: "center", fontSize: 13, lineHeight: 20, marginTop: 8 },

@@ -61,5 +61,5 @@ const styles = StyleSheet.create({
   modeButtonPressed: { opacity: 0.72 },
   modeText: { color: "#788179", fontSize: 12, fontWeight: "800" },
   modeTextActive: { color: "#0E6B56" },
-  modeContent: { flex: 1 },
+  modeContent: { flex: 1, overflow: "hidden" },
 });

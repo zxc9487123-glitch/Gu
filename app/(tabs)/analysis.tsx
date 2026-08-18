@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 
@@ -41,7 +41,8 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <View style={styles.screen}>
+      <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.title}>花費分析</Text>
           <Text style={styles.subtitle}>{periodSubtitle}</Text>
@@ -91,7 +92,7 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>支出排行</Text>
           <View style={styles.rankList}>
-            {categories.length === 0 ? <Text style={styles.emptyText}>尚無支出資料。</Text> : categories.map((item, index) => {
+            {categories.length === 0 ? <Text style={styles.emptyText}>尚無支出資料。</Text> : categories.slice(0, 5).map((item, index) => {
               const trend = rankTrends[item.name];
               const trendText = trend?.direction === "up" ? `↑ 第${trend.previousRank}名→第${trend.currentRank}名` : trend?.direction === "down" ? `↓ 第${trend.previousRank}名→第${trend.currentRank}名` : trend?.direction === "same" ? `→ 維持第${trend.currentRank}名` : trend?.direction === "new" ? `新上榜第${trend.currentRank}名` : trend?.direction === "inactive" ? `上月第${trend.previousRank}名` : "尚無月度比較";
               const trendStyle = trend?.direction === "up" ? styles.rankTrendUp : trend?.direction === "down" ? styles.rankTrendDown : trend?.direction === "new" ? styles.rankTrendNew : styles.rankTrendNeutral;
@@ -111,7 +112,7 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
           <Text style={styles.panelSubtitle}>{trendSubtitle}</Text>
           {monthlyRankings.length === 0 ? <Text style={styles.emptyText}>尚無可比較的月度支出資料。</Text> : (
             <View style={styles.monthlyTrendChart}>
-              {monthlyRankings.map((month) => (
+              {monthlyRankings.slice(-4).map((month) => (
                 <View key={month.key} style={styles.monthlyTrendColumn}>
                   <View style={styles.monthlyTrendBars}>
                     {month.rankings.map((item, index) => <View key={item.name} style={[styles.monthlyTrendBar, index === 0 ? styles.monthlyTrendFirst : index === 1 ? styles.monthlyTrendSecond : styles.monthlyTrendThird, { height: Math.max(5, Math.round((item.amount / monthlyRankMaximum) * 44)) }]} />)}
@@ -123,7 +124,8 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
             </View>
           )}
         </View>
-    </ScrollView>
+      </View>
+    </View>
   );
 }
 
@@ -132,13 +134,13 @@ export default function AnalysisScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { padding: 20, paddingBottom: 34, gap: 15 },
-  header: { marginTop: 4 },
-  title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },
-  subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13 },
+  screen: { flex: 1, overflow: "hidden" },
+  content: { flex: 1, gap: 8, overflow: "hidden", padding: 12, paddingBottom: 8 },
+  header: { marginTop: 1 },
+  title: { color: "#1F2421", fontSize: 22, fontWeight: "900" },
+  subtitle: { color: "#7A837D", marginTop: 2, fontSize: 10 },
   segmentControl: { flexDirection: "row", alignSelf: "flex-start", borderWidth: 1, borderColor: "#DED8CE", borderRadius: 12, backgroundColor: "#FFFFFF", position: "relative", zIndex: 20, elevation: 20 },
-  segment: { paddingVertical: 9, paddingHorizontal: 14 },
+  segment: { paddingVertical: 7, paddingHorizontal: 11 },
   totalSegment: { borderTopLeftRadius: 11, borderBottomLeftRadius: 11 },
   segmentSelected: { backgroundColor: "#E8F1EC" },
   segmentText: { color: "#6E7871", fontSize: 12, fontWeight: "700" },
@@ -152,25 +154,25 @@ const styles = StyleSheet.create({
   yearMenuText: { color: "#47534C", fontSize: 12, fontWeight: "800" },
   yearMenuTextSelected: { color: "#0E6B56" },
   yearMenuCheck: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
-  monthSwitcher: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 16, borderWidth: 1, padding: 12 },
+  monthSwitcher: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 12, borderWidth: 1, padding: 8, position: "relative", zIndex: 15, elevation: 15 },
   monthSwitcherHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   monthSwitcherTitle: { color: "#47534C", fontSize: 12, fontWeight: "900" },
   monthSwitcherActions: { alignItems: "center", flexDirection: "row", gap: 8 },
   monthSwitcherYear: { color: "#0E6B56", fontSize: 11, fontWeight: "800" },
-  monthSwitcherIconButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 14, height: 28, justifyContent: "center", width: 28 },
+  monthSwitcherIconButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 12, height: 24, justifyContent: "center", width: 24 },
   monthSwitcherIconButtonPressed: { opacity: 0.72 },
   monthSwitcherChevron: { color: "#0E6B56", fontSize: 15, fontWeight: "900", marginTop: -2 },
-  monthGrid: { borderTopColor: "#ECE7DE", borderTopWidth: 1, flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 9, paddingTop: 9 },
-  monthButton: { alignItems: "center", backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 8, borderWidth: 1, flexBasis: "23.5%", flexGrow: 1, justifyContent: "center", minHeight: 32, paddingHorizontal: 4 },
+  monthGrid: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 12, borderWidth: 1, elevation: 14, flexDirection: "row", flexWrap: "wrap", gap: 6, left: 0, padding: 9, position: "absolute", right: 0, shadowColor: "#34473D", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 12, top: 42, zIndex: 30 },
+  monthButton: { alignItems: "center", backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 7, borderWidth: 1, flexBasis: "23.5%", flexGrow: 1, justifyContent: "center", minHeight: 28, paddingHorizontal: 4 },
   monthButtonSelected: { backgroundColor: "#E7F2ED", borderColor: "#0E6B56" },
   monthButtonPressed: { opacity: 0.7 },
   monthButtonText: { color: "#657069", fontSize: 11, fontWeight: "800" },
   monthButtonTextSelected: { color: "#0E6B56" },
-  panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
-  panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },
-  panelSubtitle: { color: "#7A837D", fontSize: 12, marginTop: 3, marginBottom: 14 },
+  panel: { borderRadius: 14, backgroundColor: "#FFFFFF", padding: 10, borderWidth: 1, borderColor: "#ECE7DE" },
+  panelTitle: { color: "#1F2421", fontSize: 16, fontWeight: "900" },
+  panelSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2, marginBottom: 7 },
   rankList: { gap: 1 },
-  rankRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, borderRadius: 10 },
+  rankRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6, borderRadius: 8 },
   rankRowPressed: { opacity: 0.65, backgroundColor: "#F8F6F1" },
   rankNumber: { color: "#929A94", fontSize: 12, fontWeight: "900", width: 28 },
   rankBadge: { width: 28, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center", marginRight: 1 },
@@ -180,21 +182,21 @@ const styles = StyleSheet.create({
   rankBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
   rankDot: { width: 10, height: 10, borderRadius: 5, marginRight: 9 },
   rankCopy: { flex: 1, minWidth: 0 },
-  rankName: { color: "#38443D", fontSize: 14, fontWeight: "700" },
+  rankName: { color: "#38443D", fontSize: 12, fontWeight: "700" },
   rankTrend: { fontSize: 10, fontWeight: "800", marginTop: 2 },
   rankTrendUp: { color: "#0E6B56" },
   rankTrendDown: { color: "#C64B42" },
   rankTrendNew: { color: "#315E96" },
   rankTrendNeutral: { color: "#929A94" },
   rankAmount: { color: "#1F2421", fontSize: 13, fontWeight: "900" },
-  monthlyTrendChart: { height: 88, flexDirection: "row", alignItems: "flex-end", gap: 7, paddingTop: 5 },
+  monthlyTrendChart: { height: 70, flexDirection: "row", alignItems: "flex-end", gap: 7, paddingTop: 3 },
   monthlyTrendColumn: { flex: 1, minWidth: 0, alignItems: "center" },
-  monthlyTrendBars: { height: 46, flexDirection: "row", alignItems: "flex-end", gap: 2 },
+  monthlyTrendBars: { height: 36, flexDirection: "row", alignItems: "flex-end", gap: 2 },
   monthlyTrendBar: { width: 7, borderRadius: 3 },
   monthlyTrendFirst: { backgroundColor: "#C64B42" },
   monthlyTrendSecond: { backgroundColor: "#DF7A31" },
   monthlyTrendThird: { backgroundColor: "#B88A16" },
   monthlyTrendLabel: { color: "#647068", fontSize: 10, fontWeight: "800", marginTop: 5 },
   monthlyTrendLeader: { width: "100%", color: "#7A837D", fontSize: 9, textAlign: "center", marginTop: 2 },
-  emptyText: { color: "#7A837D", fontSize: 13, paddingVertical: 14 },
+  emptyText: { color: "#7A837D", fontSize: 11, paddingVertical: 8 },
 });
