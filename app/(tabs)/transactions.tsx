@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
-import { dateLabel, filteredTransactionsFor, money, sortedTransactions, type Transaction } from "@/lib/finance";
+import { dateLabel, filteredTransactionsFor, money, sortTransactionsFor, type Transaction } from "@/lib/finance";
 
 const parseAmount = (value: string) => {
   const normalized = value.replace(/[\s,]/g, "");
@@ -45,19 +45,21 @@ export default function TransactionsScreen() {
   const [dateTo, setDateTo] = useState("");
   const [minimumAmount, setMinimumAmount] = useState("");
   const [maximumAmount, setMaximumAmount] = useState("");
+  const [sortField, setSortField] = useState<"date" | "amount">("date");
+  const [sortDirection, setSortDirection] = useState<"ascending" | "descending">("descending");
   const validDates = isDateInput(dateFrom) && isDateInput(dateTo);
   const minimum = parseAmount(minimumAmount);
   const maximum = parseAmount(maximumAmount);
   const validAmounts = (minimumAmount === "" || minimum !== undefined) && (maximumAmount === "" || maximum !== undefined);
   const hasInvalidRange = validDates && validAmounts && ((dateFrom !== "" && dateTo !== "" && dateFrom > dateTo) || (minimum !== undefined && maximum !== undefined && minimum > maximum));
   const hasFilters = Boolean(dateFrom || dateTo || minimumAmount || maximumAmount);
-  const records = useMemo(() => sortedTransactions(filteredTransactionsFor(transactions, {
+  const records = useMemo(() => sortTransactionsFor(filteredTransactionsFor(transactions, {
     category: selectedCategory,
     dateFrom: validDates ? dateFrom || undefined : undefined,
     dateTo: validDates ? dateTo || undefined : undefined,
     minimumAmount: validAmounts ? minimum : undefined,
     maximumAmount: validAmounts ? maximum : undefined,
-  })), [transactions, selectedCategory, dateFrom, dateTo, minimum, maximum, validDates, validAmounts]);
+  }), { field: sortField, direction: sortDirection }), [transactions, selectedCategory, dateFrom, dateTo, minimum, maximum, validDates, validAmounts, sortField, sortDirection]);
   const clearFilters = () => {
     setDateFrom("");
     setDateTo("");
@@ -99,6 +101,13 @@ export default function TransactionsScreen() {
                 <Text style={styles.rangeDivider}>至</Text>
                 <TextInput value={maximumAmount} onChangeText={setMaximumAmount} placeholder="最高金額" placeholderTextColor="#9CA59F" inputMode="decimal" keyboardType="decimal-pad" style={styles.filterInput} />
               </View>
+              <Text style={styles.filterLabel}>排序方式</Text>
+              <View style={styles.sortRow}>
+                <Pressable onPress={() => setSortField("date")} style={({ pressed }) => [styles.sortButton, sortField === "date" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortField === "date" && styles.sortButtonTextActive]}>依日期</Text></Pressable>
+                <Pressable onPress={() => setSortField("amount")} style={({ pressed }) => [styles.sortButton, sortField === "amount" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortField === "amount" && styles.sortButtonTextActive]}>依金額</Text></Pressable>
+                <Pressable onPress={() => setSortDirection("ascending")} style={({ pressed }) => [styles.sortButton, sortDirection === "ascending" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortDirection === "ascending" && styles.sortButtonTextActive]}>遞增 ↑</Text></Pressable>
+                <Pressable onPress={() => setSortDirection("descending")} style={({ pressed }) => [styles.sortButton, sortDirection === "descending" && styles.sortButtonActive, pressed && styles.sortButtonPressed]}><Text style={[styles.sortButtonText, sortDirection === "descending" && styles.sortButtonTextActive]}>遞減 ↓</Text></Pressable>
+              </View>
               {!validDates ? <Text style={styles.filterError}>日期格式請使用 YYYY-MM-DD。</Text> : !validAmounts ? <Text style={styles.filterError}>金額請輸入零或正數。</Text> : hasInvalidRange ? <Text style={styles.filterError}>起始值不可大於結束值。</Text> : <Text style={styles.filterResult}>符合條件：{records.length} 筆</Text>}
             </View>
           </View>
@@ -134,6 +143,12 @@ const styles = StyleSheet.create({
   inputRow: { alignItems: "center", flexDirection: "row" },
   filterInput: { backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 10, borderWidth: 1, color: "#1F2421", flex: 1, fontSize: 13, minHeight: 42, paddingHorizontal: 10 },
   rangeDivider: { color: "#7A837D", fontSize: 12, fontWeight: "700", marginHorizontal: 8 },
+  sortRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  sortButton: { alignItems: "center", backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 9, borderWidth: 1, flexGrow: 1, justifyContent: "center", minHeight: 36, minWidth: "44%", paddingHorizontal: 8 },
+  sortButtonActive: { backgroundColor: "#E7F2ED", borderColor: "#0E6B56" },
+  sortButtonPressed: { opacity: 0.7 },
+  sortButtonText: { color: "#647068", fontSize: 12, fontWeight: "800" },
+  sortButtonTextActive: { color: "#0E6B56" },
   filterError: { color: "#B54C3A", fontSize: 11, fontWeight: "700", marginTop: 10 },
   filterResult: { color: "#0E6B56", fontSize: 11, fontWeight: "800", marginTop: 10 },
   row: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", paddingHorizontal: 14, paddingVertical: 14 },

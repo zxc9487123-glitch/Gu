@@ -17,6 +17,11 @@ export type TransactionFilters = {
   maximumAmount?: number;
 };
 
+export type TransactionSort = {
+  field: "date" | "amount";
+  direction: "ascending" | "descending";
+};
+
 export type Category = {
   name: string;
   color: string;
@@ -121,6 +126,14 @@ export const filteredTransactionsFor = (transactions: Transaction[], filters: Tr
     if (filters.minimumAmount !== undefined && item.amount < filters.minimumAmount) return false;
     if (filters.maximumAmount !== undefined && item.amount > filters.maximumAmount) return false;
     return true;
+  });
+
+export const sortTransactionsFor = (transactions: Transaction[], sort: TransactionSort) =>
+  [...transactions].sort((left, right) => {
+    const comparison = sort.field === "date"
+      ? left.date.localeCompare(right.date) || left.id.localeCompare(right.id)
+      : left.amount - right.amount || left.date.localeCompare(right.date) || left.id.localeCompare(right.id);
+    return sort.direction === "ascending" ? comparison : -comparison;
   });
 
 export const summaryFor = (transactions: Transaction[]) => {
@@ -297,4 +310,4 @@ export const annualExpenseInsightsFor = (transactions: Transaction[]): Record<st
 };
 
 export const sortedTransactions = (transactions: Transaction[]) =>
-  [...transactions].sort((a, b) => new Date(`${b.date}T12:00:00`).getTime() - new Date(`${a.date}T12:00:00`).getTime());
+  sortTransactionsFor(transactions, { field: "date", direction: "descending" });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, monthlyExpenseRankingsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
+import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, monthlyExpenseRankingsFor, monthPointsFor, sortTransactionsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { savingsGoalProgressFor } from "../lib/savings-goal";
@@ -38,6 +38,14 @@ describe("finance calculations", () => {
 
   it("keeps every transaction when no detail filters are selected", () => {
     expect(filteredTransactionsFor(records, {})).toEqual(records);
+  });
+
+  it("sorts filtered transactions by date or amount in both directions", () => {
+    const selected = filteredTransactionsFor(records, { category: "餐飲／食品" });
+
+    expect(sortTransactionsFor(selected, { field: "date", direction: "ascending" }).map((item) => item.id)).toEqual(["4", "2"]);
+    expect(sortTransactionsFor(records, { field: "amount", direction: "descending" }).map((item) => item.id)).toEqual(["1", "3", "2", "4"]);
+    expect(sortTransactionsFor(records, { field: "amount", direction: "ascending" }).map((item) => item.id)).toEqual(["4", "2", "3", "1"]);
   });
 
   it("lists every transaction year in descending order for the year selector", () => {
