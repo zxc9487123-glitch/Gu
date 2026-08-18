@@ -167,17 +167,16 @@ export default function HomeScreen() {
               <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
               <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
             </View>
-            <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
+            <View style={styles.metricSideColumn}>
+              <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
+              {period === "all" ? <SavingsGoalCard saved={summary.net} goal={savingsGoal} /> : null}
+            </View>
           </View>
         </View>
 
         <Panel title="支出分類地圖" subtitle="依金額查看分類結構" compact>
           <Treemap data={categories} />
         </Panel>
-
-        {period === "all" ? (
-          <SavingsGoalCard saved={summary.net} goal={savingsGoal} />
-        ) : null}
 
         <Panel title="支出分類佔比" subtitle="各分類支出金額比例">
           <DonutChart data={categories} />
@@ -213,6 +212,7 @@ const styles = StyleSheet.create({
   metricGrid: { gap: 10, marginTop: 34 },
   metricTopRow: { flexDirection: "row", gap: 10 },
   metricColumn: { flex: 1, gap: 10 },
+  metricSideColumn: { flex: 1, gap: 10 },
   metricCard: { borderRadius: 17, backgroundColor: "#FFFFFF", padding: 14, borderWidth: 1, borderColor: "#ECE7DE", minHeight: 112 },
   metricHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   metricLabel: { color: "#657069", fontSize: 12, fontWeight: "800" },
