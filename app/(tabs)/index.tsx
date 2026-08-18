@@ -80,9 +80,7 @@ function SavingsGoalCard({ saved, goal, onPress }: { saved: number; goal: number
           <Text style={styles.savingsGoalCaption}>目前累積存款</Text>
         </View>
       </View>
-      {progress.status === "not-set" ? (
-        <View style={styles.savingsGoalEmpty}><Text style={styles.savingsGoalEmptyText}>請至「設定」輸入存款目標金額</Text></View>
-      ) : (
+      {progress.status !== "not-set" ? (
         <>
           <View style={styles.savingsGoalMetaRow}>
             <Text style={styles.savingsGoalMetaText}>目標 {money(progress.goal ?? 0)}</Text>
@@ -91,7 +89,7 @@ function SavingsGoalCard({ saved, goal, onPress }: { saved: number; goal: number
           <View style={styles.savingsGoalTrack}><View style={[styles.savingsGoalFill, progress.status === "achieved" && styles.savingsGoalFillAchieved, { width: progressWidth }]} /></View>
           <Text style={[styles.savingsGoalRemaining, progress.status === "achieved" && styles.savingsGoalAchieved]}>{progress.status === "achieved" ? `已超越目標 ${money(Math.max(saved - (progress.goal ?? 0), 0))}` : `距離目標尚差 ${money(progress.remaining ?? 0)}`}</Text>
         </>
-      )}
+      ) : null}
     </Pressable>
   );
 }
@@ -217,6 +215,8 @@ export default function HomeScreen() {
           ) : null}
         </View>
 
+        {period === "all" ? <SavingsGoalCard saved={summary.net} goal={savingsGoal} onPress={() => router.navigate("/settings")} /> : null}
+
         <View style={styles.metricGrid}>
           <View style={styles.metricTopRow}>
             <View style={styles.metricColumn}>
@@ -227,7 +227,6 @@ export default function HomeScreen() {
               <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
             </View>
           </View>
-          {period === "all" ? <SavingsGoalCard saved={summary.net} goal={savingsGoal} onPress={() => router.navigate("/settings")} /> : null}
         </View>
 
         <Panel title="支出分類地圖" subtitle="依金額查看分類結構" compact>
@@ -344,8 +343,6 @@ const styles = StyleSheet.create({
   savingsGoalAmountPositive: { color: "#0E6B56" },
   savingsGoalAmountNegative: { color: "#C85F3A" },
   savingsGoalCaption: { color: "#7A7192", fontSize: 10, marginTop: 1, textAlign: "right" },
-  savingsGoalEmpty: { marginTop: 10, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#FFFFFF" },
-  savingsGoalEmptyText: { color: "#69529D", fontSize: 11, fontWeight: "800" },
   savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
   savingsGoalMetaText: { color: "#665D7D", fontSize: 11, fontWeight: "800" },
   savingsGoalPercent: { color: "#69529D", fontSize: 15, fontWeight: "900" },
