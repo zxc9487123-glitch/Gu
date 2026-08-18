@@ -42,13 +42,15 @@ export default function SettingsScreen() {
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>存款目標</Text>
           <Text style={styles.infoText}>設定全年度的目標存款金額。</Text>
-          <View style={styles.goalInputWrap}>
-            <Text style={styles.goalCurrency}>NT$</Text>
-            <TextInput value={savingsGoalInput} onChangeText={setSavingsGoalInput} keyboardType="numeric" placeholder="例如 300000" placeholderTextColor="#A3AAA5" style={styles.goalInput} returnKeyType="done" onSubmitEditing={saveSavingsGoal} />
+          <View style={styles.goalControlRow}>
+            <View style={styles.goalInputWrap}>
+              <Text style={styles.goalCurrency}>NT$</Text>
+              <TextInput value={savingsGoalInput} onChangeText={setSavingsGoalInput} keyboardType="numeric" placeholder="目標金額" placeholderTextColor="#A3AAA5" style={styles.goalInput} returnKeyType="done" onSubmitEditing={saveSavingsGoal} />
+            </View>
+            <Pressable accessibilityRole="button" onPress={saveSavingsGoal} style={({ pressed }) => [styles.goalSaveButton, pressed && styles.goalSavePressed]}>
+              <Text style={styles.goalSaveText}>儲存</Text>
+            </Pressable>
           </View>
-          <Pressable onPress={saveSavingsGoal} style={({ pressed }) => [styles.goalSaveButton, pressed && styles.goalSavePressed]}>
-            <Text style={styles.goalSaveText}>儲存存款目標</Text>
-          </Pressable>
           {savingsGoal !== null ? <Pressable onPress={() => { void setSavingsGoal(null); }} style={({ pressed }) => [styles.goalClearButton, pressed && styles.goalClearPressed]}><Text style={styles.goalClearText}>清除存款目標</Text></Pressable> : null}
         </View>
         <ExcelImportCard onConfirm={(preview, mode) => importTransactions(preview.valid, mode)} />
@@ -72,10 +74,11 @@ const styles = StyleSheet.create({
   panel: { backgroundColor: "#FFFFFF", borderRadius: 18, padding: 14, borderWidth: 1, borderColor: "#ECE7DE" },
   panelTitle: { color: "#1F2421", fontSize: 16, fontWeight: "900", marginBottom: 7 },
   infoText: { color: "#7A837D", fontSize: 13, lineHeight: 20 },
-  goalInputWrap: { flexDirection: "row", alignItems: "center", marginTop: 10, borderWidth: 1, borderColor: "#D6E4DE", backgroundColor: "#F6FAF8", borderRadius: 12, paddingHorizontal: 12 },
-  goalCurrency: { color: "#0E6B56", fontSize: 15, fontWeight: "900", marginRight: 8 },
-  goalInput: { flex: 1, color: "#1F2421", fontSize: 17, fontWeight: "900", paddingVertical: 10 },
-  goalSaveButton: { marginTop: 8, paddingVertical: 10, borderRadius: 12, backgroundColor: "#0E6B56", alignItems: "center" },
+  goalControlRow: { alignItems: "center", flexDirection: "row", gap: 8, marginTop: 10 },
+  goalInputWrap: { alignItems: "center", backgroundColor: "#F6FAF8", borderColor: "#D6E4DE", borderRadius: 12, borderWidth: 1, flex: 1, flexDirection: "row", minWidth: 0, paddingHorizontal: 11 },
+  goalCurrency: { color: "#0E6B56", fontSize: 14, fontWeight: "900", marginRight: 6 },
+  goalInput: { color: "#1F2421", flex: 1, fontSize: 16, fontWeight: "900", minWidth: 0, paddingVertical: 10 },
+  goalSaveButton: { alignItems: "center", backgroundColor: "#0E6B56", borderRadius: 12, justifyContent: "center", minHeight: 42, paddingHorizontal: 13 },
   goalSavePressed: { opacity: 0.78 },
   goalSaveText: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" },
   goalClearButton: { alignSelf: "center", paddingVertical: 7, paddingHorizontal: 12, marginTop: 1 },
