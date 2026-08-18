@@ -178,21 +178,18 @@ export default function HomeScreen() {
 
         <View style={styles.monthPickerSection}>
           <View style={styles.monthPickerHeader}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="展開或收合月份選擇"
-              onPress={() => void setMonthPickerExpanded(!isMonthPickerExpanded)}
-              style={({ pressed }) => [styles.monthPickerToggle, pressed && styles.monthPickerTogglePressed]}
-            >
-              <View>
-                <Text style={styles.monthPickerTitle}>月份</Text>
-                <Text style={styles.monthPickerSubtitle}>{typeof period === "object" ? `${period.month} 月已選取` : `選擇 ${selectedYear} 年月份`}</Text>
-              </View>
-              <Text style={styles.monthPickerChevron}>{isMonthPickerExpanded ? "⌃" : "⌄"}</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="切換至本月" onPress={selectCurrentMonth} style={({ pressed }) => [styles.monthCurrentButton, isCurrentMonthSelected && styles.monthCurrentButtonSelected, pressed && styles.monthCurrentButtonPressed]}>
-              <Text style={[styles.monthCurrentButtonText, isCurrentMonthSelected && styles.monthCurrentButtonTextSelected]}>本月</Text>
-            </Pressable>
+            <View style={styles.monthPickerInfo}>
+              <Text style={styles.monthPickerTitle}>月份</Text>
+              <Text style={styles.monthPickerSubtitle}>{typeof period === "object" ? `${period.month} 月已選取` : `選擇 ${selectedYear} 年月份`}</Text>
+            </View>
+            <View style={styles.monthPickerActions}>
+              <Pressable accessibilityRole="button" accessibilityLabel="展開或收合月份選擇" onPress={() => void setMonthPickerExpanded(!isMonthPickerExpanded)} style={({ pressed }) => [styles.monthPickerIconButton, pressed && styles.monthPickerIconButtonPressed]}>
+                <Text style={styles.monthPickerChevron}>{isMonthPickerExpanded ? "⌃" : "⌄"}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="切換至本月" onPress={selectCurrentMonth} style={({ pressed }) => [styles.monthCurrentButton, isCurrentMonthSelected && styles.monthCurrentButtonSelected, pressed && styles.monthCurrentButtonPressed]}>
+                <Text style={[styles.monthCurrentButtonText, isCurrentMonthSelected && styles.monthCurrentButtonTextSelected]}>本月</Text>
+              </Pressable>
+            </View>
           </View>
           {isMonthPickerExpanded ? (
             <View style={styles.monthPickerGrid}>
@@ -267,13 +264,15 @@ const styles = StyleSheet.create({
   periodChipText: { color: "#59655E", fontSize: 11, fontWeight: "800" },
   periodChipTextSelected: { color: "#0E6B56" },
   monthPickerSection: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 14, borderWidth: 1, marginTop: 10, overflow: "hidden" },
-  monthPickerHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingRight: 10 },
-  monthPickerToggle: { alignItems: "center", flex: 1, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 13, paddingVertical: 10 },
-  monthPickerTogglePressed: { backgroundColor: "#F7F8F5" },
+  monthPickerHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 8 },
+  monthPickerInfo: { flex: 1, minWidth: 0 },
+  monthPickerActions: { alignItems: "center", flexDirection: "row", gap: 7 },
   monthPickerTitle: { color: "#34473D", fontSize: 12, fontWeight: "900" },
   monthPickerSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2 },
-  monthPickerChevron: { color: "#0E6B56", fontSize: 15, fontWeight: "900" },
-  monthCurrentButton: { alignItems: "center", borderColor: "#BCD8CB", borderRadius: 8, borderWidth: 1, justifyContent: "center", minWidth: 47, paddingHorizontal: 9, paddingVertical: 7 },
+  monthPickerIconButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 15, height: 30, justifyContent: "center", width: 30 },
+  monthPickerIconButtonPressed: { opacity: 0.72 },
+  monthPickerChevron: { color: "#0E6B56", fontSize: 15, fontWeight: "900", marginTop: -2 },
+  monthCurrentButton: { alignItems: "center", borderColor: "#BCD8CB", borderRadius: 8, borderWidth: 1, justifyContent: "center", minWidth: 43, paddingHorizontal: 8, paddingVertical: 6 },
   monthCurrentButtonSelected: { backgroundColor: "#E8F1EC", borderColor: "#0E6B56" },
   monthCurrentButtonPressed: { opacity: 0.72 },
   monthCurrentButtonText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
@@ -333,23 +332,23 @@ const styles = StyleSheet.create({
   monthDifference: { fontSize: 10, lineHeight: 15, fontWeight: "900", marginTop: 7 },
   monthDifferencePositive: { color: "#0E6B56" },
   monthDifferenceNegative: { color: "#C85F3A" },
-  savingsGoalCard: { borderRadius: 18, backgroundColor: "#F3F0FB", padding: 14, borderWidth: 1, borderColor: "#DDD5F0" },
+  savingsGoalCard: { borderRadius: 15, backgroundColor: "#F3F0FB", paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: "#DDD5F0" },
   savingsGoalPressed: { opacity: 0.84 },
   savingsGoalBarTop: { alignItems: "flex-start", flexDirection: "row", gap: 8, justifyContent: "space-between" },
   savingsGoalHeading: { flexDirection: "row", alignItems: "center" },
   savingsGoalValueRow: { alignItems: "flex-end", flexShrink: 1, minWidth: 0 },
-  savingsGoalTitle: { color: "#3E365F", flexShrink: 1, fontSize: 19, fontWeight: "900", lineHeight: 26, minWidth: 0 },
-  savingsGoalAmount: { color: "#0E6B56", fontSize: 20, lineHeight: 26, fontWeight: "900", textAlign: "right" },
+  savingsGoalTitle: { color: "#3E365F", flexShrink: 1, fontSize: 17, fontWeight: "900", lineHeight: 22, minWidth: 0 },
+  savingsGoalAmount: { color: "#0E6B56", fontSize: 18, lineHeight: 22, fontWeight: "900", textAlign: "right" },
   savingsGoalAmountPositive: { color: "#0E6B56" },
   savingsGoalAmountNegative: { color: "#C85F3A" },
-  savingsGoalCaption: { color: "#7A7192", fontSize: 10, marginTop: 1, textAlign: "right" },
-  savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
+  savingsGoalCaption: { color: "#7A7192", fontSize: 9, marginTop: 0, textAlign: "right" },
+  savingsGoalMetaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 7 },
   savingsGoalMetaText: { color: "#665D7D", fontSize: 11, fontWeight: "800" },
   savingsGoalPercent: { color: "#69529D", fontSize: 15, fontWeight: "900" },
-  savingsGoalTrack: { height: 7, borderRadius: 4, backgroundColor: "#DED7EE", overflow: "hidden", marginTop: 5 },
+  savingsGoalTrack: { height: 6, borderRadius: 3, backgroundColor: "#DED7EE", overflow: "hidden", marginTop: 4 },
   savingsGoalFill: { height: "100%", borderRadius: 5, backgroundColor: "#69529D" },
   savingsGoalFillAchieved: { backgroundColor: "#0E6B56" },
-  savingsGoalRemaining: { color: "#665D7D", fontSize: 11, fontWeight: "800", marginTop: 6 },
+  savingsGoalRemaining: { color: "#665D7D", fontSize: 10, fontWeight: "800", marginTop: 4 },
   savingsGoalAchieved: { color: "#0E6B56" },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
   compactPanel: { padding: 14 },
