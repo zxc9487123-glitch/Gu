@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryTotalsFor, monthPointsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
-import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor } from "../lib/living-amount";
+import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
 import { monthlyLivingComparison } from "../lib/monthly-living";
 import { savingsGoalProgressFor } from "../lib/savings-goal";
 import { trendCopyFor } from "../lib/trend-copy";
@@ -98,6 +98,14 @@ describe("finance calculations", () => {
     expect(livingExpenseSharePercentFor(2000, 8000)).toBe(25);
     expect(livingExpenseSharePercentFor(-1500, 3500)).toBe(-43);
     expect(livingExpenseSharePercentFor(2000, 0)).toBeNull();
+  });
+
+  it("assigns green, yellow, orange, and red states for living expense usage", () => {
+    expect(livingExpenseUsageFor(1000, 500)).toEqual({ percent: 50, progress: 0.5, status: "green" });
+    expect(livingExpenseUsageFor(1000, 600)).toEqual({ percent: 60, progress: 0.6, status: "yellow" });
+    expect(livingExpenseUsageFor(1000, 700)).toEqual({ percent: 70, progress: 0.7, status: "orange" });
+    expect(livingExpenseUsageFor(1000, 800)).toEqual({ percent: 80, progress: 0.8, status: "red" });
+    expect(livingExpenseUsageFor(0, 0)).toEqual({ percent: null, progress: 0, status: "green" });
   });
 
   it("flags spending that exceeds the living amount", () => {

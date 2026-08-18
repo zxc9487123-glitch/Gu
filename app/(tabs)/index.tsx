@@ -7,7 +7,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
 import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod } from "@/lib/finance";
-import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor } from "@/lib/living-amount";
+import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseUsageFor } from "@/lib/living-amount";
 import { savingsGoalProgressFor } from "@/lib/savings-goal";
 
 type Period = "all" | number;
@@ -31,7 +31,7 @@ function LivingAmountCard({ amount, expense }: { amount: number; expense: number
   const positive = amount >= 0;
   const expenseComparison = livingExpenseComparisonFor(amount, expense);
   const exceedsExpense = expenseComparison.difference >= 0;
-  const expenseSharePercent = livingExpenseSharePercentFor(amount, expense);
+  const expenseUsage = livingExpenseUsageFor(amount, expense);
   const expenseAlert = livingExpenseAlertFor(amount, expense);
   return (
     <View style={[styles.livingCard, styles.annualLivingCard]}>
@@ -57,7 +57,13 @@ function LivingAmountCard({ amount, expense }: { amount: number; expense: number
             <Text style={[styles.expenseComparisonAmount, exceedsExpense ? styles.expenseComparisonPositive : styles.expenseComparisonNegative]}>{money(Math.abs(expenseComparison.difference))}</Text>
           </View>
         </View>
-        <Text style={[styles.expenseShareText, expenseSharePercent !== null && expenseSharePercent < 0 && styles.expenseComparisonNegative]}>年度生活金額占年度生活支出：{expenseSharePercent === null ? "不適用" : `${expenseSharePercent}%`}</Text>
+        <View style={styles.expenseUsageHeader}>
+          <Text style={styles.expenseUsageLabel}>年度生活支出使用率</Text>
+          <Text style={[styles.expenseUsagePercent, expenseUsage.status === "green" ? styles.expenseUsageGreen : expenseUsage.status === "yellow" ? styles.expenseUsageYellow : expenseUsage.status === "orange" ? styles.expenseUsageOrange : styles.expenseUsageRed]}>{expenseUsage.percent === null ? "不適用" : `${expenseUsage.percent}%`}</Text>
+        </View>
+        <View style={styles.expenseUsageTrack}>
+          <View style={[styles.expenseUsageFill, expenseUsage.status === "green" ? styles.expenseUsageFillGreen : expenseUsage.status === "yellow" ? styles.expenseUsageFillYellow : expenseUsage.status === "orange" ? styles.expenseUsageFillOrange : styles.expenseUsageFillRed, { width: `${Math.round(expenseUsage.progress * 100)}%` }]} />
+        </View>
         {expenseAlert.status === "warning" ? <View style={[styles.expenseOverAlert, styles.expenseWarningAlert]}><Text style={[styles.expenseOverAlertText, styles.expenseWarningAlertText]}>接近上限：年度生活支出已達生活金額 {expenseAlert.usagePercent}%</Text></View> : null}
         {expenseAlert.status === "over" ? <View style={styles.expenseOverAlert}><Text style={styles.expenseOverAlertText}>超標警示：年度生活支出超過生活金額 {money(expenseAlert.overage)}</Text></View> : null}
       </View>
@@ -232,7 +238,19 @@ const styles = StyleSheet.create({
   expenseComparisonAmount: { color: "#34473D", fontSize: 12, lineHeight: 16, fontWeight: "900", marginTop: 2 },
   expenseComparisonPositive: { color: "#0E6B56" },
   expenseComparisonNegative: { color: "#C85F3A" },
-  expenseShareText: { color: "#587066", fontSize: 10, fontWeight: "800", marginTop: 6 },
+  expenseUsageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 7 },
+  expenseUsageLabel: { color: "#587066", fontSize: 10, fontWeight: "800" },
+  expenseUsagePercent: { fontSize: 11, fontWeight: "900" },
+  expenseUsageGreen: { color: "#0E6B56" },
+  expenseUsageYellow: { color: "#B47A0B" },
+  expenseUsageOrange: { color: "#C85F3A" },
+  expenseUsageRed: { color: "#B5472C" },
+  expenseUsageTrack: { height: 8, borderRadius: 4, backgroundColor: "#E2E9E5", overflow: "hidden", marginTop: 5 },
+  expenseUsageFill: { height: "100%", borderRadius: 4 },
+  expenseUsageFillGreen: { backgroundColor: "#0E6B56" },
+  expenseUsageFillYellow: { backgroundColor: "#D7A62A" },
+  expenseUsageFillOrange: { backgroundColor: "#E5863D" },
+  expenseUsageFillRed: { backgroundColor: "#C85F3A" },
   expenseOverAlert: { marginTop: 7, borderRadius: 8, backgroundColor: "#FBE0D7", paddingHorizontal: 8, paddingVertical: 6, borderWidth: 1, borderColor: "#EDB4A3" },
   expenseOverAlertText: { color: "#B5472C", fontSize: 10, lineHeight: 14, fontWeight: "900" },
   expenseWarningAlert: { backgroundColor: "#FFF0C8", borderColor: "#E9C46A" },
