@@ -2,7 +2,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 
-import { DonutChart } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
 import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthlyExpenseRankingsFor, money, transactionsForPeriod } from "@/lib/finance";
@@ -20,16 +19,14 @@ export default function AnalysisScreen() {
   const rankTrends = useMemo(() => categoryRankTrendsFor(transactions, filtered), [transactions, filtered]);
   const monthlyRankings = useMemo(() => monthlyExpenseRankingsFor(filtered), [filtered]);
   const monthlyRankMaximum = Math.max(...monthlyRankings.flatMap((month) => month.rankings.map((item) => item.amount)), 1);
-  const topThree = categories.slice(0, 3);
   const firstYear = years[0] ?? new Date().getFullYear();
-  const scopeLabel = period === "all" ? "所有已記錄支出" : `${period} 年度支出`;
 
   return (
     <ScreenContainer containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>花費分析</Text>
-          <Text style={styles.subtitle}>{period === "all" ? "查看累積支出的分類排行與結構。" : `查看 ${period} 年度支出的分類排行與結構。`}</Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>花費分析</Text>
+          <Text style={styles.subtitle}>{period === "all" ? "查看累積支出的分類排行。" : `查看 ${period} 年度支出的分類排行。`}</Text>
         </View>
         <View style={styles.segmentControl}>
           <Pressable onPress={() => { setPeriod("all"); setIsYearMenuOpen(false); }} style={[styles.segment, styles.totalSegment, period === "all" && styles.segmentSelected]}>
@@ -51,16 +48,6 @@ export default function AnalysisScreen() {
               </View>
             ) : null}
           </View>
-        </View>
-        <View style={styles.highlightCard}>
-          <Text style={styles.highlightEyebrow}>最大支出分類</Text>
-          <Text style={styles.highlightTitle}>{topThree[0]?.name ?? "尚無資料"}</Text>
-          <Text style={styles.highlightValue}>{topThree[0] ? money(topThree[0].amount) : "新增交易後顯示"}</Text>
-        </View>
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>分類佔比</Text>
-          <Text style={styles.panelSubtitle}>依{scopeLabel}計算</Text>
-          <DonutChart data={categories} />
         </View>
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>支出排行</Text>
@@ -122,10 +109,6 @@ const styles = StyleSheet.create({
   yearMenuText: { color: "#47534C", fontSize: 12, fontWeight: "800" },
   yearMenuTextSelected: { color: "#0E6B56" },
   yearMenuCheck: { color: "#0E6B56", fontSize: 13, fontWeight: "900" },
-  highlightCard: { backgroundColor: "#0E6B56", borderRadius: 20, padding: 19 },
-  highlightEyebrow: { color: "#BFE1D4", fontSize: 12, fontWeight: "800" },
-  highlightTitle: { color: "#FFFFFF", fontSize: 24, fontWeight: "900", marginTop: 7 },
-  highlightValue: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", marginTop: 5 },
   panel: { borderRadius: 20, backgroundColor: "#FFFFFF", padding: 16, borderWidth: 1, borderColor: "#ECE7DE" },
   panelTitle: { color: "#1F2421", fontSize: 19, fontWeight: "900" },
   panelSubtitle: { color: "#7A837D", fontSize: 12, marginTop: 3, marginBottom: 14 },
