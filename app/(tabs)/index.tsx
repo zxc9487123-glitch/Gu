@@ -6,6 +6,7 @@ import { DonutChart, Treemap } from "@/components/finance-visuals";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
+import { useMonthPickerPreference } from "@/hooks/use-month-picker-preference";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
 import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseUsageFor } from "@/lib/living-amount";
@@ -111,19 +112,27 @@ export default function HomeScreen() {
   const router = useRouter();
   const { transactions, isLoading } = useFinance();
   const { savingsGoal } = useSavingsGoal();
+  const { isMonthPickerExpanded, setMonthPickerExpanded } = useMonthPickerPreference();
   const years = availableYears(transactions);
   const [period, setPeriod] = useState<TransactionPeriod>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
-  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const firstYear = years[0] ?? new Date().getFullYear();
   const selectedYear = period === "all" ? firstYear : typeof period === "number" ? period : period.year;
   const periodLabel = period === "all" ? "全年度" : typeof period === "number" ? `${period} 年度` : `${period.year} 年 ${period.month} 月`;
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const isCurrentMonthSelected = typeof period === "object" && period.year === currentYear && period.month === currentMonth;
   const selectPeriod = (nextPeriod: TransactionPeriod) => {
     setPeriod(nextPeriod);
     setIsYearMenuOpen(false);
+  };
+  const selectCurrentMonth = () => {
+    selectPeriod({ year: currentYear, month: currentMonth });
+    void setMonthPickerExpanded(false);
   };
   const isPeriodSelected = (candidate: TransactionPeriod) =>
     candidate === "all"
@@ -170,19 +179,24 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.monthPickerSection}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="展開或收合月份選擇"
-            onPress={() => setIsMonthPickerOpen((value) => !value)}
-            style={({ pressed }) => [styles.monthPickerToggle, pressed && styles.monthPickerTogglePressed]}
-          >
-            <View>
-              <Text style={styles.monthPickerTitle}>月份</Text>
-              <Text style={styles.monthPickerSubtitle}>{typeof period === "object" ? `${period.month} 月已選取` : `選擇 ${selectedYear} 年月份`}</Text>
-            </View>
-            <Text style={styles.monthPickerChevron}>{isMonthPickerOpen ? "⌃" : "⌄"}</Text>
-          </Pressable>
-          {isMonthPickerOpen ? (
+          <View style={styles.monthPickerHeader}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="展開或收合月份選擇"
+              onPress={() => void setMonthPickerExpanded(!isMonthPickerExpanded)}
+              style={({ pressed }) => [styles.monthPickerToggle, pressed && styles.monthPickerTogglePressed]}
+            >
+              <View>
+                <Text style={styles.monthPickerTitle}>月份</Text>
+                <Text style={styles.monthPickerSubtitle}>{typeof period === "object" ? `${period.month} 月已選取` : `選擇 ${selectedYear} 年月份`}</Text>
+              </View>
+              <Text style={styles.monthPickerChevron}>{isMonthPickerExpanded ? "⌃" : "⌄"}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="切換至本月" onPress={selectCurrentMonth} style={({ pressed }) => [styles.monthCurrentButton, isCurrentMonthSelected && styles.monthCurrentButtonSelected, pressed && styles.monthCurrentButtonPressed]}>
+              <Text style={[styles.monthCurrentButtonText, isCurrentMonthSelected && styles.monthCurrentButtonTextSelected]}>本月</Text>
+            </Pressable>
+          </View>
+          {isMonthPickerExpanded ? (
             <View style={styles.monthPickerGrid}>
               {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => {
                 const candidate = { year: selectedYear, month };
@@ -191,7 +205,7 @@ export default function HomeScreen() {
                     key={month}
                     onPress={() => {
                       selectPeriod(candidate);
-                      setIsMonthPickerOpen(false);
+                      void setMonthPickerExpanded(false);
                     }}
                     style={[styles.monthPickerChip, isPeriodSelected(candidate) && styles.monthPickerChipSelected]}
                   >
@@ -254,11 +268,17 @@ const styles = StyleSheet.create({
   periodChipText: { color: "#59655E", fontSize: 11, fontWeight: "800" },
   periodChipTextSelected: { color: "#0E6B56" },
   monthPickerSection: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 14, borderWidth: 1, marginTop: 10, overflow: "hidden" },
-  monthPickerToggle: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 13, paddingVertical: 10 },
+  monthPickerHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingRight: 10 },
+  monthPickerToggle: { alignItems: "center", flex: 1, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 13, paddingVertical: 10 },
   monthPickerTogglePressed: { backgroundColor: "#F7F8F5" },
   monthPickerTitle: { color: "#34473D", fontSize: 12, fontWeight: "900" },
   monthPickerSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2 },
   monthPickerChevron: { color: "#0E6B56", fontSize: 15, fontWeight: "900" },
+  monthCurrentButton: { alignItems: "center", borderColor: "#BCD8CB", borderRadius: 8, borderWidth: 1, justifyContent: "center", minWidth: 47, paddingHorizontal: 9, paddingVertical: 7 },
+  monthCurrentButtonSelected: { backgroundColor: "#E8F1EC", borderColor: "#0E6B56" },
+  monthCurrentButtonPressed: { opacity: 0.72 },
+  monthCurrentButtonText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
+  monthCurrentButtonTextSelected: { color: "#075543" },
   monthPickerGrid: { borderTopColor: "#ECE7DE", borderTopWidth: 1, flexDirection: "row", flexWrap: "wrap", gap: 7, padding: 11 },
   monthPickerChip: { alignItems: "center", borderColor: "#E2DED5", borderRadius: 8, borderWidth: 1, minWidth: 42, paddingHorizontal: 7, paddingVertical: 7 },
   monthPickerChipSelected: { backgroundColor: "#E8F1EC", borderColor: "#98C4B2" },
