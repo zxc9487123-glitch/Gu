@@ -27,7 +27,7 @@ function MetricCard({ label, amount, tone }: { label: string; amount: string; to
   );
 }
 
-function LivingAmountCard({ amount, expense }: { amount: number; expense: number }) {
+function LivingAmountCard({ amount, expense, scope }: { amount: number; expense: number; scope: "年度" | "本月" }) {
   const positive = amount >= 0;
   const expenseComparison = livingExpenseComparisonFor(amount, expense);
   const exceedsExpense = expenseComparison.difference >= 0;
@@ -37,8 +37,8 @@ function LivingAmountCard({ amount, expense }: { amount: number; expense: number
     <View style={[styles.livingCard, styles.annualLivingCard]}>
       <View style={styles.livingHeading}>
         <View>
-          <Text style={styles.livingLabel}>年度生活金額</Text>
-          <Text style={styles.livingFormula}>年度收入 ÷ 3</Text>
+          <Text style={styles.livingLabel}>{scope}生活金額</Text>
+          <Text style={styles.livingFormula}>{scope}收入 ÷ 3</Text>
         </View>
         <View style={styles.livingIcon}>
           <IconSymbol name="house.fill" size={24} color="#315E96" />
@@ -46,7 +46,7 @@ function LivingAmountCard({ amount, expense }: { amount: number; expense: number
       </View>
       <View>
         <Text style={[styles.livingAmount, positive ? styles.livingAmountPositive : styles.livingAmountNegative]}>{money(amount, positive)}</Text>
-        <Text style={styles.livingHint}>{positive ? "本年度可用於日常生活的金額" : "年度支出已超出生活金額"}</Text>
+        <Text style={styles.livingHint}>{positive ? `${scope}可用於日常生活的金額` : `${scope}支出已超出生活金額`}</Text>
         <View style={styles.expenseComparisonRow}>
           <View style={styles.expenseComparisonDetail}>
             <Text style={styles.expenseComparisonLabel}>{exceedsExpense ? "高於支出" : "低於支出"}</Text>
@@ -54,14 +54,14 @@ function LivingAmountCard({ amount, expense }: { amount: number; expense: number
           </View>
         </View>
         <View style={styles.expenseUsageHeader}>
-          <Text style={styles.expenseUsageLabel}>年度生活支出使用率</Text>
+          <Text style={styles.expenseUsageLabel}>{scope}生活支出使用率</Text>
           <Text style={[styles.expenseUsagePercent, expenseUsage.status === "green" ? styles.expenseUsageGreen : expenseUsage.status === "yellow" ? styles.expenseUsageYellow : expenseUsage.status === "orange" ? styles.expenseUsageOrange : styles.expenseUsageRed]}>{expenseUsage.percent === null ? "不適用" : `${expenseUsage.percent}%`}</Text>
         </View>
         <View style={styles.expenseUsageTrack}>
           <View style={[styles.expenseUsageFill, expenseUsage.status === "green" ? styles.expenseUsageFillGreen : expenseUsage.status === "yellow" ? styles.expenseUsageFillYellow : expenseUsage.status === "orange" ? styles.expenseUsageFillOrange : styles.expenseUsageFillRed, { width: `${Math.round(expenseUsage.progress * 100)}%` }]} />
         </View>
-        {expenseAlert.status === "warning" ? <View style={[styles.expenseOverAlert, styles.expenseWarningAlert]}><Text style={[styles.expenseOverAlertText, styles.expenseWarningAlertText]}>接近上限：年度生活支出已達生活金額 {expenseAlert.usagePercent}%</Text></View> : null}
-        {expenseAlert.status === "over" ? <View style={styles.expenseOverAlert}><Text style={styles.expenseOverAlertText}>超標警示：年度生活支出超過生活金額 {money(expenseAlert.overage)}</Text></View> : null}
+        {expenseAlert.status === "warning" ? <View style={[styles.expenseOverAlert, styles.expenseWarningAlert]}><Text style={[styles.expenseOverAlertText, styles.expenseWarningAlertText]}>接近上限：{scope}生活支出已達生活金額 {expenseAlert.usagePercent}%</Text></View> : null}
+        {expenseAlert.status === "over" ? <View style={styles.expenseOverAlert}><Text style={styles.expenseOverAlertText}>超標警示：{scope}生活支出超過生活金額 {money(expenseAlert.overage)}</Text></View> : null}
       </View>
     </View>
   );
@@ -124,6 +124,8 @@ export default function HomeScreen() {
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
   const isCurrentMonthSelected = typeof period === "object" && period.year === currentYear && period.month === currentMonth;
+  const isMonthlyPeriod = typeof period === "object";
+  const summaryScope = isMonthlyPeriod ? `${period.month}月` : "總";
   const selectPeriod = (nextPeriod: TransactionPeriod) => {
     setPeriod(nextPeriod);
     setIsYearMenuOpen(false);
@@ -217,11 +219,11 @@ export default function HomeScreen() {
         <View style={styles.metricGrid}>
           <View style={styles.metricTopRow}>
             <View style={styles.metricColumn}>
-              <MetricCard label="總收入" amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
-              <MetricCard label="總支出" amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
+              <MetricCard label={`${summaryScope}收入`} amount={isLoading ? "載入中" : money(summary.income)} tone="income" />
+              <MetricCard label={`${summaryScope}支出`} amount={isLoading ? "載入中" : money(summary.expense)} tone="expense" />
             </View>
             <View style={styles.metricSideColumn}>
-              <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} />
+              <LivingAmountCard amount={livingAmountFor(summary.income, summary.expense)} expense={summary.expense} scope={isMonthlyPeriod ? "本月" : "年度"} />
             </View>
           </View>
         </View>
