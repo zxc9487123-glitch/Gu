@@ -122,6 +122,25 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
     setRuleError("");
   };
 
+  const rememberManualCorrection = async (item: ExcelImportPreview["valid"][number]) => {
+    const keyword = item.note.trim();
+    if (!keyword) return;
+    const existingRule = autoRules.find((rule) => rule.keyword.toLocaleLowerCase() === keyword.toLocaleLowerCase() && rule.type === item.type && rule.category === item.category);
+    if (existingRule) {
+      setResult(`「${keyword}」已有相同的自動分類規則。`);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onAddAutoRule({ keyword, type: item.type, category: item.category });
+      setResult(`已記住此修正：下次備註含「${keyword}」時，會自動分類為${item.type === "expense" ? "支出" : "收入"}／${item.category}。`);
+    } catch {
+      setError("無法儲存自動分類規則，請稍後再試。");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>匯入 Excel</Text>
@@ -187,6 +206,7 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
                   <Text style={[styles.typeButtonText, item.type === "income" && styles.typeButtonIncomeText]}>收入</Text>
                 </Pressable>
               </View>
+              {item.typeResolution === "manual" && item.note.trim() ? <Pressable disabled={isSaving} onPress={() => void rememberManualCorrection(item)} style={({ pressed }) => [styles.rememberCorrectionButton, pressed && styles.pressed, isSaving && styles.disabled]}><Text style={styles.rememberCorrectionText}>記住此修正</Text><Text style={styles.rememberCorrectionHint}>下次備註含「{item.note}」時自動套用</Text></Pressable> : null}
               {(categoryCounts[item.category] ?? 0) > 1 ? (
                 <View style={styles.batchCategoryActions}>
                   <Text style={styles.batchCategoryLabel}>同分類 {categoryCounts[item.category]} 筆</Text>
@@ -308,6 +328,9 @@ const styles = StyleSheet.create({
   typeButtonText: { color: "#7A837D", fontSize: 11, fontWeight: "900" },
   typeButtonExpenseText: { color: "#C85F3A" },
   typeButtonIncomeText: { color: "#0E6B56" },
+  rememberCorrectionButton: { alignItems: "center", backgroundColor: "#EDF3FF", borderColor: "#C7D6F0", borderRadius: 9, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingHorizontal: 9, paddingVertical: 7 },
+  rememberCorrectionText: { color: "#365C96", fontSize: 11, fontWeight: "900" },
+  rememberCorrectionHint: { color: "#58729D", flex: 1, fontSize: 9, marginLeft: 8, textAlign: "right" },
   batchCategoryActions: { marginTop: 9, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E8E3DB", flexDirection: "row", alignItems: "center", gap: 8 },
   batchCategoryLabel: { flex: 1, color: "#6D7770", fontSize: 10, fontWeight: "800" },
   batchCategoryButtons: { flexDirection: "row", gap: 6 },
