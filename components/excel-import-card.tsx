@@ -1,6 +1,6 @@
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system/next";
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useState } from "react";
 
 import { applyExcelAutoCategoryRules, detectExcelImportDuplicates, overrideExcelPreviewCategoryType, parseExcelTransactions, type ExcelAutoCategoryRule, type ExcelAutoCategoryRuleInput, type ExcelImportMode, type ExcelImportPreview } from "@/lib/excel-import";
@@ -97,6 +97,13 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
 
   const overrideCategoryType = (category: string, type: TransactionType) => {
     setPreview((current) => current ? overrideExcelPreviewCategoryType(current, category, type) : current);
+  };
+
+  const confirmRemovePreviewTransaction = (item: ExcelImportPreview["valid"][number]) => {
+    Alert.alert("從匯入預覽移除？", `第 ${item.row} 列將不會匯入，且不會影響目前裝置中的既有交易。`, [
+      { text: "取消", style: "cancel" },
+      { text: "移除此筆", style: "destructive", onPress: () => setPreview((current) => current ? { ...current, valid: current.valid.filter((candidate) => candidate.row !== item.row) } : current) },
+    ]);
   };
 
   const categoryCounts = preview?.valid.reduce<Record<string, number>>((counts, item) => {
@@ -243,6 +250,7 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
                   <Text style={[styles.typeButtonText, item.type === "income" && styles.typeButtonIncomeText]}>收入</Text>
                 </Pressable>
               </View>
+              <Pressable disabled={isSaving} onPress={() => confirmRemovePreviewTransaction(item)} style={({ pressed }) => [styles.removePreviewButton, pressed && styles.pressed, isSaving && styles.disabled]}><Text style={styles.removePreviewText}>刪除此筆預覽交易</Text></Pressable>
               {item.typeResolution === "manual" && item.note.trim() ? (rememberingRow === item.row ? <View style={styles.rememberEditor}><Text style={styles.rememberEditorLabel}>比對關鍵字</Text><TextInput value={rememberKeyword} onChangeText={setRememberKeyword} placeholder="輸入用於比對的關鍵字" placeholderTextColor="#87949C" style={styles.rememberEditorInput} returnKeyType="done" onSubmitEditing={() => void saveManualCorrectionRule(item)} /><Text style={styles.rememberEditorHint}>後續備註含有此文字時，會套用目前的收支與分類。</Text><View style={styles.rememberEditorActions}><Pressable onPress={() => setRememberingRow(null)} style={({ pressed }) => [styles.rememberCancelButton, pressed && styles.pressed]}><Text style={styles.rememberCancelText}>取消</Text></Pressable><Pressable disabled={isSaving || !rememberKeyword.trim()} onPress={() => void saveManualCorrectionRule(item)} style={({ pressed }) => [styles.rememberSaveButton, pressed && styles.pressed, (isSaving || !rememberKeyword.trim()) && styles.disabled]}><Text style={styles.rememberSaveText}>儲存規則</Text></Pressable></View></View> : <Pressable disabled={isSaving} onPress={() => startRememberingManualCorrection(item)} style={({ pressed }) => [styles.rememberCorrectionButton, pressed && styles.pressed, isSaving && styles.disabled]}><Text style={styles.rememberCorrectionText}>記住此修正</Text><Text style={styles.rememberCorrectionHint}>先編輯比對關鍵字後再儲存</Text></Pressable>) : null}
               {(categoryCounts[item.category] ?? 0) > 1 ? (
                 <View style={styles.batchCategoryActions}>
@@ -370,6 +378,8 @@ const styles = StyleSheet.create({
   typeButtonText: { color: "#7A837D", fontSize: 11, fontWeight: "900" },
   typeButtonExpenseText: { color: "#C85F3A" },
   typeButtonIncomeText: { color: "#0E6B56" },
+  removePreviewButton: { alignSelf: "flex-end", marginTop: 7, paddingHorizontal: 8, paddingVertical: 4 },
+  removePreviewText: { color: "#B5472C", fontSize: 10, fontWeight: "900" },
   rememberCorrectionButton: { alignItems: "center", backgroundColor: "#EDF3FF", borderColor: "#C7D6F0", borderRadius: 9, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingHorizontal: 9, paddingVertical: 7 },
   rememberCorrectionText: { color: "#365C96", fontSize: 11, fontWeight: "900" },
   rememberCorrectionHint: { color: "#58729D", flex: 1, fontSize: 9, marginLeft: 8, textAlign: "right" },
