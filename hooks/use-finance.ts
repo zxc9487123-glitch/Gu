@@ -9,6 +9,7 @@ const STORAGE_KEY = "bookkeeping.transactions.v1";
 const RECURRING_RULES_STORAGE_KEY = "bookkeeping.recurring-rules.v1";
 const DISMISSED_RECURRING_STORAGE_KEY = "bookkeeping.dismissed-recurring.v1";
 const EXCEL_AUTO_RULES_STORAGE_KEY = "bookkeeping.excel-auto-rules.v1";
+const PENDING_IMPORT_STORAGE_KEY = "bookkeeping.pending-import-transactions.v1";
 
 type NewTransaction = {
   type: TransactionType;
@@ -18,31 +19,37 @@ type NewTransaction = {
   date: string;
 };
 
+export type PendingImportTransaction = ImportDraft & { id: string; savedAt: string };
+
 function useFinanceStore() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [recurringRules, setRecurringRules] = useState<RecurringTransactionRule[]>([]);
   const [dismissedRecurringIds, setDismissedRecurringIds] = useState<string[]>([]);
   const [excelAutoRules, setExcelAutoRules] = useState<ExcelAutoCategoryRule[]>([]);
+  const [pendingImportTransactions, setPendingImportTransactions] = useState<PendingImportTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [savedTransactions, savedRules, savedDismissed, savedExcelAutoRules] = await Promise.all([
+      const [savedTransactions, savedRules, savedDismissed, savedExcelAutoRules, savedPendingImports] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY),
         AsyncStorage.getItem(RECURRING_RULES_STORAGE_KEY),
         AsyncStorage.getItem(DISMISSED_RECURRING_STORAGE_KEY),
         AsyncStorage.getItem(EXCEL_AUTO_RULES_STORAGE_KEY),
+        AsyncStorage.getItem(PENDING_IMPORT_STORAGE_KEY),
       ]);
       const parsedTransactions = savedTransactions ? (JSON.parse(savedTransactions) as unknown) : [];
       const parsedRules = savedRules ? (JSON.parse(savedRules) as unknown) : [];
       const parsedDismissed = savedDismissed ? (JSON.parse(savedDismissed) as unknown) : [];
       const parsedExcelAutoRules = savedExcelAutoRules ? (JSON.parse(savedExcelAutoRules) as unknown) : [];
-      if (!Array.isArray(parsedTransactions) || !Array.isArray(parsedRules) || !Array.isArray(parsedDismissed) || !Array.isArray(parsedExcelAutoRules)) throw new Error("交易資料格式不正確");
+      const parsedPendingImports = savedPendingImports ? (JSON.parse(savedPendingImports) as unknown) : [];
+      if (!Array.isArray(parsedTransactions) || !Array.isArray(parsedRules) || !Array.isArray(parsedDismissed) || !Array.isArray(parsedExcelAutoRules) || !Array.isArray(parsedPendingImports)) throw new Error("交易資料格式不正確");
       setTransactions(parsedTransactions as Transaction[]);
       setRecurringRules(parsedRules as RecurringTransactionRule[]);
       setDismissedRecurringIds(parsedDismissed.filter((item): item is string => typeof item === "string"));
       setExcelAutoRules(parsedExcelAutoRules as ExcelAutoCategoryRule[]);
+      setPendingImportTransactions(parsedPendingImports as PendingImportTransaction[]);
       setStorageError(null);
     } catch {
       setStorageError("無法讀取本機交易資料，請稍後重試。");
@@ -73,6 +80,11 @@ function useFinanceStore() {
   const persistExcelAutoRules = useCallback(async (nextRules: ExcelAutoCategoryRule[]) => {
     setExcelAutoRules(nextRules);
     await AsyncStorage.setItem(EXCEL_AUTO_RULES_STORAGE_KEY, JSON.stringify(nextRules));
+  }, []);
+
+  const persistPendingImportTransactions = useCallback(async (nextPending: PendingImportTransaction[]) => {
+    setPendingImportTransactions(nextPending);
+    await AsyncStorage.setItem(PENDING_IMPORT_STORAGE_KEY, JSON.stringify(nextPending));
   }, []);
 
   const addTransaction = useCallback(
@@ -109,8 +121,27 @@ function useFinanceStore() {
   );
 
   const clearTransactions = useCallback(async () => {
-    await persist([]);
-  }, [persist]);
+    await Promise.all([persist([]), persistPendingImportTransactions([])]);
+  }, [persist, persistPendingImportTransactions]);
+
+  const savePendingImportTransactions = useCallback(async (drafts: ImportDraft[]) => {
+    const savedAt = new Date().toISOString();
+    const records = drafts.map((draft, index): PendingImportTransaction => ({ ...draft, id: `pending-import-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`, savedAt }));
+    if (records.length > 0) await persistPendingImportTransactions([...records, ...pendingImportTransactions]);
+    return records;
+  }, [pendingImportTransactions, persistPendingImportTransactions]);
+
+  const confirmPendingImportTransaction = useCallback(async (id: string) => {
+    const pending = pendingImportTransactions.find((item) => item.id === id);
+    if (!pending) return null;
+    const record: Transaction = { id: `pending-confirmed-${Date.now()}-${Math.random().toString(16).slice(2)}`, date: pending.date, type: pending.type, category: pending.category, amount: pending.amount, note: pending.note };
+    await Promise.all([persist([record, ...transactions]), persistPendingImportTransactions(pendingImportTransactions.filter((item) => item.id !== id))]);
+    return record;
+  }, [pendingImportTransactions, persist, persistPendingImportTransactions, transactions]);
+
+  const removePendingImportTransaction = useCallback(async (id: string) => {
+    await persistPendingImportTransactions(pendingImportTransactions.filter((item) => item.id !== id));
+  }, [pendingImportTransactions, persistPendingImportTransactions]);
 
   const addExcelAutoRule = useCallback(async (input: ExcelAutoCategoryRuleInput) => {
     const rule: ExcelAutoCategoryRule = {
@@ -180,12 +211,16 @@ function useFinanceStore() {
     transactions,
     recurringRules,
     excelAutoRules,
+    pendingImportTransactions,
     isLoading,
     storageError,
     addTransaction,
     removeTransaction,
     importTransactions,
     clearTransactions,
+    savePendingImportTransactions,
+    confirmPendingImportTransaction,
+    removePendingImportTransaction,
     addExcelAutoRule,
     addExcelAutoRules,
     updateExcelAutoRule,

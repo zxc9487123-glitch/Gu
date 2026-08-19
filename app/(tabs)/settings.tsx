@@ -8,7 +8,7 @@ import { useSavingsGoal } from "@/hooks/use-savings-goal";
 import { categoriesFor, type TransactionType } from "@/lib/finance";
 
 export default function SettingsScreen() {
-  const { transactions, excelAutoRules, addExcelAutoRule, addExcelAutoRules, updateExcelAutoRule, setExcelAutoRuleEnabled, removeExcelAutoRule, clearTransactions, importTransactions } = useFinance();
+  const { transactions, excelAutoRules, pendingImportTransactions, addExcelAutoRule, addExcelAutoRules, updateExcelAutoRule, setExcelAutoRuleEnabled, removeExcelAutoRule, savePendingImportTransactions, confirmPendingImportTransaction, removePendingImportTransaction, clearTransactions, importTransactions } = useFinance();
   const { savingsGoal, setSavingsGoal } = useSavingsGoal();
   const [savingsGoalInput, setSavingsGoalInput] = useState("");
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
@@ -69,6 +69,13 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const confirmPendingRemoval = (id: string, note: string) => {
+    Alert.alert("移除待處理交易？", `「${note || "未填備註"}」將從待處理清單中永久刪除。`, [
+      { text: "取消", style: "cancel" },
+      { text: "移除", style: "destructive", onPress: () => void removePendingImportTransaction(id) },
+    ]);
+  };
+
   return (
     <ScreenContainer containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -95,6 +102,7 @@ export default function SettingsScreen() {
           autoRules={excelAutoRules}
           onAddAutoRule={addExcelAutoRule}
           onAddAutoRules={addExcelAutoRules}
+          onSavePendingTransactions={savePendingImportTransactions}
           onConfirm={(preview, mode) => importTransactions(preview.valid, mode)}
         />
         <View style={styles.panel}>
@@ -125,6 +133,18 @@ export default function SettingsScreen() {
                   <View style={styles.ruleEditorActions}><Pressable onPress={() => { setEditingRuleId(null); setRuleError(""); }} style={({ pressed }) => [styles.ruleCancelButton, pressed && styles.pressed]}><Text style={styles.ruleCancelText}>取消</Text></Pressable><Pressable onPress={() => void saveRuleEdit()} style={({ pressed }) => [styles.ruleSaveButton, pressed && styles.pressed]}><Text style={styles.ruleSaveText}>儲存變更</Text></Pressable></View>
                 </View>
               ) : null}
+            </View>
+          ))}
+        </View>
+        <View style={styles.panel}>
+          <View style={styles.rulePanelHeader}>
+            <View style={styles.rulePanelCopy}><Text style={styles.panelTitle}>待處理交易</Text><Text style={styles.infoText}>從匯入預覽另存的交易會保留在此，可稍後確認加入記帳。</Text></View>
+            <View style={styles.pendingCountBadge}><Text style={styles.pendingCountText}>{pendingImportTransactions.length} 筆</Text></View>
+          </View>
+          {pendingImportTransactions.length === 0 ? <Text style={styles.ruleEmpty}>目前沒有待處理交易。</Text> : pendingImportTransactions.map((item) => (
+            <View key={item.id} style={styles.pendingRow}>
+              <View style={styles.pendingCopy}><Text style={styles.pendingCategory}>{item.category}</Text><Text style={styles.pendingMeta}>{item.date} ・ {item.type === "expense" ? "支出" : "收入"} ・ NT$ {item.amount.toLocaleString("zh-TW")}</Text>{item.note ? <Text style={styles.pendingNote}>{item.note}</Text> : null}</View>
+              <View style={styles.pendingActions}><Pressable onPress={() => void confirmPendingImportTransaction(item.id)} style={({ pressed }) => [styles.pendingConfirmButton, pressed && styles.pressed]}><Text style={styles.pendingConfirmText}>加入記帳</Text></Pressable><Pressable onPress={() => confirmPendingRemoval(item.id, item.note)} style={({ pressed }) => [styles.pendingRemoveButton, pressed && styles.pressed]}><Text style={styles.pendingRemoveText}>移除</Text></Pressable></View>
             </View>
           ))}
         </View>
@@ -163,7 +183,19 @@ const styles = StyleSheet.create({
   rulePanelCopy: { flex: 1, minWidth: 0 },
   ruleCountBadge: { backgroundColor: "#E8F2ED", borderRadius: 9, paddingHorizontal: 8, paddingVertical: 4 },
   ruleCountText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
+  pendingCountBadge: { backgroundColor: "#EDF3FF", borderRadius: 9, paddingHorizontal: 8, paddingVertical: 4 },
+  pendingCountText: { color: "#365C96", fontSize: 11, fontWeight: "900" },
   ruleEmpty: { color: "#7A837D", fontSize: 12, lineHeight: 18, marginTop: 11 },
+  pendingRow: { borderTopColor: "#ECE7DE", borderTopWidth: 1, marginTop: 12, paddingTop: 12 },
+  pendingCopy: { minWidth: 0 },
+  pendingCategory: { color: "#334039", fontSize: 13, fontWeight: "900" },
+  pendingMeta: { color: "#68736D", fontSize: 11, marginTop: 3 },
+  pendingNote: { color: "#7A837D", fontSize: 11, marginTop: 3 },
+  pendingActions: { flexDirection: "row", gap: 7, marginTop: 9 },
+  pendingConfirmButton: { alignItems: "center", backgroundColor: "#E8F2ED", borderRadius: 8, flex: 1, paddingVertical: 7 },
+  pendingConfirmText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
+  pendingRemoveButton: { alignItems: "center", backgroundColor: "#FFF4F1", borderRadius: 8, flex: 1, paddingVertical: 7 },
+  pendingRemoveText: { color: "#B5472C", fontSize: 11, fontWeight: "900" },
   ruleRow: { borderTopColor: "#ECE7DE", borderTopWidth: 1, marginTop: 12, paddingTop: 12 },
   ruleRowDisabled: { opacity: 0.58 },
   ruleRowTop: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "space-between" },

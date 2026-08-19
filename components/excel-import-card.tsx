@@ -3,7 +3,7 @@ import { File } from "expo-file-system/next";
 import { Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useState } from "react";
 
-import { applyExcelAutoCategoryRules, detectExcelImportDuplicates, overrideExcelPreviewCategoryType, parseExcelTransactions, type ExcelAutoCategoryRule, type ExcelAutoCategoryRuleInput, type ExcelImportMode, type ExcelImportPreview } from "@/lib/excel-import";
+import { applyExcelAutoCategoryRules, detectExcelImportDuplicates, overrideExcelPreviewCategoryType, parseExcelTransactions, type ExcelAutoCategoryRule, type ExcelAutoCategoryRuleInput, type ExcelImportMode, type ExcelImportPreview, type ImportDraft } from "@/lib/excel-import";
 import { categoriesFor, type Transaction, type TransactionType } from "@/lib/finance";
 
 const EXCEL_TYPES = [
@@ -17,6 +17,7 @@ type Props = {
   autoRules: ExcelAutoCategoryRule[];
   onAddAutoRule: (input: ExcelAutoCategoryRuleInput) => Promise<ExcelAutoCategoryRule>;
   onAddAutoRules: (inputs: ExcelAutoCategoryRuleInput[]) => Promise<ExcelAutoCategoryRule[]>;
+  onSavePendingTransactions: (drafts: ImportDraft[]) => Promise<unknown[]>;
   onConfirm: (preview: ExcelImportPreview, mode: ExcelImportMode) => Promise<{ added: number; updated: number; skipped: number }>;
 };
 
@@ -25,7 +26,7 @@ async function fileBuffer(asset: DocumentPicker.DocumentPickerAsset) {
   return new File(asset.uri).arrayBuffer();
 }
 
-export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule, onAddAutoRules, onConfirm }: Props) {
+export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule, onAddAutoRules, onSavePendingTransactions, onConfirm }: Props) {
   const [preview, setPreview] = useState<ExcelImportPreview | null>(null);
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
@@ -114,6 +115,25 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
     setPreview({ ...preview, valid: preview.valid.filter((item) => !rowSet.has(item.row)) });
   };
 
+  const savePreviewRowsAsPending = async (rows: number[]) => {
+    if (!preview || rows.length === 0) return;
+    const rowSet = new Set(rows);
+    const pending = preview.valid.filter((item) => rowSet.has(item.row));
+    if (pending.length === 0) return;
+    setIsSaving(true);
+    try {
+      await onSavePendingTransactions(pending.map(({ date, type, category, amount, note }) => ({ date, type, category, amount, note })));
+      setSelectedRows((current) => current.filter((row) => !rowSet.has(row)));
+      setRememberingRow((current) => current !== null && rowSet.has(current) ? null : current);
+      setPreview({ ...preview, valid: preview.valid.filter((item) => !rowSet.has(item.row)) });
+      setResult(`已將 ${pending.length} 筆交易另存為待處理項目，可在設定頁加入記帳或移除。`);
+    } catch {
+      setError("無法儲存待處理交易，請稍後再試。");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const restoreLastDeletedRows = () => {
     if (!preview || lastDeletedRows.length === 0) return;
     const currentRows = new Set(preview.valid.map((item) => item.row));
@@ -130,6 +150,7 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
     if (selectedRows.length === 0) return;
     Alert.alert("刪除已勾選的預覽交易？", `已勾選的 ${selectedRows.length} 筆交易不會匯入，且不會影響既有交易。`, [
       { text: "取消", style: "cancel" },
+      { text: "另存待處理", onPress: () => void savePreviewRowsAsPending(selectedRows) },
       { text: "刪除 ${selectedRows.length} 筆", style: "destructive", onPress: () => removePreviewRows(selectedRows) },
     ]);
   };
@@ -137,6 +158,7 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
   const confirmRemovePreviewTransaction = (item: ExcelImportPreview["valid"][number]) => {
     Alert.alert("從匯入預覽移除？", `第 ${item.row} 列將不會匯入，且不會影響目前裝置中的既有交易。`, [
       { text: "取消", style: "cancel" },
+      { text: "另存待處理", onPress: () => void savePreviewRowsAsPending([item.row]) },
       { text: "移除此筆", style: "destructive", onPress: () => removePreviewRows([item.row]) },
     ]);
   };
