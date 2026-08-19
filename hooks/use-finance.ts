@@ -1,13 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, createElement, useCallback, useContext, useEffect, useState, type PropsWithChildren } from "react";
 
-import { mergeExcelImports, type ExcelImportMode, type ImportDraft } from "@/lib/excel-import";
+import { mergeExcelImports, type ExcelAutoCategoryRule, type ExcelAutoCategoryRuleInput, type ExcelImportMode, type ImportDraft } from "@/lib/excel-import";
 import { currentDateInput, type Transaction, type TransactionType } from "@/lib/finance";
 import { pendingRecurringTransactionsFor, transactionFromPendingRecurring, type PendingRecurringTransaction, type RecurringTransactionRule, type RecurringTransactionRuleInput } from "@/lib/recurring-transactions";
 
 const STORAGE_KEY = "bookkeeping.transactions.v1";
 const RECURRING_RULES_STORAGE_KEY = "bookkeeping.recurring-rules.v1";
 const DISMISSED_RECURRING_STORAGE_KEY = "bookkeeping.dismissed-recurring.v1";
+const EXCEL_AUTO_RULES_STORAGE_KEY = "bookkeeping.excel-auto-rules.v1";
 
 type NewTransaction = {
   type: TransactionType;
@@ -21,23 +22,27 @@ function useFinanceStore() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [recurringRules, setRecurringRules] = useState<RecurringTransactionRule[]>([]);
   const [dismissedRecurringIds, setDismissedRecurringIds] = useState<string[]>([]);
+  const [excelAutoRules, setExcelAutoRules] = useState<ExcelAutoCategoryRule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [storageError, setStorageError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [savedTransactions, savedRules, savedDismissed] = await Promise.all([
+      const [savedTransactions, savedRules, savedDismissed, savedExcelAutoRules] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY),
         AsyncStorage.getItem(RECURRING_RULES_STORAGE_KEY),
         AsyncStorage.getItem(DISMISSED_RECURRING_STORAGE_KEY),
+        AsyncStorage.getItem(EXCEL_AUTO_RULES_STORAGE_KEY),
       ]);
       const parsedTransactions = savedTransactions ? (JSON.parse(savedTransactions) as unknown) : [];
       const parsedRules = savedRules ? (JSON.parse(savedRules) as unknown) : [];
       const parsedDismissed = savedDismissed ? (JSON.parse(savedDismissed) as unknown) : [];
-      if (!Array.isArray(parsedTransactions) || !Array.isArray(parsedRules) || !Array.isArray(parsedDismissed)) throw new Error("交易資料格式不正確");
+      const parsedExcelAutoRules = savedExcelAutoRules ? (JSON.parse(savedExcelAutoRules) as unknown) : [];
+      if (!Array.isArray(parsedTransactions) || !Array.isArray(parsedRules) || !Array.isArray(parsedDismissed) || !Array.isArray(parsedExcelAutoRules)) throw new Error("交易資料格式不正確");
       setTransactions(parsedTransactions as Transaction[]);
       setRecurringRules(parsedRules as RecurringTransactionRule[]);
       setDismissedRecurringIds(parsedDismissed.filter((item): item is string => typeof item === "string"));
+      setExcelAutoRules(parsedExcelAutoRules as ExcelAutoCategoryRule[]);
       setStorageError(null);
     } catch {
       setStorageError("無法讀取本機交易資料，請稍後重試。");
@@ -63,6 +68,11 @@ function useFinanceStore() {
   const persistDismissedRecurringIds = useCallback(async (nextIds: string[]) => {
     setDismissedRecurringIds(nextIds);
     await AsyncStorage.setItem(DISMISSED_RECURRING_STORAGE_KEY, JSON.stringify(nextIds));
+  }, []);
+
+  const persistExcelAutoRules = useCallback(async (nextRules: ExcelAutoCategoryRule[]) => {
+    setExcelAutoRules(nextRules);
+    await AsyncStorage.setItem(EXCEL_AUTO_RULES_STORAGE_KEY, JSON.stringify(nextRules));
   }, []);
 
   const addTransaction = useCallback(
@@ -102,6 +112,16 @@ function useFinanceStore() {
     await persist([]);
   }, [persist]);
 
+  const addExcelAutoRule = useCallback(async (input: ExcelAutoCategoryRuleInput) => {
+    const rule: ExcelAutoCategoryRule = {
+      ...input,
+      id: `excel-rule-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      enabled: true,
+    };
+    await persistExcelAutoRules([rule, ...excelAutoRules]);
+    return rule;
+  }, [excelAutoRules, persistExcelAutoRules]);
+
   const addRecurringRule = useCallback(async (input: RecurringTransactionRuleInput) => {
     const rule: RecurringTransactionRule = {
       ...input,
@@ -137,12 +157,14 @@ function useFinanceStore() {
   return {
     transactions,
     recurringRules,
+    excelAutoRules,
     isLoading,
     storageError,
     addTransaction,
     removeTransaction,
     importTransactions,
     clearTransactions,
+    addExcelAutoRule,
     addRecurringRule,
     removeRecurringRule,
     pendingRecurringTransactions,

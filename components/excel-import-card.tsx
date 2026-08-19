@@ -3,8 +3,8 @@ import { File } from "expo-file-system/next";
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useState } from "react";
 
-import { overrideExcelPreviewCategoryType, overrideExcelPreviewNoteKeywordType, parseExcelTransactions, type ExcelImportMode, type ExcelImportPreview } from "@/lib/excel-import";
-import type { TransactionType } from "@/lib/finance";
+import { applyExcelAutoCategoryRules, detectExcelImportDuplicates, overrideExcelPreviewCategoryType, parseExcelTransactions, type ExcelAutoCategoryRule, type ExcelAutoCategoryRuleInput, type ExcelImportMode, type ExcelImportPreview } from "@/lib/excel-import";
+import { categoriesFor, type Transaction, type TransactionType } from "@/lib/finance";
 
 const EXCEL_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -13,6 +13,9 @@ const EXCEL_TYPES = [
 ];
 
 type Props = {
+  existingTransactions: Transaction[];
+  autoRules: ExcelAutoCategoryRule[];
+  onAddAutoRule: (input: ExcelAutoCategoryRuleInput) => Promise<ExcelAutoCategoryRule>;
   onConfirm: (preview: ExcelImportPreview, mode: ExcelImportMode) => Promise<{ added: number; updated: number; skipped: number }>;
 };
 
@@ -21,7 +24,7 @@ async function fileBuffer(asset: DocumentPicker.DocumentPickerAsset) {
   return new File(asset.uri).arrayBuffer();
 }
 
-export function ExcelImportCard({ onConfirm }: Props) {
+export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule, onConfirm }: Props) {
   const [preview, setPreview] = useState<ExcelImportPreview | null>(null);
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
@@ -29,7 +32,10 @@ export function ExcelImportCard({ onConfirm }: Props) {
   const [mode, setMode] = useState<ExcelImportMode>("skip");
   const [showAllRows, setShowAllRows] = useState(false);
   const [showAllIssues, setShowAllIssues] = useState(false);
-  const [noteKeyword, setNoteKeyword] = useState("");
+  const [ruleKeyword, setRuleKeyword] = useState("");
+  const [ruleType, setRuleType] = useState<TransactionType>("expense");
+  const [ruleCategory, setRuleCategory] = useState(categoriesFor("expense")[0]?.name ?? "其他支出");
+  const [ruleError, setRuleError] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -48,9 +54,10 @@ export function ExcelImportCard({ onConfirm }: Props) {
       setIsParsing(true);
       const buffer = await fileBuffer(asset);
       const parsed = parseExcelTransactions(buffer);
-      setPreview(parsed);
+      setPreview(applyExcelAutoCategoryRules(parsed, autoRules));
       setFilename(asset.name);
-      setNoteKeyword("");
+      setRuleKeyword("");
+      setRuleError("");
       setShowAllRows(false);
       setShowAllIssues(false);
     } catch {
@@ -89,16 +96,31 @@ export function ExcelImportCard({ onConfirm }: Props) {
     setPreview((current) => current ? overrideExcelPreviewCategoryType(current, category, type) : current);
   };
 
-  const overrideNoteKeywordType = (type: TransactionType) => {
-    setPreview((current) => current ? overrideExcelPreviewNoteKeywordType(current, noteKeyword, type) : current);
-  };
-
   const categoryCounts = preview?.valid.reduce<Record<string, number>>((counts, item) => {
     counts[item.category] = (counts[item.category] ?? 0) + 1;
     return counts;
   }, {}) ?? {};
-  const normalizedNoteKeyword = noteKeyword.trim().toLocaleLowerCase();
-  const noteKeywordMatchCount = normalizedNoteKeyword ? preview?.valid.filter((item) => item.note.toLocaleLowerCase().includes(normalizedNoteKeyword)).length ?? 0 : 0;
+  const normalizedRuleKeyword = ruleKeyword.trim().toLocaleLowerCase();
+  const ruleMatchCount = normalizedRuleKeyword ? preview?.valid.filter((item) => item.note.toLocaleLowerCase().includes(normalizedRuleKeyword)).length ?? 0 : 0;
+  const duplicates = preview ? detectExcelImportDuplicates(existingTransactions, preview.valid) : [];
+  const duplicateByRow = new Map(duplicates.map((item) => [item.row, item]));
+  const chooseRuleType = (nextType: TransactionType) => {
+    setRuleType(nextType);
+    setRuleCategory(categoriesFor(nextType)[0]?.name ?? "未分類");
+  };
+  const applySavedRulesToPreview = () => {
+    setPreview((current) => current ? applyExcelAutoCategoryRules(current, autoRules) : current);
+  };
+  const saveRuleAndApply = async () => {
+    if (!ruleKeyword.trim()) {
+      setRuleError("請先輸入要比對的備註關鍵字。");
+      return;
+    }
+    const rule = await onAddAutoRule({ keyword: ruleKeyword.trim(), type: ruleType, category: ruleCategory });
+    setPreview((current) => current ? applyExcelAutoCategoryRules(current, [rule, ...autoRules]) : current);
+    setRuleKeyword("");
+    setRuleError("");
+  };
 
   return (
     <View style={styles.panel}>
@@ -127,29 +149,36 @@ export function ExcelImportCard({ onConfirm }: Props) {
               <View style={[styles.switchThumb, mode === "update" && styles.switchThumbActive]} />
             </View>
           </Pressable>
-          <View style={styles.keywordPanel}>
-            <Text style={styles.keywordTitle}>依備註關鍵字批次套用</Text>
-            <Text style={styles.keywordDescription}>輸入備註中的文字，例如「UBER」或「訂閱」；符合的交易會一次改為指定收支類型。</Text>
-            <TextInput value={noteKeyword} onChangeText={setNoteKeyword} placeholder="輸入備註關鍵字" placeholderTextColor="#929A94" style={styles.keywordInput} returnKeyType="done" />
-            <Text style={styles.keywordMatchText}>{normalizedNoteKeyword ? `符合 ${noteKeywordMatchCount} 筆交易` : "輸入關鍵字後顯示符合筆數"}</Text>
-            <View style={styles.keywordActions}>
-              <Pressable disabled={noteKeywordMatchCount === 0} onPress={() => overrideNoteKeywordType("expense")} style={({ pressed }) => [styles.keywordActionButton, styles.keywordExpenseButton, pressed && styles.pressed, noteKeywordMatchCount === 0 && styles.disabled]}>
-                <Text style={styles.keywordExpenseText}>符合項目全設為支出</Text>
-              </Pressable>
-              <Pressable disabled={noteKeywordMatchCount === 0} onPress={() => overrideNoteKeywordType("income")} style={({ pressed }) => [styles.keywordActionButton, styles.keywordIncomeButton, pressed && styles.pressed, noteKeywordMatchCount === 0 && styles.disabled]}>
-                <Text style={styles.keywordIncomeText}>符合項目全設為收入</Text>
-              </Pressable>
+          <View style={styles.rulePanel}>
+            <View style={styles.rulePanelHeading}>
+              <View style={styles.rulePanelCopy}><Text style={styles.keywordTitle}>自動分類規則</Text><Text style={styles.keywordDescription}>1. 輸入備註關鍵字　2. 指定收支與分類　3. 先預覽後儲存套用。</Text></View>
+              <Pressable disabled={autoRules.length === 0} onPress={applySavedRulesToPreview} style={({ pressed }) => [styles.applySavedRulesButton, pressed && styles.pressed, autoRules.length === 0 && styles.disabled]}><Text style={styles.applySavedRulesText}>套用已存規則</Text></Pressable>
             </View>
+            <TextInput value={ruleKeyword} onChangeText={(value) => { setRuleKeyword(value); setRuleError(""); }} placeholder="1. 輸入備註關鍵字，例如 UBER" placeholderTextColor="#929A94" style={styles.keywordInput} returnKeyType="next" />
+            <Text style={styles.keywordMatchText}>{normalizedRuleKeyword ? `預覽符合 ${ruleMatchCount} 筆交易，尚未寫入正式資料` : "輸入關鍵字後顯示可套用筆數"}</Text>
+            <View style={styles.ruleTypeActions}>
+              <Pressable onPress={() => chooseRuleType("expense")} style={({ pressed }) => [styles.ruleTypeButton, ruleType === "expense" && styles.ruleTypeExpenseActive, pressed && styles.pressed]}><Text style={[styles.ruleTypeText, ruleType === "expense" && styles.ruleTypeExpenseText]}>2. 支出</Text></Pressable>
+              <Pressable onPress={() => chooseRuleType("income")} style={({ pressed }) => [styles.ruleTypeButton, ruleType === "income" && styles.ruleTypeIncomeActive, pressed && styles.pressed]}><Text style={[styles.ruleTypeText, ruleType === "income" && styles.ruleTypeIncomeText]}>2. 收入</Text></Pressable>
+            </View>
+            <View style={styles.ruleCategoryGrid}>{categoriesFor(ruleType).map((category) => <Pressable key={category.name} onPress={() => setRuleCategory(category.name)} style={({ pressed }) => [styles.ruleCategoryChip, ruleCategory === category.name && styles.ruleCategoryChipActive, pressed && styles.pressed]}><Text style={[styles.ruleCategoryText, ruleCategory === category.name && styles.ruleCategoryTextActive]}>{category.name}</Text></Pressable>)}</View>
+            {ruleError ? <Text style={styles.ruleError}>{ruleError}</Text> : null}
+            <Pressable disabled={ruleMatchCount === 0 || isSaving} onPress={() => void saveRuleAndApply()} style={({ pressed }) => [styles.saveRuleButton, pressed && styles.pressed, (ruleMatchCount === 0 || isSaving) && styles.disabled]}><Text style={styles.saveRuleText}>3. 儲存規則並先套用到預覽</Text></Pressable>
+            {autoRules.length > 0 ? <Text style={styles.savedRuleHint}>已儲存 {autoRules.length} 條規則；同筆交易符合多條時，最新規則優先。</Text> : null}
           </View>
+          {duplicates.length > 0 ? <View style={styles.duplicatePanel}><Text style={styles.duplicateTitle}>可能重複交易（{duplicates.length}）</Text><Text style={styles.duplicateText}>已先標示可能重複項目；完全相同的交易會略過，日期、類型與分類相同的項目可開啟更新模式覆蓋。</Text></View> : null}
           {(showAllRows ? preview.valid : preview.valid.slice(0, 8)).map((item, index) => (
             <View key={`${item.date}-${item.amount}-${index}`} style={styles.previewRow}>
               <View style={styles.previewHeader}>
                 <Text style={styles.previewCategory}>{item.category}</Text>
-                <View style={[styles.sourceBadge, item.typeResolution === "inferred" && styles.sourceBadgeInferred, item.typeResolution === "manual" && styles.sourceBadgeManual]}>
-                  <Text style={[styles.sourceBadgeText, item.typeResolution === "inferred" && styles.sourceBadgeTextInferred, item.typeResolution === "manual" && styles.sourceBadgeTextManual]}>{item.typeResolution === "explicit" ? "原始類型" : item.typeResolution === "manual" ? "已手動修改" : "自動推斷"}</Text>
+                <View style={styles.previewBadges}>
+                  <View style={[styles.sourceBadge, item.typeResolution === "inferred" && styles.sourceBadgeInferred, item.typeResolution === "manual" && styles.sourceBadgeManual, item.typeResolution === "rule" && styles.sourceBadgeRule]}>
+                    <Text style={[styles.sourceBadgeText, item.typeResolution === "inferred" && styles.sourceBadgeTextInferred, item.typeResolution === "manual" && styles.sourceBadgeTextManual, item.typeResolution === "rule" && styles.sourceBadgeTextRule]}>{item.typeResolution === "explicit" ? "原始類型" : item.typeResolution === "manual" ? "已手動修改" : item.typeResolution === "rule" ? "規則套用" : "自動推斷"}</Text>
+                  </View>
+                  {duplicateByRow.has(item.row) ? <View style={styles.duplicateBadge}><Text style={styles.duplicateBadgeText}>可能重複</Text></View> : null}
                 </View>
               </View>
               <Text style={styles.previewMeta}>第 {item.row} 列 ・ NT$ {item.amount.toLocaleString("zh-TW")}</Text>
+              {item.appliedRuleName ? <Text style={styles.ruleAppliedText}>已依「{item.appliedRuleName}」套用分類</Text> : null}
               <View style={styles.typeActions}>
                 <Pressable onPress={() => overrideType(index, "expense")} style={[styles.typeButton, item.type === "expense" && styles.typeButtonExpense]}>
                   <Text style={[styles.typeButtonText, item.type === "expense" && styles.typeButtonExpenseText]}>支出</Text>
@@ -222,6 +251,11 @@ const styles = StyleSheet.create({
   switchThumb: { width: 16, height: 16, borderRadius: 8, backgroundColor: "#FFFFFF", alignSelf: "flex-start" },
   switchThumbActive: { alignSelf: "flex-end" },
   keywordPanel: { marginTop: 13, padding: 11, borderRadius: 12, backgroundColor: "#F2F6F3", borderWidth: 1, borderColor: "#D7E6DD" },
+  rulePanel: { marginTop: 13, padding: 11, borderRadius: 12, backgroundColor: "#F2F6F3", borderWidth: 1, borderColor: "#D7E6DD" },
+  rulePanelHeading: { alignItems: "flex-start", flexDirection: "row", gap: 8, justifyContent: "space-between" },
+  rulePanelCopy: { flex: 1, minWidth: 0 },
+  applySavedRulesButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#B9D6CA", borderRadius: 8, borderWidth: 1, minHeight: 30, paddingHorizontal: 8 },
+  applySavedRulesText: { color: "#0E6B56", fontSize: 10, fontWeight: "900" },
   keywordTitle: { color: "#334039", fontSize: 13, fontWeight: "900" },
   keywordDescription: { color: "#66736B", fontSize: 11, lineHeight: 16, marginTop: 3 },
   keywordInput: { marginTop: 9, minHeight: 38, borderRadius: 9, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#CFDAD2", paddingHorizontal: 10, color: "#334039", fontSize: 12 },
@@ -232,16 +266,41 @@ const styles = StyleSheet.create({
   keywordIncomeButton: { backgroundColor: "#EBF5EF", borderColor: "#B9D6CA" },
   keywordExpenseText: { color: "#C85F3A", fontSize: 10, fontWeight: "900", textAlign: "center" },
   keywordIncomeText: { color: "#0E6B56", fontSize: 10, fontWeight: "900", textAlign: "center" },
+  ruleTypeActions: { flexDirection: "row", gap: 7, marginTop: 8 },
+  ruleTypeButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#CFDAD2", borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 33, justifyContent: "center" },
+  ruleTypeExpenseActive: { backgroundColor: "#FFF1ED", borderColor: "#EDC1B5" },
+  ruleTypeIncomeActive: { backgroundColor: "#EBF5EF", borderColor: "#B9D6CA" },
+  ruleTypeText: { color: "#69756E", fontSize: 11, fontWeight: "900" },
+  ruleTypeExpenseText: { color: "#C85F3A" },
+  ruleTypeIncomeText: { color: "#0E6B56" },
+  ruleCategoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  ruleCategoryChip: { backgroundColor: "#FFFFFF", borderColor: "#CFDAD2", borderRadius: 8, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 5 },
+  ruleCategoryChipActive: { backgroundColor: "#E8F2ED", borderColor: "#0E6B56" },
+  ruleCategoryText: { color: "#66736B", fontSize: 10, fontWeight: "800" },
+  ruleCategoryTextActive: { color: "#0E6B56" },
+  ruleError: { color: "#B5472C", fontSize: 10, fontWeight: "800", marginTop: 7 },
+  saveRuleButton: { alignItems: "center", backgroundColor: "#0E6B56", borderRadius: 9, justifyContent: "center", marginTop: 9, minHeight: 35 },
+  saveRuleText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900" },
+  savedRuleHint: { color: "#587066", fontSize: 10, lineHeight: 15, marginTop: 7 },
+  duplicatePanel: { backgroundColor: "#FFF6E9", borderColor: "#F0D59A", borderRadius: 12, borderWidth: 1, marginTop: 12, padding: 10 },
+  duplicateTitle: { color: "#8A5E05", fontSize: 12, fontWeight: "900" },
+  duplicateText: { color: "#8A6A25", fontSize: 10, lineHeight: 16, marginTop: 3 },
   previewRow: { marginTop: 10, padding: 10, borderRadius: 11, backgroundColor: "#F8F6F1" },
   previewHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  previewBadges: { alignItems: "flex-end", flexDirection: "row", flexShrink: 0, gap: 4 },
   previewCategory: { color: "#334039", fontSize: 13, fontWeight: "800" },
   previewMeta: { color: "#7A837D", fontSize: 11, marginTop: 3 },
   sourceBadge: { borderRadius: 9, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "#E7ECE8" },
   sourceBadgeInferred: { backgroundColor: "#FFF0CD" },
   sourceBadgeManual: { backgroundColor: "#E7EDF8" },
+  sourceBadgeRule: { backgroundColor: "#E8F2ED" },
   sourceBadgeText: { color: "#607068", fontSize: 10, fontWeight: "900" },
   sourceBadgeTextInferred: { color: "#8A5E05" },
   sourceBadgeTextManual: { color: "#365C96" },
+  sourceBadgeTextRule: { color: "#0E6B56" },
+  duplicateBadge: { backgroundColor: "#FFF0CD", borderRadius: 9, paddingHorizontal: 7, paddingVertical: 3 },
+  duplicateBadgeText: { color: "#8A5E05", fontSize: 10, fontWeight: "900" },
+  ruleAppliedText: { color: "#0E6B56", fontSize: 10, fontWeight: "800", marginTop: 4 },
   typeActions: { flexDirection: "row", gap: 7, marginTop: 9 },
   typeButton: { flex: 1, borderRadius: 9, borderWidth: 1, borderColor: "#DDE1DC", backgroundColor: "#FFFFFF", paddingVertical: 7, alignItems: "center" },
   typeButtonExpense: { backgroundColor: "#F9E9E5", borderColor: "#E9B9AB" },

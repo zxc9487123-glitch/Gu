@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
 
-import { deduplicateExcelImports, mergeExcelImports, overrideExcelPreviewCategoryType, overrideExcelPreviewNoteKeywordType, parseExcelTransactions } from "../lib/excel-import";
+import { applyExcelAutoCategoryRules, deduplicateExcelImports, detectExcelImportDuplicates, mergeExcelImports, overrideExcelPreviewCategoryType, overrideExcelPreviewNoteKeywordType, parseExcelTransactions } from "../lib/excel-import";
 import type { Transaction } from "../lib/finance";
 
 function workbookBuffer(rows: unknown[][]) {
@@ -166,6 +166,19 @@ describe("Excel import", () => {
     ]);
   });
 
+  it("previews automatic category rules without overriding manual corrections", () => {
+    const preview = parseExcelTransactions(workbookBuffer([
+      ["交易日期", "類型", "分類", "金額", "摘要"],
+      ["2026-08-17", "支出", "未分類", 179, "Uber 搭車"],
+      ["2026-08-18", "支出", "購物", 300, "一般消費"],
+    ]));
+    const manuallyCorrected = { ...preview, valid: [{ ...preview.valid[1]!, type: "income" as const, typeResolution: "manual" as const }, preview.valid[0]!] };
+    const applied = applyExcelAutoCategoryRules(manuallyCorrected, [{ id: "uber", keyword: "uber", type: "expense", category: "交通／Uber", enabled: true }]);
+
+    expect(applied.valid[0]).toMatchObject({ type: "income", category: "購物", typeResolution: "manual" });
+    expect(applied.valid[1]).toMatchObject({ type: "expense", category: "交通／Uber", typeResolution: "rule", appliedRuleName: "uber" });
+  });
+
   it("returns sheet diagnostics when no recognizable transaction headers are present", () => {
     const result = parseExcelTransactions(workbookWithSheets([
       { name: "封面", rows: [["我的財務摘要"], ["本月結餘", 1000]] },
@@ -192,6 +205,26 @@ describe("Excel import", () => {
     expect(result.accepted).toHaveLength(1);
     expect(result.accepted[0]?.category).toBe("購物");
     expect(result.skipped).toBe(2);
+  });
+
+  it("reports exact, same-identity and in-file duplicate transactions before import", () => {
+    const existing: Transaction[] = [
+      { id: "exact", date: "2026-08-17", type: "expense", category: "餐飲／食品", amount: 150, note: "午餐" },
+      { id: "identity", date: "2026-08-18", type: "expense", category: "購物", amount: 300, note: "舊備註" },
+    ];
+    const preview = parseExcelTransactions(workbookBuffer([
+      ["交易日期", "類型", "分類", "金額", "摘要"],
+      ["2026-08-17", "支出", "餐飲／食品", 150, "午餐"],
+      ["2026-08-18", "支出", "購物", 350, "新備註"],
+      ["2026-08-19", "支出", "交通／Uber", 179, "搭車"],
+      ["2026-08-19", "支出", "交通／Uber", 179, "搭車"],
+    ]));
+
+    expect(detectExcelImportDuplicates(existing, preview.valid)).toMatchObject([
+      { row: 2, kind: "exact-existing" },
+      { row: 3, kind: "same-identity" },
+      { row: 5, kind: "duplicate-in-file" },
+    ]);
   });
 
   it("updates a matching transaction only when update mode is enabled", () => {

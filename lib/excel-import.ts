@@ -5,8 +5,22 @@ import { currentDateInput, type Transaction, type TransactionType } from "./fina
 export type ImportDraft = Omit<Transaction, "id">;
 export type ExcelImportMode = "skip" | "update";
 export type ImportIssue = { row: number | null; message: string };
-export type TypeResolution = "explicit" | "inferred" | "manual";
-export type ImportPreviewTransaction = ImportDraft & { row: number; typeResolution: TypeResolution };
+export type TypeResolution = "explicit" | "inferred" | "manual" | "rule";
+export type ImportPreviewTransaction = ImportDraft & { row: number; typeResolution: TypeResolution; appliedRuleName?: string };
+
+export type ExcelAutoCategoryRuleInput = {
+  keyword: string;
+  type: TransactionType;
+  category: string;
+};
+
+export type ExcelAutoCategoryRule = ExcelAutoCategoryRuleInput & {
+  id: string;
+  enabled: boolean;
+};
+
+export type ImportDuplicateKind = "exact-existing" | "same-identity" | "duplicate-in-file";
+export type ImportDuplicate = { row: number; kind: ImportDuplicateKind; message: string };
 
 export type ExcelImportPreview = {
   valid: ImportPreviewTransaction[];
@@ -308,6 +322,25 @@ function fingerprint(transaction: Omit<Transaction, "id">) {
   return [transaction.date, transaction.type, transaction.category, transaction.amount, transaction.note.trim()].join("|");
 }
 
+function matchesRuleKeyword(note: string, keyword: string) {
+  const query = keyword.trim().toLocaleLowerCase();
+  return query.length > 0 && note.toLocaleLowerCase().includes(query);
+}
+
+/** 將已儲存規則套用至預覽；手動更正的列會保留原設定。 */
+export function applyExcelAutoCategoryRules(preview: ExcelImportPreview, rules: ExcelAutoCategoryRule[]): ExcelImportPreview {
+  const enabledRules = rules.filter((rule) => rule.enabled && rule.keyword.trim());
+  if (enabledRules.length === 0) return preview;
+  return {
+    ...preview,
+    valid: preview.valid.map((item) => {
+      if (item.typeResolution === "manual") return item;
+      const rule = enabledRules.find((candidate) => matchesRuleKeyword(item.note, candidate.keyword));
+      return rule ? { ...item, type: rule.type, category: rule.category, typeResolution: "rule", appliedRuleName: rule.keyword } : item;
+    }),
+  };
+}
+
 function cleanDraft(transaction: ImportDraft): ImportDraft {
   return {
     date: transaction.date,
@@ -320,6 +353,30 @@ function cleanDraft(transaction: ImportDraft): ImportDraft {
 
 function identityKey(transaction: Omit<Transaction, "id">) {
   return [transaction.date, transaction.type, transaction.category].join("|");
+}
+
+/** 在正式寫入前找出既有交易或同檔中的可能重複資料。 */
+export function detectExcelImportDuplicates(existing: Transaction[], drafts: ImportPreviewTransaction[]): ImportDuplicate[] {
+  const existingFingerprints = new Set(existing.map(fingerprint));
+  const existingIdentities = new Set(existing.map(identityKey));
+  const previewFingerprints = new Set<string>();
+  const duplicates: ImportDuplicate[] = [];
+  drafts.forEach((draft) => {
+    const key = fingerprint(draft);
+    if (previewFingerprints.has(key)) {
+      duplicates.push({ row: draft.row, kind: "duplicate-in-file", message: "與此 Excel 檔中的另一筆交易完全相同。" });
+      return;
+    }
+    previewFingerprints.add(key);
+    if (existingFingerprints.has(key)) {
+      duplicates.push({ row: draft.row, kind: "exact-existing", message: "與本機既有交易完全相同，匯入時會略過。" });
+      return;
+    }
+    if (existingIdentities.has(identityKey(draft))) {
+      duplicates.push({ row: draft.row, kind: "same-identity", message: "與既有交易日期、收支類型及分類相同；可開啟更新模式覆蓋。" });
+    }
+  });
+  return duplicates;
 }
 
 export function deduplicateExcelImports(existing: Transaction[], drafts: ImportDraft[]): DeduplicationResult {

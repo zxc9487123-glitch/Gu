@@ -7,7 +7,7 @@ import { useFinance } from "@/hooks/use-finance";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
 
 export default function SettingsScreen() {
-  const { clearTransactions, importTransactions } = useFinance();
+  const { transactions, excelAutoRules, addExcelAutoRule, clearTransactions, importTransactions } = useFinance();
   const { savingsGoal, setSavingsGoal } = useSavingsGoal();
   const [savingsGoalInput, setSavingsGoalInput] = useState("");
 
@@ -53,7 +53,12 @@ export default function SettingsScreen() {
           </View>
           {savingsGoal !== null ? <Pressable onPress={() => { void setSavingsGoal(null); }} style={({ pressed }) => [styles.goalClearButton, pressed && styles.goalClearPressed]}><Text style={styles.goalClearText}>清除存款目標</Text></Pressable> : null}
         </View>
-        <ExcelImportCard onConfirm={(preview, mode) => importTransactions(preview.valid, mode)} />
+        <ExcelImportCard
+          existingTransactions={transactions}
+          autoRules={excelAutoRules}
+          onAddAutoRule={addExcelAutoRule}
+          onConfirm={(preview, mode) => importTransactions(preview.valid, mode)}
+        />
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>資料管理</Text>
           <Text style={styles.infoText}>清除目前裝置上的所有記帳紀錄。</Text>
