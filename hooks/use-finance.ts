@@ -122,6 +122,16 @@ function useFinanceStore() {
     return rule;
   }, [excelAutoRules, persistExcelAutoRules]);
 
+  const addExcelAutoRules = useCallback(async (inputs: ExcelAutoCategoryRuleInput[]) => {
+    const rules = inputs.map((input, index): ExcelAutoCategoryRule => ({
+      ...input,
+      id: `excel-rule-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
+      enabled: true,
+    }));
+    if (rules.length > 0) await persistExcelAutoRules([...rules, ...excelAutoRules]);
+    return rules;
+  }, [excelAutoRules, persistExcelAutoRules]);
+
   const updateExcelAutoRule = useCallback(async (id: string, input: ExcelAutoCategoryRuleInput) => {
     await persistExcelAutoRules(excelAutoRules.map((rule) => rule.id === id ? { ...rule, ...input } : rule));
   }, [excelAutoRules, persistExcelAutoRules]);
@@ -177,6 +187,7 @@ function useFinanceStore() {
     importTransactions,
     clearTransactions,
     addExcelAutoRule,
+    addExcelAutoRules,
     updateExcelAutoRule,
     setExcelAutoRuleEnabled,
     removeExcelAutoRule,

@@ -16,6 +16,7 @@ type Props = {
   existingTransactions: Transaction[];
   autoRules: ExcelAutoCategoryRule[];
   onAddAutoRule: (input: ExcelAutoCategoryRuleInput) => Promise<ExcelAutoCategoryRule>;
+  onAddAutoRules: (inputs: ExcelAutoCategoryRuleInput[]) => Promise<ExcelAutoCategoryRule[]>;
   onConfirm: (preview: ExcelImportPreview, mode: ExcelImportMode) => Promise<{ added: number; updated: number; skipped: number }>;
 };
 
@@ -24,7 +25,7 @@ async function fileBuffer(asset: DocumentPicker.DocumentPickerAsset) {
   return new File(asset.uri).arrayBuffer();
 }
 
-export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule, onConfirm }: Props) {
+export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule, onAddAutoRules, onConfirm }: Props) {
   const [preview, setPreview] = useState<ExcelImportPreview | null>(null);
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
@@ -36,6 +37,8 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
   const [ruleType, setRuleType] = useState<TransactionType>("expense");
   const [ruleCategory, setRuleCategory] = useState(categoriesFor("expense")[0]?.name ?? "其他支出");
   const [ruleError, setRuleError] = useState("");
+  const [rememberingRow, setRememberingRow] = useState<number | null>(null);
+  const [rememberKeyword, setRememberKeyword] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -122,20 +125,53 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
     setRuleError("");
   };
 
-  const rememberManualCorrection = async (item: ExcelImportPreview["valid"][number]) => {
-    const keyword = item.note.trim();
+  const manualCorrections = preview?.valid.filter((item) => item.typeResolution === "manual" && item.note.trim()) ?? [];
+
+  const startRememberingManualCorrection = (item: ExcelImportPreview["valid"][number]) => {
+    setRememberingRow(item.row);
+    setRememberKeyword(item.note.trim());
+    setRuleError("");
+  };
+
+  const saveManualCorrectionRule = async (item: ExcelImportPreview["valid"][number]) => {
+    const keyword = rememberKeyword.trim();
     if (!keyword) return;
     const existingRule = autoRules.find((rule) => rule.keyword.toLocaleLowerCase() === keyword.toLocaleLowerCase() && rule.type === item.type && rule.category === item.category);
     if (existingRule) {
       setResult(`「${keyword}」已有相同的自動分類規則。`);
+      setRememberingRow(null);
       return;
     }
     setIsSaving(true);
     try {
       await onAddAutoRule({ keyword, type: item.type, category: item.category });
       setResult(`已記住此修正：下次備註含「${keyword}」時，會自動分類為${item.type === "expense" ? "支出" : "收入"}／${item.category}。`);
+      setRememberingRow(null);
     } catch {
       setError("無法儲存自動分類規則，請稍後再試。");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const createRulesFromAllManualCorrections = async () => {
+    const existingKeywords = new Set(autoRules.map((rule) => rule.keyword.trim().toLocaleLowerCase()));
+    const uniqueManualCorrections = new Map<string, ExcelImportPreview["valid"][number]>();
+    manualCorrections.forEach((item) => {
+      const keyword = item.note.trim().toLocaleLowerCase();
+      if (!existingKeywords.has(keyword) && !uniqueManualCorrections.has(keyword)) uniqueManualCorrections.set(keyword, item);
+    });
+    const inputs = [...uniqueManualCorrections.values()].map((item) => ({ keyword: item.note.trim(), type: item.type, category: item.category }));
+    if (inputs.length === 0) {
+      setResult("所有手動修正交易都已有相同關鍵字的規則。 ");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const added = await onAddAutoRules(inputs);
+      setResult(`已從 ${manualCorrections.length} 筆手動修正建立 ${added.length} 條自動分類規則。`);
+    } catch {
+      setError("無法批次儲存自動分類規則，請稍後再試。");
     } finally {
       setIsSaving(false);
     }
@@ -184,6 +220,7 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
             <Pressable disabled={ruleMatchCount === 0 || isSaving} onPress={() => void saveRuleAndApply()} style={({ pressed }) => [styles.saveRuleButton, pressed && styles.pressed, (ruleMatchCount === 0 || isSaving) && styles.disabled]}><Text style={styles.saveRuleText}>3. 儲存規則並先套用到預覽</Text></Pressable>
             {autoRules.length > 0 ? <Text style={styles.savedRuleHint}>已儲存 {autoRules.length} 條規則；同筆交易符合多條時，最新規則優先。</Text> : null}
           </View>
+          {manualCorrections.length > 1 ? <Pressable disabled={isSaving} onPress={() => void createRulesFromAllManualCorrections()} style={({ pressed }) => [styles.batchRememberButton, pressed && styles.pressed, isSaving && styles.disabled]}><View style={styles.batchRememberCopy}><Text style={styles.batchRememberTitle}>一鍵建立手動修正規則</Text><Text style={styles.batchRememberText}>將 {manualCorrections.length} 筆已手動修改交易各自儲存為規則。</Text></View><Text style={styles.batchRememberAction}>建立</Text></Pressable> : null}
           {duplicates.length > 0 ? <View style={styles.duplicatePanel}><Text style={styles.duplicateTitle}>可能重複交易（{duplicates.length}）</Text><Text style={styles.duplicateText}>已先標示可能重複項目；完全相同的交易會略過，日期、類型與分類相同的項目可開啟更新模式覆蓋。</Text></View> : null}
           {(showAllRows ? preview.valid : preview.valid.slice(0, 8)).map((item, index) => (
             <View key={`${item.date}-${item.amount}-${index}`} style={styles.previewRow}>
@@ -206,7 +243,7 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
                   <Text style={[styles.typeButtonText, item.type === "income" && styles.typeButtonIncomeText]}>收入</Text>
                 </Pressable>
               </View>
-              {item.typeResolution === "manual" && item.note.trim() ? <Pressable disabled={isSaving} onPress={() => void rememberManualCorrection(item)} style={({ pressed }) => [styles.rememberCorrectionButton, pressed && styles.pressed, isSaving && styles.disabled]}><Text style={styles.rememberCorrectionText}>記住此修正</Text><Text style={styles.rememberCorrectionHint}>下次備註含「{item.note}」時自動套用</Text></Pressable> : null}
+              {item.typeResolution === "manual" && item.note.trim() ? (rememberingRow === item.row ? <View style={styles.rememberEditor}><Text style={styles.rememberEditorLabel}>比對關鍵字</Text><TextInput value={rememberKeyword} onChangeText={setRememberKeyword} placeholder="輸入用於比對的關鍵字" placeholderTextColor="#87949C" style={styles.rememberEditorInput} returnKeyType="done" onSubmitEditing={() => void saveManualCorrectionRule(item)} /><Text style={styles.rememberEditorHint}>後續備註含有此文字時，會套用目前的收支與分類。</Text><View style={styles.rememberEditorActions}><Pressable onPress={() => setRememberingRow(null)} style={({ pressed }) => [styles.rememberCancelButton, pressed && styles.pressed]}><Text style={styles.rememberCancelText}>取消</Text></Pressable><Pressable disabled={isSaving || !rememberKeyword.trim()} onPress={() => void saveManualCorrectionRule(item)} style={({ pressed }) => [styles.rememberSaveButton, pressed && styles.pressed, (isSaving || !rememberKeyword.trim()) && styles.disabled]}><Text style={styles.rememberSaveText}>儲存規則</Text></Pressable></View></View> : <Pressable disabled={isSaving} onPress={() => startRememberingManualCorrection(item)} style={({ pressed }) => [styles.rememberCorrectionButton, pressed && styles.pressed, isSaving && styles.disabled]}><Text style={styles.rememberCorrectionText}>記住此修正</Text><Text style={styles.rememberCorrectionHint}>先編輯比對關鍵字後再儲存</Text></Pressable>) : null}
               {(categoryCounts[item.category] ?? 0) > 1 ? (
                 <View style={styles.batchCategoryActions}>
                   <Text style={styles.batchCategoryLabel}>同分類 {categoryCounts[item.category]} 筆</Text>
@@ -302,6 +339,11 @@ const styles = StyleSheet.create({
   saveRuleButton: { alignItems: "center", backgroundColor: "#0E6B56", borderRadius: 9, justifyContent: "center", marginTop: 9, minHeight: 35 },
   saveRuleText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900" },
   savedRuleHint: { color: "#587066", fontSize: 10, lineHeight: 15, marginTop: 7 },
+  batchRememberButton: { alignItems: "center", backgroundColor: "#EDF3FF", borderColor: "#C7D6F0", borderRadius: 11, borderWidth: 1, flexDirection: "row", gap: 10, justifyContent: "space-between", marginTop: 12, padding: 10 },
+  batchRememberCopy: { flex: 1, minWidth: 0 },
+  batchRememberTitle: { color: "#365C96", fontSize: 12, fontWeight: "900" },
+  batchRememberText: { color: "#58729D", fontSize: 10, lineHeight: 15, marginTop: 3 },
+  batchRememberAction: { color: "#365C96", fontSize: 11, fontWeight: "900" },
   duplicatePanel: { backgroundColor: "#FFF6E9", borderColor: "#F0D59A", borderRadius: 12, borderWidth: 1, marginTop: 12, padding: 10 },
   duplicateTitle: { color: "#8A5E05", fontSize: 12, fontWeight: "900" },
   duplicateText: { color: "#8A6A25", fontSize: 10, lineHeight: 16, marginTop: 3 },
@@ -331,6 +373,15 @@ const styles = StyleSheet.create({
   rememberCorrectionButton: { alignItems: "center", backgroundColor: "#EDF3FF", borderColor: "#C7D6F0", borderRadius: 9, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingHorizontal: 9, paddingVertical: 7 },
   rememberCorrectionText: { color: "#365C96", fontSize: 11, fontWeight: "900" },
   rememberCorrectionHint: { color: "#58729D", flex: 1, fontSize: 9, marginLeft: 8, textAlign: "right" },
+  rememberEditor: { backgroundColor: "#EDF3FF", borderColor: "#C7D6F0", borderRadius: 9, borderWidth: 1, marginTop: 8, padding: 9 },
+  rememberEditorLabel: { color: "#365C96", fontSize: 10, fontWeight: "900" },
+  rememberEditorInput: { backgroundColor: "#FFFFFF", borderColor: "#C7D6F0", borderRadius: 8, borderWidth: 1, color: "#334039", fontSize: 11, marginTop: 6, minHeight: 36, paddingHorizontal: 9 },
+  rememberEditorHint: { color: "#58729D", fontSize: 9, lineHeight: 14, marginTop: 5 },
+  rememberEditorActions: { flexDirection: "row", gap: 7, marginTop: 8 },
+  rememberCancelButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#C7D6F0", borderRadius: 8, borderWidth: 1, flex: 1, justifyContent: "center", minHeight: 32 },
+  rememberCancelText: { color: "#58729D", fontSize: 10, fontWeight: "900" },
+  rememberSaveButton: { alignItems: "center", backgroundColor: "#365C96", borderRadius: 8, flex: 1, justifyContent: "center", minHeight: 32 },
+  rememberSaveText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
   batchCategoryActions: { marginTop: 9, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E8E3DB", flexDirection: "row", alignItems: "center", gap: 8 },
   batchCategoryLabel: { flex: 1, color: "#6D7770", fontSize: 10, fontWeight: "800" },
   batchCategoryButtons: { flexDirection: "row", gap: 6 },

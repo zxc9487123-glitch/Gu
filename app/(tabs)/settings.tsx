@@ -8,7 +8,7 @@ import { useSavingsGoal } from "@/hooks/use-savings-goal";
 import { categoriesFor, type TransactionType } from "@/lib/finance";
 
 export default function SettingsScreen() {
-  const { transactions, excelAutoRules, addExcelAutoRule, updateExcelAutoRule, setExcelAutoRuleEnabled, removeExcelAutoRule, clearTransactions, importTransactions } = useFinance();
+  const { transactions, excelAutoRules, addExcelAutoRule, addExcelAutoRules, updateExcelAutoRule, setExcelAutoRuleEnabled, removeExcelAutoRule, clearTransactions, importTransactions } = useFinance();
   const { savingsGoal, setSavingsGoal } = useSavingsGoal();
   const [savingsGoalInput, setSavingsGoalInput] = useState("");
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
@@ -94,6 +94,7 @@ export default function SettingsScreen() {
           existingTransactions={transactions}
           autoRules={excelAutoRules}
           onAddAutoRule={addExcelAutoRule}
+          onAddAutoRules={addExcelAutoRules}
           onConfirm={(preview, mode) => importTransactions(preview.valid, mode)}
         />
         <View style={styles.panel}>
