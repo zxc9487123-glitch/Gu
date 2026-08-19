@@ -5,11 +5,17 @@ import { ExcelImportCard } from "@/components/excel-import-card";
 import { ScreenContainer } from "@/components/screen-container";
 import { useFinance } from "@/hooks/use-finance";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
+import { categoriesFor, type TransactionType } from "@/lib/finance";
 
 export default function SettingsScreen() {
-  const { transactions, excelAutoRules, addExcelAutoRule, clearTransactions, importTransactions } = useFinance();
+  const { transactions, excelAutoRules, addExcelAutoRule, updateExcelAutoRule, setExcelAutoRuleEnabled, removeExcelAutoRule, clearTransactions, importTransactions } = useFinance();
   const { savingsGoal, setSavingsGoal } = useSavingsGoal();
   const [savingsGoalInput, setSavingsGoalInput] = useState("");
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [editingKeyword, setEditingKeyword] = useState("");
+  const [editingType, setEditingType] = useState<TransactionType>("expense");
+  const [editingCategory, setEditingCategory] = useState(categoriesFor("expense")[0]?.name ?? "其他支出");
+  const [ruleError, setRuleError] = useState("");
 
   useEffect(() => {
     setSavingsGoalInput(savingsGoal === null ? "" : String(savingsGoal));
@@ -29,6 +35,37 @@ export default function SettingsScreen() {
     Alert.alert("清除所有本機記錄？", "這會刪除目前裝置上的所有交易資料，且無法復原。", [
       { text: "取消", style: "cancel" },
       { text: "清除資料", style: "destructive", onPress: () => void clearTransactions() },
+    ]);
+  };
+
+  const beginRuleEdit = (rule: (typeof excelAutoRules)[number]) => {
+    setEditingRuleId(rule.id);
+    setEditingKeyword(rule.keyword);
+    setEditingType(rule.type);
+    setEditingCategory(rule.category);
+    setRuleError("");
+  };
+
+  const chooseEditingType = (type: TransactionType) => {
+    setEditingType(type);
+    setEditingCategory(categoriesFor(type)[0]?.name ?? "未分類");
+  };
+
+  const saveRuleEdit = async () => {
+    if (!editingRuleId) return;
+    if (!editingKeyword.trim()) {
+      setRuleError("請輸入備註關鍵字。");
+      return;
+    }
+    await updateExcelAutoRule(editingRuleId, { keyword: editingKeyword.trim(), type: editingType, category: editingCategory });
+    setEditingRuleId(null);
+    setRuleError("");
+  };
+
+  const confirmRuleRemoval = (id: string, keyword: string) => {
+    Alert.alert("刪除自動分類規則？", `「${keyword}」將不再自動套用分類。`, [
+      { text: "取消", style: "cancel" },
+      { text: "刪除規則", style: "destructive", onPress: () => void removeExcelAutoRule(id) },
     ]);
   };
 
@@ -60,6 +97,37 @@ export default function SettingsScreen() {
           onConfirm={(preview, mode) => importTransactions(preview.valid, mode)}
         />
         <View style={styles.panel}>
+          <View style={styles.rulePanelHeader}>
+            <View style={styles.rulePanelCopy}><Text style={styles.panelTitle}>自動分類規則</Text><Text style={styles.infoText}>匯入時依備註關鍵字自動帶入收支類型與分類。</Text></View>
+            <View style={styles.ruleCountBadge}><Text style={styles.ruleCountText}>{excelAutoRules.length} 條</Text></View>
+          </View>
+          {excelAutoRules.length === 0 ? <Text style={styles.ruleEmpty}>尚未建立規則。可在 Excel 匯入預覽中輸入關鍵字後建立。</Text> : excelAutoRules.map((rule) => (
+            <View key={rule.id} style={[styles.ruleRow, !rule.enabled && styles.ruleRowDisabled]}>
+              <View style={styles.ruleRowTop}>
+                <View style={styles.ruleRowCopy}><Text style={styles.ruleKeyword}>「{rule.keyword}」</Text><Text style={styles.ruleTarget}>{rule.type === "expense" ? "支出" : "收入"} ・ {rule.category}</Text></View>
+                <Pressable onPress={() => void setExcelAutoRuleEnabled(rule.id, !rule.enabled)} style={({ pressed }) => [styles.ruleToggle, rule.enabled && styles.ruleToggleActive, pressed && styles.pressed]}><Text style={[styles.ruleToggleText, rule.enabled && styles.ruleToggleTextActive]}>{rule.enabled ? "已啟用" : "已停用"}</Text></Pressable>
+              </View>
+              <View style={styles.ruleActions}>
+                <Pressable onPress={() => beginRuleEdit(rule)} style={({ pressed }) => [styles.ruleActionButton, pressed && styles.pressed]}><Text style={styles.ruleActionText}>編輯</Text></Pressable>
+                <Pressable onPress={() => confirmRuleRemoval(rule.id, rule.keyword)} style={({ pressed }) => [styles.ruleActionButton, styles.ruleDeleteButton, pressed && styles.pressed]}><Text style={styles.ruleDeleteText}>刪除</Text></Pressable>
+              </View>
+              {editingRuleId === rule.id ? (
+                <View style={styles.ruleEditor}>
+                  <Text style={styles.ruleEditorTitle}>編輯規則</Text>
+                  <TextInput value={editingKeyword} onChangeText={(value) => { setEditingKeyword(value); setRuleError(""); }} placeholder="備註關鍵字" placeholderTextColor="#929A94" style={styles.ruleEditorInput} returnKeyType="next" />
+                  <View style={styles.ruleTypeRow}>
+                    <Pressable onPress={() => chooseEditingType("expense")} style={({ pressed }) => [styles.ruleTypeButton, editingType === "expense" && styles.ruleTypeExpenseActive, pressed && styles.pressed]}><Text style={[styles.ruleTypeText, editingType === "expense" && styles.ruleTypeExpenseText]}>支出</Text></Pressable>
+                    <Pressable onPress={() => chooseEditingType("income")} style={({ pressed }) => [styles.ruleTypeButton, editingType === "income" && styles.ruleTypeIncomeActive, pressed && styles.pressed]}><Text style={[styles.ruleTypeText, editingType === "income" && styles.ruleTypeIncomeText]}>收入</Text></Pressable>
+                  </View>
+                  <View style={styles.categoryChips}>{categoriesFor(editingType).map((category) => <Pressable key={category.name} onPress={() => setEditingCategory(category.name)} style={({ pressed }) => [styles.categoryChip, editingCategory === category.name && styles.categoryChipActive, pressed && styles.pressed]}><Text style={[styles.categoryChipText, editingCategory === category.name && styles.categoryChipTextActive]}>{category.name}</Text></Pressable>)}</View>
+                  {ruleError ? <Text style={styles.ruleError}>{ruleError}</Text> : null}
+                  <View style={styles.ruleEditorActions}><Pressable onPress={() => { setEditingRuleId(null); setRuleError(""); }} style={({ pressed }) => [styles.ruleCancelButton, pressed && styles.pressed]}><Text style={styles.ruleCancelText}>取消</Text></Pressable><Pressable onPress={() => void saveRuleEdit()} style={({ pressed }) => [styles.ruleSaveButton, pressed && styles.pressed]}><Text style={styles.ruleSaveText}>儲存變更</Text></Pressable></View>
+                </View>
+              ) : null}
+            </View>
+          ))}
+        </View>
+        <View style={styles.panel}>
           <Text style={styles.panelTitle}>資料管理</Text>
           <Text style={styles.infoText}>清除目前裝置上的所有記帳紀錄。</Text>
           <Pressable onPress={confirmClear} style={({ pressed }) => [styles.dangerButton, pressed && styles.dangerPressed]}>
@@ -89,6 +157,48 @@ const styles = StyleSheet.create({
   goalClearButton: { alignSelf: "center", paddingVertical: 7, paddingHorizontal: 12, marginTop: 1 },
   goalClearPressed: { opacity: 0.65 },
   goalClearText: { color: "#7A837D", fontSize: 12, fontWeight: "800" },
+  pressed: { opacity: 0.72 },
+  rulePanelHeader: { alignItems: "flex-start", flexDirection: "row", gap: 10, justifyContent: "space-between" },
+  rulePanelCopy: { flex: 1, minWidth: 0 },
+  ruleCountBadge: { backgroundColor: "#E8F2ED", borderRadius: 9, paddingHorizontal: 8, paddingVertical: 4 },
+  ruleCountText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
+  ruleEmpty: { color: "#7A837D", fontSize: 12, lineHeight: 18, marginTop: 11 },
+  ruleRow: { borderTopColor: "#ECE7DE", borderTopWidth: 1, marginTop: 12, paddingTop: 12 },
+  ruleRowDisabled: { opacity: 0.58 },
+  ruleRowTop: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "space-between" },
+  ruleRowCopy: { flex: 1, minWidth: 0 },
+  ruleKeyword: { color: "#334039", fontSize: 13, fontWeight: "900" },
+  ruleTarget: { color: "#68736D", fontSize: 11, marginTop: 3 },
+  ruleToggle: { backgroundColor: "#F3F5F2", borderColor: "#D8DED9", borderRadius: 9, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
+  ruleToggleActive: { backgroundColor: "#E8F2ED", borderColor: "#B9D6CA" },
+  ruleToggleText: { color: "#6D7770", fontSize: 10, fontWeight: "900" },
+  ruleToggleTextActive: { color: "#0E6B56" },
+  ruleActions: { flexDirection: "row", gap: 7, marginTop: 9 },
+  ruleActionButton: { alignItems: "center", backgroundColor: "#F2F6F3", borderRadius: 8, flex: 1, paddingVertical: 7 },
+  ruleActionText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
+  ruleDeleteButton: { backgroundColor: "#FFF4F1" },
+  ruleDeleteText: { color: "#B5472C", fontSize: 11, fontWeight: "900" },
+  ruleEditor: { backgroundColor: "#F7FAF8", borderColor: "#D7E6DD", borderRadius: 11, borderWidth: 1, marginTop: 10, padding: 10 },
+  ruleEditorTitle: { color: "#334039", fontSize: 12, fontWeight: "900" },
+  ruleEditorInput: { backgroundColor: "#FFFFFF", borderColor: "#CFDAD2", borderRadius: 9, borderWidth: 1, color: "#334039", fontSize: 12, marginTop: 8, minHeight: 38, paddingHorizontal: 10 },
+  ruleTypeRow: { flexDirection: "row", gap: 7, marginTop: 8 },
+  ruleTypeButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#CFDAD2", borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 33, justifyContent: "center" },
+  ruleTypeExpenseActive: { backgroundColor: "#FFF1ED", borderColor: "#EDC1B5" },
+  ruleTypeIncomeActive: { backgroundColor: "#EBF5EF", borderColor: "#B9D6CA" },
+  ruleTypeText: { color: "#69756E", fontSize: 11, fontWeight: "900" },
+  ruleTypeExpenseText: { color: "#C85F3A" },
+  ruleTypeIncomeText: { color: "#0E6B56" },
+  categoryChips: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  categoryChip: { backgroundColor: "#FFFFFF", borderColor: "#CFDAD2", borderRadius: 8, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 5 },
+  categoryChipActive: { backgroundColor: "#E8F2ED", borderColor: "#0E6B56" },
+  categoryChipText: { color: "#66736B", fontSize: 10, fontWeight: "800" },
+  categoryChipTextActive: { color: "#0E6B56" },
+  ruleError: { color: "#B5472C", fontSize: 10, fontWeight: "800", marginTop: 7 },
+  ruleEditorActions: { flexDirection: "row", gap: 7, marginTop: 10 },
+  ruleCancelButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#D8DED9", borderRadius: 9, borderWidth: 1, flex: 1, minHeight: 35, justifyContent: "center" },
+  ruleCancelText: { color: "#6D7770", fontSize: 11, fontWeight: "900" },
+  ruleSaveButton: { alignItems: "center", backgroundColor: "#0E6B56", borderRadius: 9, flex: 1, justifyContent: "center", minHeight: 35 },
+  ruleSaveText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900" },
   dangerButton: { marginTop: 10, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: "#E9B9AB", backgroundColor: "#FFF8F6", alignItems: "center" },
   dangerPressed: { opacity: 0.7 },
   dangerText: { color: "#B5472C", fontSize: 13, fontWeight: "900" },

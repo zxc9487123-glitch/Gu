@@ -122,6 +122,18 @@ function useFinanceStore() {
     return rule;
   }, [excelAutoRules, persistExcelAutoRules]);
 
+  const updateExcelAutoRule = useCallback(async (id: string, input: ExcelAutoCategoryRuleInput) => {
+    await persistExcelAutoRules(excelAutoRules.map((rule) => rule.id === id ? { ...rule, ...input } : rule));
+  }, [excelAutoRules, persistExcelAutoRules]);
+
+  const setExcelAutoRuleEnabled = useCallback(async (id: string, enabled: boolean) => {
+    await persistExcelAutoRules(excelAutoRules.map((rule) => rule.id === id ? { ...rule, enabled } : rule));
+  }, [excelAutoRules, persistExcelAutoRules]);
+
+  const removeExcelAutoRule = useCallback(async (id: string) => {
+    await persistExcelAutoRules(excelAutoRules.filter((rule) => rule.id !== id));
+  }, [excelAutoRules, persistExcelAutoRules]);
+
   const addRecurringRule = useCallback(async (input: RecurringTransactionRuleInput) => {
     const rule: RecurringTransactionRule = {
       ...input,
@@ -165,6 +177,9 @@ function useFinanceStore() {
     importTransactions,
     clearTransactions,
     addExcelAutoRule,
+    updateExcelAutoRule,
+    setExcelAutoRuleEnabled,
+    removeExcelAutoRule,
     addRecurringRule,
     removeRecurringRule,
     pendingRecurringTransactions,
