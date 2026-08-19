@@ -39,6 +39,8 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
   const [ruleError, setRuleError] = useState("");
   const [rememberingRow, setRememberingRow] = useState<number | null>(null);
   const [rememberKeyword, setRememberKeyword] = useState("");
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [lastDeletedRows, setLastDeletedRows] = useState<ExcelImportPreview["valid"]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -63,6 +65,8 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
       setRuleError("");
       setShowAllRows(false);
       setShowAllIssues(false);
+      setSelectedRows([]);
+      setLastDeletedRows([]);
     } catch {
       setError("無法讀取此 Excel 檔案。請確認檔案為 .xlsx 或 .xls 格式，且檔案未受密碼或保護設定限制。");
     } finally {
@@ -99,10 +103,41 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
     setPreview((current) => current ? overrideExcelPreviewCategoryType(current, category, type) : current);
   };
 
+  const removePreviewRows = (rows: number[]) => {
+    if (!preview || rows.length === 0) return;
+    const rowSet = new Set(rows);
+    const removed = preview.valid.filter((item) => rowSet.has(item.row));
+    if (removed.length === 0) return;
+    setLastDeletedRows(removed);
+    setSelectedRows((current) => current.filter((row) => !rowSet.has(row)));
+    setRememberingRow((current) => current !== null && rowSet.has(current) ? null : current);
+    setPreview({ ...preview, valid: preview.valid.filter((item) => !rowSet.has(item.row)) });
+  };
+
+  const restoreLastDeletedRows = () => {
+    if (!preview || lastDeletedRows.length === 0) return;
+    const currentRows = new Set(preview.valid.map((item) => item.row));
+    const restored = lastDeletedRows.filter((item) => !currentRows.has(item.row));
+    setPreview({ ...preview, valid: [...preview.valid, ...restored].sort((left, right) => left.row - right.row) });
+    setLastDeletedRows([]);
+  };
+
+  const togglePreviewRowSelection = (row: number) => {
+    setSelectedRows((current) => current.includes(row) ? current.filter((value) => value !== row) : [...current, row]);
+  };
+
+  const confirmRemoveSelectedRows = () => {
+    if (selectedRows.length === 0) return;
+    Alert.alert("刪除已勾選的預覽交易？", `已勾選的 ${selectedRows.length} 筆交易不會匯入，且不會影響既有交易。`, [
+      { text: "取消", style: "cancel" },
+      { text: "刪除 ${selectedRows.length} 筆", style: "destructive", onPress: () => removePreviewRows(selectedRows) },
+    ]);
+  };
+
   const confirmRemovePreviewTransaction = (item: ExcelImportPreview["valid"][number]) => {
     Alert.alert("從匯入預覽移除？", `第 ${item.row} 列將不會匯入，且不會影響目前裝置中的既有交易。`, [
       { text: "取消", style: "cancel" },
-      { text: "移除此筆", style: "destructive", onPress: () => setPreview((current) => current ? { ...current, valid: current.valid.filter((candidate) => candidate.row !== item.row) } : current) },
+      { text: "移除此筆", style: "destructive", onPress: () => removePreviewRows([item.row]) },
     ]);
   };
 
@@ -114,6 +149,12 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
   const ruleMatchCount = normalizedRuleKeyword ? preview?.valid.filter((item) => item.note.toLocaleLowerCase().includes(normalizedRuleKeyword)).length ?? 0 : 0;
   const duplicates = preview ? detectExcelImportDuplicates(existingTransactions, preview.valid) : [];
   const duplicateByRow = new Map(duplicates.map((item) => [item.row, item]));
+  const skipAllDuplicateTransactions = () => {
+    const rows = [...duplicateByRow.keys()];
+    if (rows.length === 0) return;
+    removePreviewRows(rows);
+    setResult(`已略過 ${rows.length} 筆可能重複交易；可使用復原操作還原最近一次刪除。`);
+  };
   const chooseRuleType = (nextType: TransactionType) => {
     setRuleType(nextType);
     setRuleCategory(categoriesFor(nextType)[0]?.name ?? "未分類");
@@ -228,11 +269,18 @@ export function ExcelImportCard({ existingTransactions, autoRules, onAddAutoRule
             {autoRules.length > 0 ? <Text style={styles.savedRuleHint}>已儲存 {autoRules.length} 條規則；同筆交易符合多條時，最新規則優先。</Text> : null}
           </View>
           {manualCorrections.length > 1 ? <Pressable disabled={isSaving} onPress={() => void createRulesFromAllManualCorrections()} style={({ pressed }) => [styles.batchRememberButton, pressed && styles.pressed, isSaving && styles.disabled]}><View style={styles.batchRememberCopy}><Text style={styles.batchRememberTitle}>一鍵建立手動修正規則</Text><Text style={styles.batchRememberText}>將 {manualCorrections.length} 筆已手動修改交易各自儲存為規則。</Text></View><Text style={styles.batchRememberAction}>建立</Text></Pressable> : null}
-          {duplicates.length > 0 ? <View style={styles.duplicatePanel}><Text style={styles.duplicateTitle}>可能重複交易（{duplicates.length}）</Text><Text style={styles.duplicateText}>已先標示可能重複項目；完全相同的交易會略過，日期、類型與分類相同的項目可開啟更新模式覆蓋。</Text></View> : null}
+          <View style={styles.previewCleanupBar}>
+            <Text style={styles.previewCleanupText}>{selectedRows.length > 0 ? `已勾選 ${selectedRows.length} 筆` : "勾選多筆後可批次刪除"}</Text>
+            <View style={styles.previewCleanupActions}>
+              {lastDeletedRows.length > 0 ? <Pressable onPress={restoreLastDeletedRows} style={({ pressed }) => [styles.restoreButton, pressed && styles.pressed]}><Text style={styles.restoreButtonText}>復原 {lastDeletedRows.length} 筆</Text></Pressable> : null}
+              <Pressable disabled={selectedRows.length === 0} onPress={confirmRemoveSelectedRows} style={({ pressed }) => [styles.bulkRemoveButton, pressed && styles.pressed, selectedRows.length === 0 && styles.disabled]}><Text style={styles.bulkRemoveText}>刪除勾選</Text></Pressable>
+            </View>
+          </View>
+          {duplicates.length > 0 ? <View style={styles.duplicatePanel}><View style={styles.duplicateHeader}><Text style={styles.duplicateTitle}>可能重複交易（{duplicates.length}）</Text><Pressable onPress={skipAllDuplicateTransactions} style={({ pressed }) => [styles.skipDuplicatesButton, pressed && styles.pressed]}><Text style={styles.skipDuplicatesText}>全部略過</Text></Pressable></View><Text style={styles.duplicateText}>已先標示可能重複項目；完全相同的交易會略過，日期、類型與分類相同的項目可開啟更新模式覆蓋。</Text></View> : null}
           {(showAllRows ? preview.valid : preview.valid.slice(0, 8)).map((item, index) => (
-            <View key={`${item.date}-${item.amount}-${index}`} style={styles.previewRow}>
+            <View key={`${item.date}-${item.amount}-${index}`} style={[styles.previewRow, selectedRows.includes(item.row) && styles.previewRowSelected]}>
               <View style={styles.previewHeader}>
-                <Text style={styles.previewCategory}>{item.category}</Text>
+                <View style={styles.previewCategoryRow}><Pressable accessibilityRole="checkbox" accessibilityState={{ checked: selectedRows.includes(item.row) }} onPress={() => togglePreviewRowSelection(item.row)} style={({ pressed }) => [styles.selectionBox, selectedRows.includes(item.row) && styles.selectionBoxActive, pressed && styles.pressed]}><Text style={styles.selectionBoxText}>{selectedRows.includes(item.row) ? "✓" : ""}</Text></Pressable><Text style={styles.previewCategory}>{item.category}</Text></View>
                 <View style={styles.previewBadges}>
                   <View style={[styles.sourceBadge, item.typeResolution === "inferred" && styles.sourceBadgeInferred, item.typeResolution === "manual" && styles.sourceBadgeManual, item.typeResolution === "rule" && styles.sourceBadgeRule]}>
                     <Text style={[styles.sourceBadgeText, item.typeResolution === "inferred" && styles.sourceBadgeTextInferred, item.typeResolution === "manual" && styles.sourceBadgeTextManual, item.typeResolution === "rule" && styles.sourceBadgeTextRule]}>{item.typeResolution === "explicit" ? "原始類型" : item.typeResolution === "manual" ? "已手動修改" : item.typeResolution === "rule" ? "規則套用" : "自動推斷"}</Text>
@@ -352,11 +400,26 @@ const styles = StyleSheet.create({
   batchRememberTitle: { color: "#365C96", fontSize: 12, fontWeight: "900" },
   batchRememberText: { color: "#58729D", fontSize: 10, lineHeight: 15, marginTop: 3 },
   batchRememberAction: { color: "#365C96", fontSize: 11, fontWeight: "900" },
+  previewCleanupBar: { alignItems: "center", backgroundColor: "#F5F7F5", borderColor: "#E0E6E1", borderRadius: 10, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "space-between", marginTop: 12, padding: 8 },
+  previewCleanupText: { color: "#66736B", flex: 1, fontSize: 10, fontWeight: "800" },
+  previewCleanupActions: { flexDirection: "row", gap: 6 },
+  bulkRemoveButton: { alignItems: "center", backgroundColor: "#FFF1ED", borderColor: "#EDC1B5", borderRadius: 8, borderWidth: 1, minHeight: 29, paddingHorizontal: 8 },
+  bulkRemoveText: { color: "#B5472C", fontSize: 10, fontWeight: "900" },
+  restoreButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#B9D6CA", borderRadius: 8, borderWidth: 1, minHeight: 29, paddingHorizontal: 8 },
+  restoreButtonText: { color: "#0E6B56", fontSize: 10, fontWeight: "900" },
   duplicatePanel: { backgroundColor: "#FFF6E9", borderColor: "#F0D59A", borderRadius: 12, borderWidth: 1, marginTop: 12, padding: 10 },
+  duplicateHeader: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "space-between" },
   duplicateTitle: { color: "#8A5E05", fontSize: 12, fontWeight: "900" },
   duplicateText: { color: "#8A6A25", fontSize: 10, lineHeight: 16, marginTop: 3 },
+  skipDuplicatesButton: { backgroundColor: "#FFFFFF", borderColor: "#E7C77F", borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
+  skipDuplicatesText: { color: "#8A5E05", fontSize: 10, fontWeight: "900" },
   previewRow: { marginTop: 10, padding: 10, borderRadius: 11, backgroundColor: "#F8F6F1" },
+  previewRowSelected: { backgroundColor: "#F0F7F3", borderColor: "#B9D6CA", borderWidth: 1 },
   previewHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  previewCategoryRow: { alignItems: "center", flex: 1, flexDirection: "row", gap: 7, minWidth: 0 },
+  selectionBox: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#B7C2BA", borderRadius: 5, borderWidth: 1, height: 18, justifyContent: "center", width: 18 },
+  selectionBoxActive: { backgroundColor: "#0E6B56", borderColor: "#0E6B56" },
+  selectionBoxText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900", lineHeight: 15 },
   previewBadges: { alignItems: "flex-end", flexDirection: "row", flexShrink: 0, gap: 4 },
   previewCategory: { color: "#334039", fontSize: 13, fontWeight: "800" },
   previewMeta: { color: "#7A837D", fontSize: 11, marginTop: 3 },
