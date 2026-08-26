@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, monthlyExpenseRankingsFor, monthPointsFor, sortTransactionsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
+import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryBreakdownFor, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, monthlyExpenseRankingsFor, monthPointsFor, sortTransactionsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
 import { latestMonthlyLivingComparison, monthlyLivingComparison } from "../lib/monthly-living";
 import { latestMonthlySavingsComparison, monthlySavingsComparison } from "../lib/monthly-savings";
@@ -67,6 +67,24 @@ describe("finance calculations", () => {
     expect(totals[0]).toMatchObject({ name: "購物", amount: 2000, color: "#C64B42" });
     expect(totals[0]?.ratio).toBeCloseTo(2000 / 3800);
     expect(totals[1]).toMatchObject({ name: "餐飲／食品", amount: 1800, color: "#DF7A31" });
+  });
+
+  it("summarizes a period's income and expense category amounts with transaction counts", () => {
+    const transactions: Transaction[] = [
+      { id: "b1", type: "income", amount: 30000, category: "薪資", note: "", date: "2026-01-05" },
+      { id: "b2", type: "income", amount: 1200, category: "獎金", note: "", date: "2026-01-10" },
+      { id: "b3", type: "income", amount: 500, category: "獎金", note: "", date: "2026-01-11" },
+      { id: "b4", type: "expense", amount: 900, category: "餐飲／食品", note: "", date: "2026-01-12" },
+      { id: "b5", type: "expense", amount: 1100, category: "餐飲／食品", note: "", date: "2026-01-13" },
+    ];
+
+    expect(categoryBreakdownFor(transactions, "income")).toEqual([
+      { name: "薪資", type: "income", amount: 30000, transactionCount: 1 },
+      { name: "獎金", type: "income", amount: 1700, transactionCount: 2 },
+    ]);
+    expect(categoryBreakdownFor(transactions, "expense")).toEqual([
+      { name: "餐飲／食品", type: "expense", amount: 2000, transactionCount: 2 },
+    ]);
   });
 
   it("uses red, orange, yellow, and gray for expense category ranks", () => {

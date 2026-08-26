@@ -37,6 +37,13 @@ export type CategoryTotal = Category & {
   ratio: number;
 };
 
+export type CategoryBreakdown = {
+  name: string;
+  type: TransactionType;
+  amount: number;
+  transactionCount: number;
+};
+
 export type CategoryRankTrend = {
   currentRank: number | null;
   previousRank: number | null;
@@ -180,6 +187,22 @@ export const categoryTotalsFor = (transactions: Transaction[]): CategoryTotal[] 
     ...item,
     color: EXPENSE_RANK_COLORS[index] ?? OTHER_EXPENSE_COLOR,
   }));
+};
+
+export const categoryBreakdownFor = (transactions: Transaction[], type: TransactionType): CategoryBreakdown[] => {
+  const breakdown = transactions
+    .filter((item) => item.type === type)
+    .reduce<Record<string, { amount: number; transactionCount: number }>>((result, item) => {
+      const current = result[item.category] ?? { amount: 0, transactionCount: 0 };
+      current.amount += item.amount;
+      current.transactionCount += 1;
+      result[item.category] = current;
+      return result;
+    }, {});
+
+  return Object.entries(breakdown)
+    .map(([name, value]) => ({ name, type, ...value }))
+    .sort((left, right) => right.amount - left.amount || left.name.localeCompare(right.name, "zh-Hant"));
 };
 
 const categoryRanksFor = (transactions: Transaction[]) =>

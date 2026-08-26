@@ -8,7 +8,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { useMonthPickerPreference } from "@/hooks/use-month-picker-preference";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
-import { availableYears, categoryTotalsFor, money, summaryFor, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
+import { availableYears, categoryBreakdownFor, categoryTotalsFor, money, summaryFor, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseUsageFor } from "@/lib/living-amount";
 import { savingsGoalProgressFor } from "@/lib/savings-goal";
 
@@ -114,9 +114,12 @@ export default function HomeScreen() {
   const years = availableYears(transactions);
   const [period, setPeriod] = useState<TransactionPeriod>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
+  const [isBreakdownExpanded, setBreakdownExpanded] = useState(false);
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
+  const incomeBreakdown = useMemo(() => categoryBreakdownFor(filtered, "income"), [filtered]);
+  const expenseBreakdown = useMemo(() => categoryBreakdownFor(filtered, "expense"), [filtered]);
   const firstYear = years[0] ?? new Date().getFullYear();
   const selectedYear = period === "all" ? firstYear : typeof period === "number" ? period : period.year;
   const periodLabel = period === "all" ? "全年度" : typeof period === "number" ? `${period} 年度` : `${period.year} 年 ${period.month} 月`;
@@ -127,6 +130,7 @@ export default function HomeScreen() {
   const isMonthlyPeriod = typeof period === "object";
   const isYearlyPeriod = typeof period === "number";
   const summaryScope = isMonthlyPeriod ? `${period.month}月` : isYearlyPeriod ? `${period}年` : "總";
+  const breakdownLabel = isMonthlyPeriod ? `${period.month}月收支細項` : isYearlyPeriod ? `${period}年收支細項` : "全年度收支細項";
   const selectPeriod = (nextPeriod: TransactionPeriod) => {
     setPeriod(nextPeriod);
     setIsYearMenuOpen(false);
@@ -232,6 +236,29 @@ export default function HomeScreen() {
         <Panel title="支出分類佔比" subtitle="點選分類查看交易明細">
           <DonutChart data={categories} onCategoryPress={(category) => router.push({ pathname: "/accounting", params: { mode: "details", category } })} />
         </Panel>
+
+        <View style={styles.breakdownPanel}>
+          <Pressable accessibilityRole="button" accessibilityLabel="展開或收合收支細項" onPress={() => setBreakdownExpanded((value) => !value)} style={({ pressed }) => [styles.breakdownToggle, pressed && styles.breakdownTogglePressed]}>
+            <View style={styles.breakdownToggleCopy}>
+              <Text style={styles.breakdownTitle}>{breakdownLabel}</Text>
+              <Text style={styles.breakdownSubtitle}>收入 {incomeBreakdown.length} 類 ・ 支出 {expenseBreakdown.length} 類</Text>
+            </View>
+            <View style={styles.breakdownChevron}><Text style={styles.breakdownChevronText}>{isBreakdownExpanded ? "⌃" : "⌄"}</Text></View>
+          </Pressable>
+          {isBreakdownExpanded ? (
+            <View style={styles.breakdownContent}>
+              <View style={styles.breakdownColumn}>
+                <View style={styles.breakdownColumnHeading}><Text style={styles.incomeBreakdownTitle}>收入</Text><Text style={styles.breakdownTotal}>{money(summary.income)}</Text></View>
+                {incomeBreakdown.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無收入</Text> : incomeBreakdown.slice(0, 3).map((item) => <Pressable key={`income-${item.name}`} onPress={() => router.push({ pathname: "/accounting", params: { mode: "details", category: item.name } })} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.name}</Text><Text style={styles.breakdownCount}>{item.transactionCount} 筆</Text></View><Text style={styles.incomeBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
+              </View>
+              <View style={styles.breakdownDivider} />
+              <View style={styles.breakdownColumn}>
+                <View style={styles.breakdownColumnHeading}><Text style={styles.expenseBreakdownTitle}>支出</Text><Text style={styles.breakdownTotal}>{money(summary.expense)}</Text></View>
+                {expenseBreakdown.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無支出</Text> : expenseBreakdown.slice(0, 3).map((item) => <Pressable key={`expense-${item.name}`} onPress={() => router.push({ pathname: "/accounting", params: { mode: "details", category: item.name } })} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.name}</Text><Text style={styles.breakdownCount}>{item.transactionCount} 筆</Text></View><Text style={styles.expenseBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
+              </View>
+            </View>
+          ) : null}
+        </View>
 
       </View>
     </ScreenContainer>
@@ -353,4 +380,27 @@ const styles = StyleSheet.create({
   panelHeading: { marginBottom: 7 },
   panelTitle: { color: "#1F2421", fontSize: 16, fontWeight: "900" },
   panelSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2 },
+  breakdownPanel: { backgroundColor: "#FFFFFF", borderColor: "#ECE7DE", borderRadius: 15, borderWidth: 1, overflow: "hidden" },
+  breakdownToggle: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 10 },
+  breakdownTogglePressed: { backgroundColor: "#F5F7F4" },
+  breakdownToggleCopy: { flex: 1, minWidth: 0 },
+  breakdownTitle: { color: "#1F2421", fontSize: 14, fontWeight: "900" },
+  breakdownSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2 },
+  breakdownChevron: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 13, height: 26, justifyContent: "center", marginLeft: 10, width: 26 },
+  breakdownChevronText: { color: "#0E6B56", fontSize: 15, fontWeight: "900", marginTop: -2 },
+  breakdownContent: { borderTopColor: "#ECE7DE", borderTopWidth: 1, padding: 10 },
+  breakdownColumn: { gap: 4 },
+  breakdownColumnHeading: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 2 },
+  incomeBreakdownTitle: { color: "#0E6B56", fontSize: 12, fontWeight: "900" },
+  expenseBreakdownTitle: { color: "#C85F3A", fontSize: 12, fontWeight: "900" },
+  breakdownTotal: { color: "#536059", fontSize: 11, fontWeight: "900" },
+  breakdownRow: { alignItems: "center", backgroundColor: "#FAFBF9", borderRadius: 8, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8, paddingVertical: 6 },
+  breakdownRowPressed: { opacity: 0.72 },
+  breakdownNameWrap: { flex: 1, minWidth: 0, paddingRight: 8 },
+  breakdownName: { color: "#3C4941", fontSize: 11, fontWeight: "800" },
+  breakdownCount: { color: "#89928C", fontSize: 9, marginTop: 1 },
+  incomeBreakdownAmount: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
+  expenseBreakdownAmount: { color: "#C85F3A", fontSize: 11, fontWeight: "900" },
+  breakdownEmpty: { color: "#8A948D", fontSize: 10, paddingVertical: 8, textAlign: "center" },
+  breakdownDivider: { backgroundColor: "#ECE7DE", height: 1, marginVertical: 10 },
 });
