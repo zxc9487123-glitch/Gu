@@ -10,7 +10,7 @@ import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthPointsFo
 type Period = TransactionPeriod;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
-function MonthlyChange({ label, current, previous, type }: { label: string; current: number; previous: number; type: "income" | "expense" | "balance" }) {
+function MonthlyChange({ label, current, previous, type }: { label: string; current: number; previous: number; type: "expense" | "balance" }) {
   const difference = current - previous;
   const isFavorable = type === "expense" ? difference <= 0 : difference >= 0;
   const tone = difference === 0 ? styles.changeNeutral : isFavorable ? styles.changeFavorable : styles.changeUnfavorable;
@@ -142,7 +142,6 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
                 <Text style={styles.monthComparisonPeriod}>{comparisonCurrent.label} vs {comparisonPrevious.label}</Text>
               </View>
               <View style={styles.monthComparisonMetrics}>
-                <MonthlyChange label="收入" current={comparisonCurrent.income} previous={comparisonPrevious.income} type="income" />
                 <MonthlyChange label="消費" current={comparisonCurrent.expense} previous={comparisonPrevious.expense} type="expense" />
                 <MonthlyChange label="淨結餘" current={comparisonCurrent.income - comparisonCurrent.expense} previous={comparisonPrevious.income - comparisonPrevious.expense} type="balance" />
               </View>
@@ -218,7 +217,7 @@ const styles = StyleSheet.create({
   monthComparisonHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   monthComparisonTitle: { color: "#455149", fontSize: 11, fontWeight: "900" },
   monthComparisonPeriod: { color: "#7A837D", fontSize: 10, fontWeight: "700" },
-  monthComparisonMetrics: { flexDirection: "row", gap: 6, marginTop: 6 },
+  monthComparisonMetrics: { flexDirection: "row", gap: 8, marginTop: 6 },
   monthComparisonMetric: { backgroundColor: "#F8F6F1", borderRadius: 8, flex: 1, minWidth: 0, paddingHorizontal: 6, paddingVertical: 5 },
   monthComparisonLabel: { color: "#7A837D", fontSize: 9, fontWeight: "800" },
   monthComparisonCurrent: { color: "#38443D", fontSize: 10, fontWeight: "900", marginTop: 1 },
