@@ -140,6 +140,38 @@ export function TrendLine({ points, showAnnualSummary = false, annualExpenseInsi
   );
 }
 
+export function IncomeExpenseTrend({ points }: { points: MonthPoint[] }) {
+  const hasActivity = points.some((point) => point.income !== 0 || point.expense !== 0);
+  if (!hasActivity) return <EmptyChart label="新增交易後，這裡會顯示收入與消費趨勢" />;
+
+  const maximum = Math.max(...points.flatMap((point) => [point.income, point.expense]), 1);
+  const toPlotPoints = (metric: "income" | "expense") => points
+    .map((point, index) => {
+      const x = 8 + (index / Math.max(points.length - 1, 1)) * (PLOT_WIDTH - 16);
+      const y = 8 + (1 - point[metric] / maximum) * 74;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  const labelIndexes = [0, 2, 5, 8, 11].filter((index) => index < points.length);
+
+  return (
+    <View>
+      <View style={styles.incomeExpenseLegend}>
+        <View style={styles.incomeExpenseLegendItem}><View style={[styles.incomeExpenseLegendDot, styles.incomeLegendDot]} /><Text style={styles.incomeExpenseLegendText}>收入</Text></View>
+        <View style={styles.incomeExpenseLegendItem}><View style={[styles.incomeExpenseLegendDot, styles.expenseLegendDot]} /><Text style={styles.incomeExpenseLegendText}>消費</Text></View>
+      </View>
+      <Svg width="100%" height="90" viewBox={`0 0 ${PLOT_WIDTH} 90`}>
+        {[22, 45, 68].map((y) => <Line key={y} x1="8" x2={PLOT_WIDTH - 8} y1={y} y2={y} stroke="#E5E2DC" strokeDasharray="3 5" />)}
+        <Polyline points={toPlotPoints("income")} fill="none" stroke="#0E6B56" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <Polyline points={toPlotPoints("expense")} fill="none" stroke="#C85F3A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+      <View style={styles.monthLabels}>
+        {labelIndexes.map((index) => <Text key={index} style={styles.axisText}>{points[index]?.label}</Text>)}
+      </View>
+    </View>
+  );
+}
+
 export function DonutChart({ data, onCategoryPress }: { data: CategoryTotal[]; onCategoryPress?: (category: string) => void }) {
   if (data.length === 0) return <EmptyChart label="尚無支出分類資料" />;
 
@@ -228,6 +260,12 @@ const styles = StyleSheet.create({
   highestMonthRow: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E7E0D5", flexDirection: "row", justifyContent: "space-between", gap: 10 },
   highestMonthLabel: { color: "#7A837D", fontSize: 10, fontWeight: "800" },
   highestMonthValue: { color: "#6C4B94", fontSize: 10, fontWeight: "900", textAlign: "right" },
+  incomeExpenseLegend: { flexDirection: "row", gap: 12, marginBottom: 1 },
+  incomeExpenseLegendItem: { alignItems: "center", flexDirection: "row", gap: 5 },
+  incomeExpenseLegendDot: { borderRadius: 4, height: 8, width: 8 },
+  incomeLegendDot: { backgroundColor: "#0E6B56" },
+  expenseLegendDot: { backgroundColor: "#C85F3A" },
+  incomeExpenseLegendText: { color: "#66726A", fontSize: 10, fontWeight: "800" },
   donutLayout: { flexDirection: "row", alignItems: "center", gap: 12 },
   donutWrap: { width: 132, height: 132, alignItems: "center", justifyContent: "center" },
   donutCenter: { position: "absolute", alignItems: "center" },

@@ -3,8 +3,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { IncomeExpenseTrend } from "@/components/finance-visuals";
 import { useFinance } from "@/hooks/use-finance";
-import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthlyExpenseRankingsFor, money, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
+import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthPointsFor, money, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
 
 type Period = TransactionPeriod;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
@@ -16,24 +17,21 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
   const [period, setPeriod] = useState<Period>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
   const [isMonthSwitcherExpanded, setIsMonthSwitcherExpanded] = useState(false);
+  const selectedMonth = typeof period === "object" ? period : null;
+  const firstYear = years[0] ?? new Date().getFullYear();
+  const selectedYear = typeof period === "number" ? period : selectedMonth?.year ?? firstYear;
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const rankTrends = useMemo(() => categoryRankTrendsFor(transactions, filtered), [transactions, filtered]);
-  const monthlyRankings = useMemo(() => monthlyExpenseRankingsFor(filtered), [filtered]);
-  const monthlyRankMaximum = Math.max(...monthlyRankings.flatMap((month) => month.rankings.map((item) => item.amount)), 1);
-  const firstYear = years[0] ?? new Date().getFullYear();
-  const selectedMonth = typeof period === "object" ? period : null;
-  const selectedYear = typeof period === "number" ? period : selectedMonth?.year ?? firstYear;
+  const monthlyIncomeExpense = useMemo(() => monthPointsFor(transactions, selectedYear), [selectedYear, transactions]);
   const isAllPeriod = period === "all";
   const periodSubtitle = isAllPeriod
     ? "查看累積支出的分類排行。"
     : selectedMonth
       ? `查看 ${selectedMonth.year} 年 ${selectedMonth.month} 月支出的分類排行。`
       : `查看 ${period} 年度支出的分類排行。`;
-  const trendTitle = selectedMonth ? `${selectedMonth.month}月支出排行` : "每月支出排行趨勢";
-  const trendSubtitle = selectedMonth
-    ? `顯示 ${selectedMonth.year} 年 ${selectedMonth.month} 月前三名支出；點選排行可查看交易明細。`
-    : "顯示每月前三名支出的相對金額；點選排行可查看交易明細。";
+  const trendTitle = `${selectedYear} 年收入與消費趨勢`;
+  const trendSubtitle = "顯示每月收入與消費金額的變化。";
   const selectMonth = (month: number) => {
     setPeriod({ year: selectedYear, month });
     setIsYearMenuOpen(false);
@@ -92,7 +90,7 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>支出排行</Text>
           <View style={styles.rankList}>
-            {categories.length === 0 ? <Text style={styles.emptyText}>尚無支出資料。</Text> : categories.slice(0, 5).map((item, index) => {
+            {categories.length === 0 ? <Text style={styles.emptyText}>尚無支出資料。</Text> : categories.slice(0, 3).map((item, index) => {
               const trend = rankTrends[item.name];
               const trendText = trend?.direction === "up" ? `↑ 第${trend.previousRank}名→第${trend.currentRank}名` : trend?.direction === "down" ? `↓ 第${trend.previousRank}名→第${trend.currentRank}名` : trend?.direction === "same" ? `→ 維持第${trend.currentRank}名` : trend?.direction === "new" ? `新上榜第${trend.currentRank}名` : trend?.direction === "inactive" ? `上月第${trend.previousRank}名` : "尚無月度比較";
               const trendStyle = trend?.direction === "up" ? styles.rankTrendUp : trend?.direction === "down" ? styles.rankTrendDown : trend?.direction === "new" ? styles.rankTrendNew : styles.rankTrendNeutral;
@@ -110,19 +108,7 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>{trendTitle}</Text>
           <Text style={styles.panelSubtitle}>{trendSubtitle}</Text>
-          {monthlyRankings.length === 0 ? <Text style={styles.emptyText}>尚無可比較的月度支出資料。</Text> : (
-            <View style={styles.monthlyTrendChart}>
-              {monthlyRankings.slice(-4).map((month) => (
-                <View key={month.key} style={styles.monthlyTrendColumn}>
-                  <View style={styles.monthlyTrendBars}>
-                    {month.rankings.map((item, index) => <View key={item.name} style={[styles.monthlyTrendBar, index === 0 ? styles.monthlyTrendFirst : index === 1 ? styles.monthlyTrendSecond : styles.monthlyTrendThird, { height: Math.max(5, Math.round((item.amount / monthlyRankMaximum) * 44)) }]} />)}
-                  </View>
-                  <Text style={styles.monthlyTrendLabel}>{month.label}</Text>
-                  <Text numberOfLines={1} style={styles.monthlyTrendLeader}>{month.rankings[0]?.name ?? "—"}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+          <IncomeExpenseTrend points={monthlyIncomeExpense} />
         </View>
       </View>
     </View>
@@ -189,14 +175,5 @@ const styles = StyleSheet.create({
   rankTrendNew: { color: "#315E96" },
   rankTrendNeutral: { color: "#929A94" },
   rankAmount: { color: "#1F2421", fontSize: 13, fontWeight: "900" },
-  monthlyTrendChart: { height: 70, flexDirection: "row", alignItems: "flex-end", gap: 7, paddingTop: 3 },
-  monthlyTrendColumn: { flex: 1, minWidth: 0, alignItems: "center" },
-  monthlyTrendBars: { height: 36, flexDirection: "row", alignItems: "flex-end", gap: 2 },
-  monthlyTrendBar: { width: 7, borderRadius: 3 },
-  monthlyTrendFirst: { backgroundColor: "#C64B42" },
-  monthlyTrendSecond: { backgroundColor: "#DF7A31" },
-  monthlyTrendThird: { backgroundColor: "#B88A16" },
-  monthlyTrendLabel: { color: "#647068", fontSize: 10, fontWeight: "800", marginTop: 5 },
-  monthlyTrendLeader: { width: "100%", color: "#7A837D", fontSize: 9, textAlign: "center", marginTop: 2 },
   emptyText: { color: "#7A837D", fontSize: 11, paddingVertical: 8 },
 });
