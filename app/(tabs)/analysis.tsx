@@ -10,6 +10,23 @@ import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthPointsFo
 type Period = TransactionPeriod;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
+function MonthlyChange({ label, current, previous, type }: { label: string; current: number; previous: number; type: "income" | "expense" }) {
+  const difference = current - previous;
+  const isFavorable = type === "income" ? difference >= 0 : difference <= 0;
+  const tone = difference === 0 ? styles.changeNeutral : isFavorable ? styles.changeFavorable : styles.changeUnfavorable;
+  const direction = difference > 0 ? "↑" : difference < 0 ? "↓" : "→";
+  const changeText = previous === 0
+    ? current === 0 ? "無可比較資料" : `${direction} 新增（無上月基期）`
+    : `${direction} ${money(Math.abs(difference))}・${Math.abs((difference / previous) * 100).toFixed(1)}%`;
+
+  return (
+    <View style={styles.monthComparisonMetric}>
+      <Text style={styles.monthComparisonLabel}>{label}</Text>
+      <Text numberOfLines={1} style={[styles.monthComparisonValue, tone]}>{changeText}</Text>
+    </View>
+  );
+}
+
 export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (category: string) => void }) {
   const router = useRouter();
   const { transactions } = useFinance();
@@ -24,6 +41,14 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const rankTrends = useMemo(() => categoryRankTrendsFor(transactions, filtered), [transactions, filtered]);
   const monthlyIncomeExpense = useMemo(() => monthPointsFor(transactions, selectedYear), [selectedYear, transactions]);
+  const previousYearMonthlyIncomeExpense = useMemo(() => monthPointsFor(transactions, selectedYear - 1), [selectedYear, transactions]);
+  const comparisonMonthIndex = selectedMonth
+    ? selectedMonth.month - 1
+    : monthlyIncomeExpense.reduce((latestIndex, point, index) => point.income !== 0 || point.expense !== 0 ? index : latestIndex, -1);
+  const comparisonCurrent = comparisonMonthIndex >= 0 ? monthlyIncomeExpense[comparisonMonthIndex] : null;
+  const comparisonPrevious = comparisonMonthIndex > 0
+    ? monthlyIncomeExpense[comparisonMonthIndex - 1]
+    : comparisonMonthIndex === 0 ? previousYearMonthlyIncomeExpense[11] : null;
   const isAllPeriod = period === "all";
   const periodSubtitle = isAllPeriod
     ? "查看累積支出的分類排行。"
@@ -109,6 +134,18 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
           <Text style={styles.panelTitle}>{trendTitle}</Text>
           <Text style={styles.panelSubtitle}>{trendSubtitle}</Text>
           <IncomeExpenseTrend points={monthlyIncomeExpense} />
+          {comparisonCurrent && comparisonPrevious ? (
+            <View style={styles.monthComparison}>
+              <View style={styles.monthComparisonHeader}>
+                <Text style={styles.monthComparisonTitle}>相較上月</Text>
+                <Text style={styles.monthComparisonPeriod}>{comparisonCurrent.label} vs {comparisonPrevious.label}</Text>
+              </View>
+              <View style={styles.monthComparisonMetrics}>
+                <MonthlyChange label="收入" current={comparisonCurrent.income} previous={comparisonPrevious.income} type="income" />
+                <MonthlyChange label="消費" current={comparisonCurrent.expense} previous={comparisonPrevious.expense} type="expense" />
+              </View>
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
@@ -175,5 +212,16 @@ const styles = StyleSheet.create({
   rankTrendNew: { color: "#315E96" },
   rankTrendNeutral: { color: "#929A94" },
   rankAmount: { color: "#1F2421", fontSize: 13, fontWeight: "900" },
+  monthComparison: { borderTopColor: "#ECE7DE", borderTopWidth: 1, marginTop: 9, paddingTop: 8 },
+  monthComparisonHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  monthComparisonTitle: { color: "#455149", fontSize: 11, fontWeight: "900" },
+  monthComparisonPeriod: { color: "#7A837D", fontSize: 10, fontWeight: "700" },
+  monthComparisonMetrics: { flexDirection: "row", gap: 8, marginTop: 6 },
+  monthComparisonMetric: { backgroundColor: "#F8F6F1", borderRadius: 8, flex: 1, minWidth: 0, paddingHorizontal: 7, paddingVertical: 6 },
+  monthComparisonLabel: { color: "#7A837D", fontSize: 9, fontWeight: "800" },
+  monthComparisonValue: { fontSize: 10, fontWeight: "900", marginTop: 2 },
+  changeFavorable: { color: "#0E6B56" },
+  changeUnfavorable: { color: "#C85F3A" },
+  changeNeutral: { color: "#7A837D" },
   emptyText: { color: "#7A837D", fontSize: 11, paddingVertical: 8 },
 });
