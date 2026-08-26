@@ -87,11 +87,10 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
   };
 
   return (
-    <View style={styles.screen}>
+        <View style={styles.screen}>
       <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>花費分析</Text>
-          <Text style={styles.subtitle}>{periodSubtitle}</Text>
+            <Text style={styles.subtitle}>{periodSubtitle}</Text>
         </View>
         <View style={styles.segmentControl}>
           <Pressable onPress={() => { setPeriod("all"); setIsYearMenuOpen(false); }} style={[styles.segment, styles.totalSegment, isAllPeriod && styles.segmentSelected]}>
@@ -205,7 +204,7 @@ export default function AnalysisScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, overflow: "hidden" },
-  content: { flex: 1, gap: 8, overflow: "hidden", padding: 12, paddingBottom: 8 },
+  content: { flex: 1, gap: 6, overflow: "hidden", padding: 10, paddingBottom: 6 },
   header: { marginTop: 1 },
   title: { color: "#1F2421", fontSize: 22, fontWeight: "900" },
   subtitle: { color: "#7A837D", marginTop: 2, fontSize: 10 },
@@ -238,11 +237,11 @@ const styles = StyleSheet.create({
   monthButtonPressed: { opacity: 0.7 },
   monthButtonText: { color: "#657069", fontSize: 11, fontWeight: "800" },
   monthButtonTextSelected: { color: "#0E6B56" },
-  panel: { borderRadius: 14, backgroundColor: "#FFFFFF", padding: 10, borderWidth: 1, borderColor: "#ECE7DE" },
+  panel: { borderRadius: 14, backgroundColor: "#FFFFFF", padding: 8, borderWidth: 1, borderColor: "#ECE7DE" },
   panelTitle: { color: "#1F2421", fontSize: 16, fontWeight: "900" },
-  panelSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 2, marginBottom: 7 },
+  panelSubtitle: { color: "#7A837D", fontSize: 10, marginTop: 1, marginBottom: 4 },
   rankList: { gap: 1 },
-  rankRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6, borderRadius: 8 },
+  rankRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4, borderRadius: 8 },
   rankRowPressed: { opacity: 0.65, backgroundColor: "#F8F6F1" },
   rankNumber: { color: "#929A94", fontSize: 12, fontWeight: "900", width: 28 },
   rankBadge: { width: 28, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center", marginRight: 1 },
@@ -259,7 +258,7 @@ const styles = StyleSheet.create({
   rankTrendNew: { color: "#315E96" },
   rankTrendNeutral: { color: "#929A94" },
   rankAmount: { color: "#1F2421", fontSize: 13, fontWeight: "900" },
-  monthComparison: { borderTopColor: "#ECE7DE", borderTopWidth: 1, marginTop: 9, paddingTop: 8 },
+  monthComparison: { borderTopColor: "#ECE7DE", borderTopWidth: 1, marginTop: 5, paddingTop: 6 },
   monthComparisonHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   monthComparisonHeaderCopy: { alignItems: "center", flex: 1, flexDirection: "row", gap: 7, minWidth: 0 },
   monthComparisonTitle: { color: "#455149", fontSize: 11, fontWeight: "900" },
@@ -267,8 +266,8 @@ const styles = StyleSheet.create({
   comparisonSettingsButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 12, height: 24, justifyContent: "center", marginLeft: 8, width: 24 },
   comparisonSettingsButtonPressed: { opacity: 0.7 },
   comparisonSettingsIcon: { color: "#0E6B56", fontSize: 14, fontWeight: "900", lineHeight: 17 },
-  monthComparisonMetrics: { flexDirection: "row", gap: 8, marginTop: 6 },
-  monthComparisonMetric: { backgroundColor: "#F8F6F1", borderRadius: 8, flex: 1, minWidth: 0, paddingHorizontal: 6, paddingVertical: 5 },
+  monthComparisonMetrics: { flexDirection: "row", gap: 8, marginTop: 4 },
+  monthComparisonMetric: { backgroundColor: "#F8F6F1", borderRadius: 8, flex: 1, minWidth: 0, paddingHorizontal: 6, paddingVertical: 4 },
   monthComparisonLabel: { color: "#7A837D", fontSize: 9, fontWeight: "800" },
   monthComparisonCurrent: { color: "#38443D", fontSize: 10, fontWeight: "900", marginTop: 1 },
   monthComparisonValue: { fontSize: 9, fontWeight: "900", marginTop: 2 },
