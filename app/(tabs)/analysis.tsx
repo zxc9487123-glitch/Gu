@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   panelSubtitle: { color: "#826F80", fontSize: 10, marginTop: 1, marginBottom: 4 },
   rankList: { gap: 1 },
   rankRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4, borderRadius: 8 },
-  rankRowPressed: { opacity: 0.65, backgroundColor: "#FFF5F8" },
+  rankRowPressed: { backgroundColor: "#F5ECFA", opacity: 0.86, transform: [{ scale: 0.985 }] },
   rankNumber: { color: "#929A94", fontSize: 12, fontWeight: "900", width: 28 },
   rankBadge: { width: 28, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center", marginRight: 1 },
   rankBadgeFirst: { backgroundColor: "#C64B42" },
