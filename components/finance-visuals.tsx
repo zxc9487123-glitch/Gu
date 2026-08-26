@@ -145,13 +145,15 @@ export function IncomeExpenseTrend({ points }: { points: MonthPoint[] }) {
   if (!hasActivity) return <EmptyChart label="新增交易後，這裡會顯示收入與消費趨勢" />;
 
   const maximum = Math.max(...points.flatMap((point) => [point.income, point.expense]), 1);
-  const toPlotPoints = (metric: "income" | "expense") => points
+  const plotCoordinates = (metric: "income" | "expense") => points
     .map((point, index) => {
       const x = 8 + (index / Math.max(points.length - 1, 1)) * (PLOT_WIDTH - 16);
       const y = 6 + (1 - point[metric] / maximum) * 50;
-      return `${x},${y}`;
-    })
-    .join(" ");
+      return { x, y };
+    });
+  const incomeCoordinates = plotCoordinates("income");
+  const expenseCoordinates = plotCoordinates("expense");
+  const toPlotPoints = (coordinates: { x: number; y: number }[]) => coordinates.map(({ x, y }) => `${x},${y}`).join(" ");
   const labelIndexes = [0, 2, 5, 8, 11].filter((index) => index < points.length);
 
   return (
@@ -162,8 +164,9 @@ export function IncomeExpenseTrend({ points }: { points: MonthPoint[] }) {
       </View>
       <Svg width="100%" height="64" viewBox={`0 0 ${PLOT_WIDTH} 64`}>
         {[16, 32, 48].map((y) => <Line key={y} x1="8" x2={PLOT_WIDTH - 8} y1={y} y2={y} stroke="#E5E2DC" strokeDasharray="3 5" />)}
-        <Polyline points={toPlotPoints("income")} fill="none" stroke="#0E6B56" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <Polyline points={toPlotPoints("expense")} fill="none" stroke="#C85F3A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <Polyline points={toPlotPoints(incomeCoordinates)} fill="none" stroke="#0E6B56" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <Polyline points={toPlotPoints(expenseCoordinates)} fill="none" stroke="#C85F3A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {points.length === 1 ? <><Circle cx={incomeCoordinates[0]?.x ?? 0} cy={incomeCoordinates[0]?.y ?? 0} r="4" fill="#0E6B56" /><Circle cx={expenseCoordinates[0]?.x ?? 0} cy={expenseCoordinates[0]?.y ?? 0} r="4" fill="#C85F3A" /></> : null}
       </Svg>
       <View style={styles.monthLabels}>
         {labelIndexes.map((index) => <Text key={index} style={styles.axisText}>{points[index]?.label}</Text>)}

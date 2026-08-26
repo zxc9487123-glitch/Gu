@@ -6,7 +6,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IncomeExpenseTrend } from "@/components/finance-visuals";
 import { useComparisonCardPreference } from "@/hooks/use-comparison-card-preference";
 import { useFinance } from "@/hooks/use-finance";
-import { availableYears, categoryRankTrendsFor, categoryTotalsFor, largestExpenseIncreaseFor, monthPointsFor, money, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
+import { availableYears, categoryRankTrendsFor, categoryTotalsFor, largestExpenseIncreaseFor, monthPointsFor, money, transactionsForPeriod, trendPointsFor, type TransactionPeriod } from "@/lib/finance";
 
 type Period = TransactionPeriod;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
@@ -42,10 +42,12 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
   const selectedMonth = typeof period === "object" ? period : null;
   const firstYear = years[0] ?? new Date().getFullYear();
   const selectedYear = typeof period === "number" ? period : selectedMonth?.year ?? firstYear;
+  const isAllPeriod = period === "all";
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
   const rankTrends = useMemo(() => categoryRankTrendsFor(transactions, filtered), [transactions, filtered]);
   const monthlyIncomeExpense = useMemo(() => monthPointsFor(transactions, selectedYear), [selectedYear, transactions]);
+  const displayedTrendPoints = useMemo(() => trendPointsFor(transactions, isAllPeriod ? "all" : selectedYear), [isAllPeriod, selectedYear, transactions]);
   const previousYearMonthlyIncomeExpense = useMemo(() => monthPointsFor(transactions, selectedYear - 1), [selectedYear, transactions]);
   const comparisonMonthIndex = selectedMonth
     ? selectedMonth.month - 1
@@ -72,14 +74,13 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
       ? `主要支出：${mainExpenseIncrease.category} +${money(mainExpenseIncrease.increase)}`
       : "本月支出未增加，主要受到收入減少影響";
   }, [comparisonCurrent, comparisonCurrentTransactions, comparisonPrevious, comparisonPreviousTransactions]);
-  const isAllPeriod = period === "all";
   const periodSubtitle = isAllPeriod
     ? "查看累積支出的分類排行。"
     : selectedMonth
       ? `查看 ${selectedMonth.year} 年 ${selectedMonth.month} 月支出的分類排行。`
       : `查看 ${period} 年度支出的分類排行。`;
-  const trendTitle = `${selectedYear} 年收入與消費趨勢`;
-  const trendSubtitle = "顯示每月收入與消費金額的變化。";
+  const trendTitle = isAllPeriod ? "全年度收入與消費趨勢" : `${selectedYear} 年收入與消費趨勢`;
+  const trendSubtitle = isAllPeriod ? "顯示各年度收入與消費金額的變化。" : "顯示每月收入與消費金額的變化。";
   const selectMonth = (month: number) => {
     setPeriod({ year: selectedYear, month });
     setIsYearMenuOpen(false);
@@ -155,7 +156,7 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>{trendTitle}</Text>
           <Text style={styles.panelSubtitle}>{trendSubtitle}</Text>
-          <IncomeExpenseTrend points={monthlyIncomeExpense} />
+          <IncomeExpenseTrend points={displayedTrendPoints} />
           {comparisonCurrent && comparisonPrevious ? (
             <View style={styles.monthComparison}>
               <View style={styles.monthComparisonHeader}>
