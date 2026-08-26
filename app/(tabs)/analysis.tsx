@@ -1,16 +1,17 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IncomeExpenseTrend } from "@/components/finance-visuals";
+import { useComparisonCardPreference } from "@/hooks/use-comparison-card-preference";
 import { useFinance } from "@/hooks/use-finance";
-import { availableYears, categoryRankTrendsFor, categoryTotalsFor, monthPointsFor, money, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
+import { availableYears, categoryRankTrendsFor, categoryTotalsFor, largestExpenseIncreaseFor, monthPointsFor, money, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
 
 type Period = TransactionPeriod;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
-function MonthlyChange({ label, current, previous, type }: { label: string; current: number; previous: number; type: "expense" | "balance" }) {
+function MonthlyChange({ label, current, previous, type, hint }: { label: string; current: number; previous: number; type: "expense" | "balance"; hint?: string | null }) {
   const difference = current - previous;
   const isFavorable = type === "expense" ? difference <= 0 : difference >= 0;
   const tone = difference === 0 ? styles.changeNeutral : isFavorable ? styles.changeFavorable : styles.changeUnfavorable;
@@ -24,6 +25,7 @@ function MonthlyChange({ label, current, previous, type }: { label: string; curr
       <Text style={styles.monthComparisonLabel}>{label}</Text>
       <Text numberOfLines={1} style={styles.monthComparisonCurrent}>{money(current)}</Text>
       <Text numberOfLines={1} style={[styles.monthComparisonValue, tone]}>{changeText}</Text>
+      {hint ? <Text numberOfLines={2} style={styles.balanceDeclineHint}>{hint}</Text> : null}
     </View>
   );
 }
@@ -35,6 +37,8 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
   const [period, setPeriod] = useState<Period>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
   const [isMonthSwitcherExpanded, setIsMonthSwitcherExpanded] = useState(false);
+  const [isComparisonSettingsVisible, setIsComparisonSettingsVisible] = useState(false);
+  const { visibleComparisonCards, setComparisonCardVisible } = useComparisonCardPreference();
   const selectedMonth = typeof period === "object" ? period : null;
   const firstYear = years[0] ?? new Date().getFullYear();
   const selectedYear = typeof period === "number" ? period : selectedMonth?.year ?? firstYear;
@@ -50,6 +54,24 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
   const comparisonPrevious = comparisonMonthIndex > 0
     ? monthlyIncomeExpense[comparisonMonthIndex - 1]
     : comparisonMonthIndex === 0 ? previousYearMonthlyIncomeExpense[11] : null;
+  const comparisonCurrentTransactions = useMemo(() => comparisonMonthIndex >= 0
+    ? transactionsForPeriod(transactions, { year: selectedYear, month: comparisonMonthIndex + 1 })
+    : [], [comparisonMonthIndex, selectedYear, transactions]);
+  const comparisonPreviousTransactions = useMemo(() => {
+    if (comparisonMonthIndex > 0) return transactionsForPeriod(transactions, { year: selectedYear, month: comparisonMonthIndex });
+    if (comparisonMonthIndex === 0) return transactionsForPeriod(transactions, { year: selectedYear - 1, month: 12 });
+    return [];
+  }, [comparisonMonthIndex, selectedYear, transactions]);
+  const balanceDeclineHint = useMemo(() => {
+    if (!comparisonCurrent || !comparisonPrevious) return null;
+    const currentBalance = comparisonCurrent.income - comparisonCurrent.expense;
+    const previousBalance = comparisonPrevious.income - comparisonPrevious.expense;
+    if (currentBalance >= previousBalance) return null;
+    const mainExpenseIncrease = largestExpenseIncreaseFor(comparisonCurrentTransactions, comparisonPreviousTransactions);
+    return mainExpenseIncrease
+      ? `主要支出：${mainExpenseIncrease.category} +${money(mainExpenseIncrease.increase)}`
+      : "本月支出未增加，主要受到收入減少影響";
+  }, [comparisonCurrent, comparisonCurrentTransactions, comparisonPrevious, comparisonPreviousTransactions]);
   const isAllPeriod = period === "all";
   const periodSubtitle = isAllPeriod
     ? "查看累積支出的分類排行。"
@@ -138,17 +160,41 @@ export function AnalysisContent({ onCategoryPress }: { onCategoryPress?: (catego
           {comparisonCurrent && comparisonPrevious ? (
             <View style={styles.monthComparison}>
               <View style={styles.monthComparisonHeader}>
-                <Text style={styles.monthComparisonTitle}>相較上月</Text>
-                <Text style={styles.monthComparisonPeriod}>{comparisonCurrent.label} vs {comparisonPrevious.label}</Text>
+                <View style={styles.monthComparisonHeaderCopy}>
+                  <Text style={styles.monthComparisonTitle}>相較上月</Text>
+                  <Text style={styles.monthComparisonPeriod}>{comparisonCurrent.label} vs {comparisonPrevious.label}</Text>
+                </View>
+                <Pressable accessibilityRole="button" accessibilityLabel="自訂比較卡顯示設定" onPress={() => setIsComparisonSettingsVisible(true)} style={({ pressed }) => [styles.comparisonSettingsButton, pressed && styles.comparisonSettingsButtonPressed]}>
+                  <Text style={styles.comparisonSettingsIcon}>⚙</Text>
+                </Pressable>
               </View>
               <View style={styles.monthComparisonMetrics}>
-                <MonthlyChange label="消費" current={comparisonCurrent.expense} previous={comparisonPrevious.expense} type="expense" />
-                <MonthlyChange label="淨結餘" current={comparisonCurrent.income - comparisonCurrent.expense} previous={comparisonPrevious.income - comparisonPrevious.expense} type="balance" />
+                {visibleComparisonCards.expense ? <MonthlyChange label="消費" current={comparisonCurrent.expense} previous={comparisonPrevious.expense} type="expense" /> : null}
+                {visibleComparisonCards.balance ? <MonthlyChange label="淨結餘" current={comparisonCurrent.income - comparisonCurrent.expense} previous={comparisonPrevious.income - comparisonPrevious.expense} type="balance" hint={balanceDeclineHint} /> : null}
+                {!visibleComparisonCards.expense && !visibleComparisonCards.balance ? <Text style={styles.noComparisonCards}>尚未選擇比較卡片，請點選右上角設定。</Text> : null}
               </View>
             </View>
           ) : null}
         </View>
       </View>
+      <Modal transparent visible={isComparisonSettingsVisible} animationType="fade" onRequestClose={() => setIsComparisonSettingsVisible(false)}>
+        <View style={styles.comparisonSettingsModal}>
+          <Pressable accessibilityRole="button" accessibilityLabel="關閉比較卡設定" onPress={() => setIsComparisonSettingsVisible(false)} style={styles.comparisonSettingsBackdrop} />
+          <View style={styles.comparisonSettingsSheet}>
+            <View style={styles.drawerHandle} />
+            <View style={styles.comparisonSettingsHeader}>
+              <View style={styles.comparisonSettingsCopy}><Text style={styles.comparisonSettingsTitle}>比較卡設定</Text><Text style={styles.comparisonSettingsSubtitle}>選擇要顯示在相較上月區塊的卡片。</Text></View>
+              <Pressable accessibilityRole="button" onPress={() => setIsComparisonSettingsVisible(false)} style={({ pressed }) => [styles.comparisonSettingsDoneButton, pressed && styles.comparisonSettingsButtonPressed]}><Text style={styles.comparisonSettingsDoneText}>完成</Text></Pressable>
+            </View>
+            {(["expense", "balance"] as const).map((key) => {
+              const isVisible = visibleComparisonCards[key];
+              const label = key === "expense" ? "消費" : "淨結餘";
+              const description = key === "expense" ? "顯示消費差額與變化比例" : "顯示淨結餘與下降原因提示";
+              return <Pressable key={key} accessibilityRole="switch" accessibilityLabel={`顯示${label}比較卡`} accessibilityState={{ checked: isVisible }} onPress={() => void setComparisonCardVisible(key, !isVisible)} style={({ pressed }) => [styles.comparisonOption, pressed && styles.comparisonOptionPressed]}><View style={styles.comparisonOptionCopy}><Text style={styles.comparisonOptionTitle}>{label}</Text><Text style={styles.comparisonOptionDescription}>{description}</Text></View><View style={[styles.comparisonToggle, isVisible && styles.comparisonToggleActive]}><View style={[styles.comparisonToggleKnob, isVisible && styles.comparisonToggleKnobActive]} /></View></Pressable>;
+            })}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -215,15 +261,40 @@ const styles = StyleSheet.create({
   rankAmount: { color: "#1F2421", fontSize: 13, fontWeight: "900" },
   monthComparison: { borderTopColor: "#ECE7DE", borderTopWidth: 1, marginTop: 9, paddingTop: 8 },
   monthComparisonHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  monthComparisonHeaderCopy: { alignItems: "center", flex: 1, flexDirection: "row", gap: 7, minWidth: 0 },
   monthComparisonTitle: { color: "#455149", fontSize: 11, fontWeight: "900" },
   monthComparisonPeriod: { color: "#7A837D", fontSize: 10, fontWeight: "700" },
+  comparisonSettingsButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 12, height: 24, justifyContent: "center", marginLeft: 8, width: 24 },
+  comparisonSettingsButtonPressed: { opacity: 0.7 },
+  comparisonSettingsIcon: { color: "#0E6B56", fontSize: 14, fontWeight: "900", lineHeight: 17 },
   monthComparisonMetrics: { flexDirection: "row", gap: 8, marginTop: 6 },
   monthComparisonMetric: { backgroundColor: "#F8F6F1", borderRadius: 8, flex: 1, minWidth: 0, paddingHorizontal: 6, paddingVertical: 5 },
   monthComparisonLabel: { color: "#7A837D", fontSize: 9, fontWeight: "800" },
   monthComparisonCurrent: { color: "#38443D", fontSize: 10, fontWeight: "900", marginTop: 1 },
   monthComparisonValue: { fontSize: 9, fontWeight: "900", marginTop: 2 },
+  balanceDeclineHint: { color: "#A65237", fontSize: 8, fontWeight: "800", lineHeight: 12, marginTop: 4 },
+  noComparisonCards: { color: "#7A837D", fontSize: 10, fontWeight: "700", paddingVertical: 5 },
   changeFavorable: { color: "#0E6B56" },
   changeUnfavorable: { color: "#C85F3A" },
   changeNeutral: { color: "#7A837D" },
+  comparisonSettingsModal: { flex: 1, justifyContent: "flex-end" },
+  comparisonSettingsBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(22, 30, 26, 0.42)" },
+  comparisonSettingsSheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 26, paddingHorizontal: 20, paddingTop: 9 },
+  drawerHandle: { alignSelf: "center", backgroundColor: "#D8DDD8", borderRadius: 2, height: 4, marginBottom: 14, width: 38 },
+  comparisonSettingsHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+  comparisonSettingsCopy: { flex: 1, minWidth: 0, paddingRight: 10 },
+  comparisonSettingsTitle: { color: "#1F2421", fontSize: 18, fontWeight: "900" },
+  comparisonSettingsSubtitle: { color: "#7A837D", fontSize: 11, lineHeight: 16, marginTop: 3 },
+  comparisonSettingsDoneButton: { alignItems: "center", backgroundColor: "#E7F2ED", borderRadius: 9, justifyContent: "center", minHeight: 32, paddingHorizontal: 10 },
+  comparisonSettingsDoneText: { color: "#0E6B56", fontSize: 12, fontWeight: "900" },
+  comparisonOption: { alignItems: "center", backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 11, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 8, minHeight: 58, paddingHorizontal: 11, paddingVertical: 9 },
+  comparisonOptionPressed: { opacity: 0.72 },
+  comparisonOptionCopy: { flex: 1, minWidth: 0, paddingRight: 10 },
+  comparisonOptionTitle: { color: "#38443D", fontSize: 12, fontWeight: "900" },
+  comparisonOptionDescription: { color: "#7A837D", fontSize: 10, marginTop: 3 },
+  comparisonToggle: { backgroundColor: "#C9D0CB", borderRadius: 12, height: 24, justifyContent: "center", paddingHorizontal: 3, width: 42 },
+  comparisonToggleActive: { alignItems: "flex-end", backgroundColor: "#0E6B56" },
+  comparisonToggleKnob: { backgroundColor: "#FFFFFF", borderRadius: 9, height: 18, width: 18 },
+  comparisonToggleKnobActive: { backgroundColor: "#FFFFFF" },
   emptyText: { color: "#7A837D", fontSize: 11, paddingVertical: 8 },
 });

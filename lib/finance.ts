@@ -189,6 +189,33 @@ export const categoryTotalsFor = (transactions: Transaction[]): CategoryTotal[] 
   }));
 };
 
+export type ExpenseIncreaseInsight = {
+  category: string;
+  currentAmount: number;
+  previousAmount: number;
+  increase: number;
+};
+
+export const largestExpenseIncreaseFor = (currentTransactions: Transaction[], previousTransactions: Transaction[]): ExpenseIncreaseInsight | null => {
+  const totalsByCategory = (transactions: Transaction[]) => transactions
+    .filter((transaction) => transaction.type === "expense")
+    .reduce<Record<string, number>>((totals, transaction) => {
+      totals[transaction.category] = (totals[transaction.category] ?? 0) + transaction.amount;
+      return totals;
+    }, {});
+  const currentTotals = totalsByCategory(currentTransactions);
+  const previousTotals = totalsByCategory(previousTransactions);
+
+  return [...new Set([...Object.keys(currentTotals), ...Object.keys(previousTotals)])]
+    .map((category) => {
+      const currentAmount = currentTotals[category] ?? 0;
+      const previousAmount = previousTotals[category] ?? 0;
+      return { category, currentAmount, previousAmount, increase: currentAmount - previousAmount };
+    })
+    .filter((item) => item.increase > 0)
+    .sort((left, right) => right.increase - left.increase || left.category.localeCompare(right.category, "zh-Hant"))[0] ?? null;
+};
+
 export const categoryBreakdownFor = (transactions: Transaction[], type: TransactionType): CategoryBreakdown[] => {
   const breakdown = transactions
     .filter((item) => item.type === type)

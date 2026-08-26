@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryBreakdownFor, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, monthlyExpenseRankingsFor, monthPointsFor, sortTransactionsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
+import { annualExpenseInsightsFor, annualSummariesFor, availableYears, categoryBreakdownFor, categoryRankTrendsFor, categoryTotalsFor, filteredTransactionsFor, largestExpenseIncreaseFor, monthlyExpenseRankingsFor, monthPointsFor, sortTransactionsFor, summaryFor, transactionsForPeriod, trendPointsFor, yearExpenseInsightFor, type Transaction } from "../lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseSharePercentFor, livingExpenseUsageFor } from "../lib/living-amount";
 import { latestMonthlyLivingComparison, monthlyLivingComparison } from "../lib/monthly-living";
 import { latestMonthlySavingsComparison, monthlySavingsComparison } from "../lib/monthly-savings";
@@ -96,6 +96,20 @@ describe("finance calculations", () => {
     ]);
 
     expect(totals.map((item) => item.color)).toEqual(["#C64B42", "#DF7A31", "#B88A16", "#A3AAA5"]);
+  });
+
+  it("identifies the category with the largest month-over-month expense increase", () => {
+    const previous: Transaction[] = [
+      { id: "p1", type: "expense", amount: 300, category: "餐飲／食品", note: "", date: "2026-04-02" },
+      { id: "p2", type: "expense", amount: 100, category: "購物", note: "", date: "2026-04-03" },
+    ];
+    const current: Transaction[] = [
+      { id: "c1", type: "expense", amount: 420, category: "餐飲／食品", note: "", date: "2026-05-02" },
+      { id: "c2", type: "expense", amount: 650, category: "購物", note: "", date: "2026-05-03" },
+    ];
+
+    expect(largestExpenseIncreaseFor(current, previous)).toEqual({ category: "購物", currentAmount: 650, previousAmount: 100, increase: 550 });
+    expect(largestExpenseIncreaseFor(previous, current)).toBeNull();
   });
 
   it("compares the latest month's category ranks with the previous month", () => {
