@@ -22,6 +22,8 @@ const normalizeDateInput = (value: string) => {
   return value.replace(/[/.]/g, "-");
 };
 
+const dateInputFor = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
 function TransactionRow({ item, onRemove }: { item: Transaction; onRemove: () => void }) {
   const isIncome = item.type === "income";
   return (
@@ -99,6 +101,21 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
     setMaximumAmount("");
     setSortField("date");
     setSortDirection("descending");
+  };
+  const applyDateShortcut = (shortcut: "current-month" | "previous-month" | "recent-90-days") => {
+    const today = new Date();
+    if (shortcut === "current-month") {
+      setDateFrom(dateInputFor(new Date(today.getFullYear(), today.getMonth(), 1)));
+      setDateTo(dateInputFor(new Date(today.getFullYear(), today.getMonth() + 1, 0)));
+      return;
+    }
+    if (shortcut === "previous-month") {
+      setDateFrom(dateInputFor(new Date(today.getFullYear(), today.getMonth() - 1, 1)));
+      setDateTo(dateInputFor(new Date(today.getFullYear(), today.getMonth(), 0)));
+      return;
+    }
+    setDateFrom(dateInputFor(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 89)));
+    setDateTo(dateInputFor(today));
   };
   const openFilterDrawer = () => {
     drawerProgress.setValue(1);
@@ -336,6 +353,11 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
               <Pressable accessibilityRole="button" onPress={closeFilterDrawer} style={({ pressed }) => [styles.drawerCloseButton, pressed && styles.drawerCloseButtonPressed]}><Text style={styles.drawerCloseText}>完成</Text></Pressable>
             </View>
             <Text style={styles.filterLabel}>日期</Text>
+            <View style={styles.dateShortcutRow}>
+              <Pressable onPress={() => applyDateShortcut("current-month")} style={({ pressed }) => [styles.dateShortcutButton, pressed && styles.dateShortcutPressed]}><Text style={styles.dateShortcutText}>本月</Text></Pressable>
+              <Pressable onPress={() => applyDateShortcut("previous-month")} style={({ pressed }) => [styles.dateShortcutButton, pressed && styles.dateShortcutPressed]}><Text style={styles.dateShortcutText}>上月</Text></Pressable>
+              <Pressable onPress={() => applyDateShortcut("recent-90-days")} style={({ pressed }) => [styles.dateShortcutButton, pressed && styles.dateShortcutPressed]}><Text style={styles.dateShortcutText}>近 90 日</Text></Pressable>
+            </View>
             <View style={styles.inputRow}>
               <TextInput value={dateFrom} onChangeText={(value) => setDateFrom(normalizeDateInput(value))} placeholder="開始" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
               <Text style={styles.rangeDivider}>–</Text>
@@ -504,6 +526,10 @@ const styles = StyleSheet.create({
   clearButtonText: { color: "#0E6B56", fontSize: 12, fontWeight: "900" },
   clearButtonTextDisabled: { color: "#A6ACA7" },
   filterLabel: { color: "#526058", fontSize: 12, fontWeight: "800", marginTop: 11, marginBottom: 5 },
+  dateShortcutRow: { flexDirection: "row", gap: 7, marginBottom: 8 },
+  dateShortcutButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderColor: "#C6DDD2", borderRadius: 8, borderWidth: 1, flex: 1, paddingVertical: 7 },
+  dateShortcutPressed: { opacity: 0.72 },
+  dateShortcutText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
   inputRow: { alignItems: "center", flexDirection: "row", width: "100%" },
   filterInput: { backgroundColor: "#F8F6F1", borderColor: "#E8E3DA", borderRadius: 10, borderWidth: 1, color: "#1F2421", flexBasis: 0, flexGrow: 1, flexShrink: 1, fontSize: 12, minHeight: 40, minWidth: 0, paddingHorizontal: 8 },
   rangeDivider: { color: "#7A837D", flexShrink: 0, fontSize: 12, fontWeight: "700", marginHorizontal: 6 },
