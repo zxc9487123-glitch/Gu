@@ -78,7 +78,7 @@ export default function AddTransactionScreen() {
                 value={amount}
                 onChangeText={(value) => { setAmount(value); setError(""); }}
                 placeholder="0"
-                placeholderTextColor="#B0B7B2"
+                placeholderTextColor="#B39EAF"
                 keyboardType="decimal-pad"
                 returnKeyType="done"
                 style={styles.amountInput}
@@ -93,7 +93,7 @@ export default function AddTransactionScreen() {
                 <Pressable
                   key={item.name}
                   onPress={() => setCategory(item.name)}
-                  style={[styles.categoryChip, category === item.name && { borderColor: item.color, backgroundColor: `${item.color}18` }]}
+                  style={[styles.categoryChip, category === item.name && styles.categoryChipActive]}
                 >
                   <View style={[styles.categoryDot, { backgroundColor: item.color }]} />
                   <Text style={[styles.categoryText, category === item.name && styles.categoryTextActive]}>{item.name}</Text>
@@ -109,7 +109,7 @@ export default function AddTransactionScreen() {
 
           <View style={styles.section}>
             <Text style={styles.fieldLabel}>備註</Text>
-            <TextInput value={note} onChangeText={setNote} placeholder="例如：午餐、房租或薪資" placeholderTextColor="#A4ADA6" multiline style={[styles.input, styles.noteInput]} textAlignVertical="top" />
+            <TextInput value={note} onChangeText={setNote} placeholder="例如：午餐、房租或薪資" placeholderTextColor="#A78FA5" multiline style={[styles.input, styles.noteInput]} textAlignVertical="top" />
           </View>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -128,33 +128,34 @@ const styles = StyleSheet.create({
   header: { marginTop: 4 },
   headerRow: { alignItems: "flex-start", flexDirection: "row", gap: 12, justifyContent: "space-between", marginTop: 4 },
   headerCopy: { flex: 1, minWidth: 0 },
-  title: { color: "#1F2421", fontSize: 29, fontWeight: "900" },
-  subtitle: { color: "#7A837D", marginTop: 5, fontSize: 13 },
-  cancelButton: { alignItems: "center", backgroundColor: "#F3F1EC", borderRadius: 10, justifyContent: "center", minHeight: 36, paddingHorizontal: 10 },
+  title: { color: "#3F3448", fontSize: 29, fontWeight: "900" },
+  subtitle: { color: "#826F80", marginTop: 5, fontSize: 13 },
+  cancelButton: { alignItems: "center", backgroundColor: "#F4ECFA", borderRadius: 10, justifyContent: "center", minHeight: 36, paddingHorizontal: 10 },
   cancelPressed: { opacity: 0.72 },
-  cancelText: { color: "#5E6962", fontSize: 12, fontWeight: "900" },
-  typeSwitch: { flexDirection: "row", borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: "#E6E2DA", backgroundColor: "#FFFFFF" },
+  cancelText: { color: "#7653A8", fontSize: 12, fontWeight: "900" },
+  typeSwitch: { flexDirection: "row", borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: "#E4D7EA", backgroundColor: "#FFFCFF" },
   typeOption: { flex: 1, paddingVertical: 13, alignItems: "center" },
-  typeOptionExpense: { backgroundColor: "#F9E9E5" },
-  typeOptionIncome: { backgroundColor: "#E8F2ED" },
-  typeText: { color: "#7A837D", fontWeight: "800" },
-  typeTextSelected: { color: "#C85F3A" },
-  typeTextIncome: { color: "#0E6B56" },
-  amountBox: { backgroundColor: "#FFFFFF", padding: 18, borderRadius: 18, borderWidth: 1, borderColor: "#EDE8DF" },
-  fieldLabel: { color: "#56625B", fontSize: 13, fontWeight: "800", marginBottom: 9 },
+  typeOptionExpense: { backgroundColor: "#FBEAF1" },
+  typeOptionIncome: { backgroundColor: "#F0E8FA" },
+  typeText: { color: "#826F80", fontWeight: "800" },
+  typeTextSelected: { color: "#C96B8B" },
+  typeTextIncome: { color: "#7653A8" },
+  amountBox: { backgroundColor: "#FFFCFF", padding: 18, borderRadius: 18, borderWidth: 1, borderColor: "#EADDE6" },
+  fieldLabel: { color: "#5B4D62", fontSize: 13, fontWeight: "800", marginBottom: 9 },
   amountLine: { flexDirection: "row", alignItems: "baseline", gap: 8 },
-  currency: { color: "#0E6B56", fontSize: 20, fontWeight: "900" },
-  amountInput: { color: "#1F2421", fontSize: 34, fontWeight: "900", flex: 1, paddingVertical: 0 },
+  currency: { color: "#7653A8", fontSize: 20, fontWeight: "900" },
+  amountInput: { color: "#3F3448", fontSize: 34, fontWeight: "900", flex: 1, paddingVertical: 0 },
   section: { gap: 2 },
   categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  categoryChip: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#E6E2DA", backgroundColor: "#FFFFFF", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 9 },
+  categoryChip: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#E4D7EA", backgroundColor: "#FFFCFF", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 9 },
+  categoryChipActive: { backgroundColor: "#F0E8FA", borderColor: "#7653A8" },
   categoryDot: { width: 8, height: 8, borderRadius: 5 },
-  categoryText: { color: "#5F6A63", fontSize: 12, fontWeight: "700" },
-  categoryTextActive: { color: "#1F2421" },
-  input: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E6E2DA", borderRadius: 14, color: "#1F2421", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
+  categoryText: { color: "#806F84", fontSize: 12, fontWeight: "700" },
+  categoryTextActive: { color: "#7653A8" },
+  input: { backgroundColor: "#FFF9FC", borderWidth: 1, borderColor: "#E4D7EA", borderRadius: 14, color: "#3F3448", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
   noteInput: { minHeight: 92 },
-  errorText: { color: "#B5472C", fontSize: 13, fontWeight: "700", marginTop: -8 },
-  saveButton: { alignItems: "center", borderRadius: 15, backgroundColor: "#0E6B56", paddingVertical: 15, marginTop: 2 },
+  errorText: { color: "#C04E70", fontSize: 13, fontWeight: "700", marginTop: -8 },
+  saveButton: { alignItems: "center", borderRadius: 15, backgroundColor: "#7653A8", paddingVertical: 15, marginTop: 2 },
   savePressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },
   saveDisabled: { opacity: 0.55 },
   saveText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
