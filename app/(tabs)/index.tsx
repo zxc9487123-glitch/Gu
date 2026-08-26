@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 
@@ -114,7 +114,7 @@ export default function HomeScreen() {
   const years = availableYears(transactions);
   const [period, setPeriod] = useState<TransactionPeriod>("all");
   const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
-  const [isBreakdownExpanded, setBreakdownExpanded] = useState(false);
+  const [isBreakdownDrawerVisible, setIsBreakdownDrawerVisible] = useState(false);
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
@@ -237,29 +237,38 @@ export default function HomeScreen() {
           <DonutChart data={categories} onCategoryPress={(category) => router.push({ pathname: "/accounting", params: { mode: "details", category } })} />
         </Panel>
 
-        {period !== "all" ? <View style={styles.breakdownPanel}>
-          <Pressable accessibilityRole="button" accessibilityLabel="展開或收合收支細項" onPress={() => setBreakdownExpanded((value) => !value)} style={({ pressed }) => [styles.breakdownToggle, pressed && styles.breakdownTogglePressed]}>
+        {period !== "all" ? <>
+          <Pressable accessibilityRole="button" accessibilityLabel="開啟單筆收支明細" onPress={() => setIsBreakdownDrawerVisible(true)} style={({ pressed }) => [styles.breakdownPanel, styles.breakdownToggle, pressed && styles.breakdownTogglePressed]}>
             <View style={styles.breakdownToggleCopy}>
               <Text style={styles.breakdownTitle}>{breakdownLabel}</Text>
               <Text style={styles.breakdownSubtitle}>收入 {incomeTransactions.length} 筆 ・ 支出 {expenseTransactions.length} 筆</Text>
             </View>
-            <View style={styles.breakdownChevron}><Text style={styles.breakdownChevronText}>{isBreakdownExpanded ? "⌃" : "⌄"}</Text></View>
+            <View style={styles.breakdownChevron}><Text style={styles.breakdownChevronText}>⌃</Text></View>
           </Pressable>
-          {isBreakdownExpanded ? (
-            <View style={styles.breakdownContent}>
+          <Modal transparent visible={isBreakdownDrawerVisible} animationType="slide" onRequestClose={() => setIsBreakdownDrawerVisible(false)}>
+            <View style={styles.breakdownModal}>
+              <Pressable accessibilityRole="button" accessibilityLabel="關閉單筆收支明細" onPress={() => setIsBreakdownDrawerVisible(false)} style={styles.breakdownBackdrop} />
+              <View style={styles.breakdownSheet}>
+                <View style={styles.breakdownSheetHandle} />
+                <View style={styles.breakdownSheetHeader}>
+                  <View style={styles.breakdownSheetCopy}><Text style={styles.breakdownSheetTitle}>{breakdownLabel}</Text><Text style={styles.breakdownSheetSubtitle}>收入 {incomeTransactions.length} 筆 ・ 支出 {expenseTransactions.length} 筆</Text></View>
+                  <Pressable accessibilityRole="button" onPress={() => setIsBreakdownDrawerVisible(false)} style={({ pressed }) => [styles.breakdownCloseButton, pressed && styles.breakdownTogglePressed]}><Text style={styles.breakdownCloseText}>完成</Text></Pressable>
+                </View>
+                <ScrollView contentContainerStyle={styles.breakdownContent} showsVerticalScrollIndicator={false}>
               <View style={styles.breakdownColumn}>
                 <View style={styles.breakdownColumnHeading}><Text style={styles.incomeBreakdownTitle}>收入</Text><Text style={styles.breakdownTotal}>{money(summary.income)}</Text></View>
-                {incomeTransactions.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無收入</Text> : incomeTransactions.slice(0, 3).map((item) => <Pressable key={`income-${item.id}`} onPress={() => router.push({ pathname: "/accounting", params: { mode: "details", category: item.category } })} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.note || item.category}</Text><Text numberOfLines={1} style={styles.breakdownCount}>{dateLabel(item.date)} ・ {item.category}</Text></View><Text style={styles.incomeBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
+                {incomeTransactions.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無收入</Text> : incomeTransactions.map((item) => <Pressable key={`income-${item.id}`} onPress={() => { setIsBreakdownDrawerVisible(false); router.push({ pathname: "/accounting", params: { mode: "details", category: item.category } }); }} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.note || item.category}</Text><Text numberOfLines={1} style={styles.breakdownCount}>{dateLabel(item.date)} ・ {item.category}</Text></View><Text style={styles.incomeBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
               </View>
               <View style={styles.breakdownDivider} />
               <View style={styles.breakdownColumn}>
                 <View style={styles.breakdownColumnHeading}><Text style={styles.expenseBreakdownTitle}>支出</Text><Text style={styles.breakdownTotal}>{money(summary.expense)}</Text></View>
-                {expenseTransactions.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無支出</Text> : expenseTransactions.slice(0, 3).map((item) => <Pressable key={`expense-${item.id}`} onPress={() => router.push({ pathname: "/accounting", params: { mode: "details", category: item.category } })} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.note || item.category}</Text><Text numberOfLines={1} style={styles.breakdownCount}>{dateLabel(item.date)} ・ {item.category}</Text></View><Text style={styles.expenseBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
+                {expenseTransactions.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無支出</Text> : expenseTransactions.map((item) => <Pressable key={`expense-${item.id}`} onPress={() => { setIsBreakdownDrawerVisible(false); router.push({ pathname: "/accounting", params: { mode: "details", category: item.category } }); }} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.note || item.category}</Text><Text numberOfLines={1} style={styles.breakdownCount}>{dateLabel(item.date)} ・ {item.category}</Text></View><Text style={styles.expenseBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
               </View>
-              {(incomeTransactions.length > 3 || expenseTransactions.length > 3) ? <Pressable onPress={() => router.push({ pathname: "/accounting", params: { mode: "details" } })} style={({ pressed }) => [styles.breakdownAllButton, pressed && styles.breakdownRowPressed]}><Text style={styles.breakdownAllText}>查看全部交易明細</Text><Text style={styles.breakdownAllChevron}>›</Text></Pressable> : null}
+                </ScrollView>
+              </View>
             </View>
-          ) : null}
-        </View> : null}
+          </Modal>
+        </> : null}
 
       </View>
     </ScreenContainer>
@@ -407,4 +416,14 @@ const styles = StyleSheet.create({
   breakdownAllButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 8, flexDirection: "row", justifyContent: "space-between", marginTop: 10, paddingHorizontal: 9, paddingVertical: 7 },
   breakdownAllText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
   breakdownAllChevron: { color: "#0E6B56", fontSize: 18, fontWeight: "900", lineHeight: 18 },
+  breakdownModal: { flex: 1, justifyContent: "flex-end" },
+  breakdownBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(22, 30, 26, 0.42)" },
+  breakdownSheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "82%", paddingBottom: 18, paddingHorizontal: 16, paddingTop: 9 },
+  breakdownSheetHandle: { alignSelf: "center", backgroundColor: "#D8DDD8", borderRadius: 2, height: 4, marginBottom: 13, width: 38 },
+  breakdownSheetHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
+  breakdownSheetCopy: { flex: 1, minWidth: 0, paddingRight: 10 },
+  breakdownSheetTitle: { color: "#1F2421", fontSize: 18, fontWeight: "900" },
+  breakdownSheetSubtitle: { color: "#718078", fontSize: 11, marginTop: 3 },
+  breakdownCloseButton: { alignItems: "center", backgroundColor: "#E7F2ED", borderRadius: 9, justifyContent: "center", minHeight: 32, paddingHorizontal: 10 },
+  breakdownCloseText: { color: "#0E6B56", fontSize: 12, fontWeight: "900" },
 });
