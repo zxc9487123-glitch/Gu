@@ -8,7 +8,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useFinance } from "@/hooks/use-finance";
 import { useMonthPickerPreference } from "@/hooks/use-month-picker-preference";
 import { useSavingsGoal } from "@/hooks/use-savings-goal";
-import { availableYears, categoryBreakdownFor, categoryTotalsFor, money, summaryFor, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
+import { availableYears, categoryTotalsFor, dateLabel, money, summaryFor, transactionsForPeriod, type TransactionPeriod } from "@/lib/finance";
 import { livingAmountFor, livingExpenseAlertFor, livingExpenseComparisonFor, livingExpenseUsageFor } from "@/lib/living-amount";
 import { savingsGoalProgressFor } from "@/lib/savings-goal";
 
@@ -118,8 +118,8 @@ export default function HomeScreen() {
   const filtered = useMemo(() => transactionsForPeriod(transactions, period), [transactions, period]);
   const summary = useMemo(() => summaryFor(filtered), [filtered]);
   const categories = useMemo(() => categoryTotalsFor(filtered), [filtered]);
-  const incomeBreakdown = useMemo(() => categoryBreakdownFor(filtered, "income"), [filtered]);
-  const expenseBreakdown = useMemo(() => categoryBreakdownFor(filtered, "expense"), [filtered]);
+  const incomeTransactions = useMemo(() => filtered.filter((item) => item.type === "income").sort((left, right) => right.date.localeCompare(left.date) || right.id.localeCompare(left.id)), [filtered]);
+  const expenseTransactions = useMemo(() => filtered.filter((item) => item.type === "expense").sort((left, right) => right.date.localeCompare(left.date) || right.id.localeCompare(left.id)), [filtered]);
   const firstYear = years[0] ?? new Date().getFullYear();
   const selectedYear = period === "all" ? firstYear : typeof period === "number" ? period : period.year;
   const periodLabel = period === "all" ? "全年度" : typeof period === "number" ? `${period} 年度` : `${period.year} 年 ${period.month} 月`;
@@ -130,7 +130,7 @@ export default function HomeScreen() {
   const isMonthlyPeriod = typeof period === "object";
   const isYearlyPeriod = typeof period === "number";
   const summaryScope = isMonthlyPeriod ? `${period.month}月` : isYearlyPeriod ? `${period}年` : "總";
-  const breakdownLabel = isMonthlyPeriod ? `${period.month}月收支細項` : isYearlyPeriod ? `${period}年收支細項` : "全年度收支細項";
+  const breakdownLabel = isMonthlyPeriod ? `${period.month}月單筆收支明細` : isYearlyPeriod ? `${period}年單筆收支明細` : "全年度單筆收支明細";
   const selectPeriod = (nextPeriod: TransactionPeriod) => {
     setPeriod(nextPeriod);
     setIsYearMenuOpen(false);
@@ -241,7 +241,7 @@ export default function HomeScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="展開或收合收支細項" onPress={() => setBreakdownExpanded((value) => !value)} style={({ pressed }) => [styles.breakdownToggle, pressed && styles.breakdownTogglePressed]}>
             <View style={styles.breakdownToggleCopy}>
               <Text style={styles.breakdownTitle}>{breakdownLabel}</Text>
-              <Text style={styles.breakdownSubtitle}>收入 {incomeBreakdown.length} 類 ・ 支出 {expenseBreakdown.length} 類</Text>
+              <Text style={styles.breakdownSubtitle}>收入 {incomeTransactions.length} 筆 ・ 支出 {expenseTransactions.length} 筆</Text>
             </View>
             <View style={styles.breakdownChevron}><Text style={styles.breakdownChevronText}>{isBreakdownExpanded ? "⌃" : "⌄"}</Text></View>
           </Pressable>
@@ -249,13 +249,14 @@ export default function HomeScreen() {
             <View style={styles.breakdownContent}>
               <View style={styles.breakdownColumn}>
                 <View style={styles.breakdownColumnHeading}><Text style={styles.incomeBreakdownTitle}>收入</Text><Text style={styles.breakdownTotal}>{money(summary.income)}</Text></View>
-                {incomeBreakdown.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無收入</Text> : incomeBreakdown.slice(0, 3).map((item) => <Pressable key={`income-${item.name}`} onPress={() => router.push({ pathname: "/accounting", params: { mode: "details", category: item.name } })} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.name}</Text><Text style={styles.breakdownCount}>{item.transactionCount} 筆</Text></View><Text style={styles.incomeBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
+                {incomeTransactions.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無收入</Text> : incomeTransactions.slice(0, 3).map((item) => <Pressable key={`income-${item.id}`} onPress={() => router.push({ pathname: "/accounting", params: { mode: "details", category: item.category } })} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.note || item.category}</Text><Text numberOfLines={1} style={styles.breakdownCount}>{dateLabel(item.date)} ・ {item.category}</Text></View><Text style={styles.incomeBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
               </View>
               <View style={styles.breakdownDivider} />
               <View style={styles.breakdownColumn}>
                 <View style={styles.breakdownColumnHeading}><Text style={styles.expenseBreakdownTitle}>支出</Text><Text style={styles.breakdownTotal}>{money(summary.expense)}</Text></View>
-                {expenseBreakdown.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無支出</Text> : expenseBreakdown.slice(0, 3).map((item) => <Pressable key={`expense-${item.name}`} onPress={() => router.push({ pathname: "/accounting", params: { mode: "details", category: item.name } })} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.name}</Text><Text style={styles.breakdownCount}>{item.transactionCount} 筆</Text></View><Text style={styles.expenseBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
+                {expenseTransactions.length === 0 ? <Text style={styles.breakdownEmpty}>本期尚無支出</Text> : expenseTransactions.slice(0, 3).map((item) => <Pressable key={`expense-${item.id}`} onPress={() => router.push({ pathname: "/accounting", params: { mode: "details", category: item.category } })} style={({ pressed }) => [styles.breakdownRow, pressed && styles.breakdownRowPressed]}><View style={styles.breakdownNameWrap}><Text numberOfLines={1} style={styles.breakdownName}>{item.note || item.category}</Text><Text numberOfLines={1} style={styles.breakdownCount}>{dateLabel(item.date)} ・ {item.category}</Text></View><Text style={styles.expenseBreakdownAmount}>{money(item.amount)}</Text></Pressable>)}
               </View>
+              {(incomeTransactions.length > 3 || expenseTransactions.length > 3) ? <Pressable onPress={() => router.push({ pathname: "/accounting", params: { mode: "details" } })} style={({ pressed }) => [styles.breakdownAllButton, pressed && styles.breakdownRowPressed]}><Text style={styles.breakdownAllText}>查看全部交易明細</Text><Text style={styles.breakdownAllChevron}>›</Text></Pressable> : null}
             </View>
           ) : null}
         </View>
@@ -403,4 +404,7 @@ const styles = StyleSheet.create({
   expenseBreakdownAmount: { color: "#C85F3A", fontSize: 11, fontWeight: "900" },
   breakdownEmpty: { color: "#8A948D", fontSize: 10, paddingVertical: 8, textAlign: "center" },
   breakdownDivider: { backgroundColor: "#ECE7DE", height: 1, marginVertical: 10 },
+  breakdownAllButton: { alignItems: "center", backgroundColor: "#E8F1EC", borderRadius: 8, flexDirection: "row", justifyContent: "space-between", marginTop: 10, paddingHorizontal: 9, paddingVertical: 7 },
+  breakdownAllText: { color: "#0E6B56", fontSize: 11, fontWeight: "900" },
+  breakdownAllChevron: { color: "#0E6B56", fontSize: 18, fontWeight: "900", lineHeight: 18 },
 });
