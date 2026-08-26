@@ -35,7 +35,7 @@ export default function AccountingScreen() {
   return (
     <ScreenContainer containerClassName="bg-background">
       <View style={styles.workspaceHeader}>
-        <Text style={styles.workspaceTitle}>帳務</Text>
+        <Text style={styles.workspaceTitle}>花費分析</Text>
         <View style={styles.modeControl}>
           <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeMode === "analysis" }} onPress={() => changeMode("analysis")} style={({ pressed }) => [styles.modeButton, activeMode === "analysis" && styles.modeButtonActive, pressed && styles.modeButtonPressed]}>
             <Text style={[styles.modeText, activeMode === "analysis" && styles.modeTextActive]}>分析</Text>

@@ -31,7 +31,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="accounting"
         options={{
-          title: "帳務",
+          title: "花費分析",
           tabBarIcon: ({ color }) => <IconSymbol size={27} name="chart.bar.xaxis" color={color} />,
         }}
       />
