@@ -237,7 +237,7 @@ export default function HomeScreen() {
           <DonutChart data={categories} onCategoryPress={(category) => router.push({ pathname: "/accounting", params: { mode: "details", category } })} />
         </Panel>
 
-        <View style={styles.breakdownPanel}>
+        {period !== "all" ? <View style={styles.breakdownPanel}>
           <Pressable accessibilityRole="button" accessibilityLabel="展開或收合收支細項" onPress={() => setBreakdownExpanded((value) => !value)} style={({ pressed }) => [styles.breakdownToggle, pressed && styles.breakdownTogglePressed]}>
             <View style={styles.breakdownToggleCopy}>
               <Text style={styles.breakdownTitle}>{breakdownLabel}</Text>
@@ -259,7 +259,7 @@ export default function HomeScreen() {
               {(incomeTransactions.length > 3 || expenseTransactions.length > 3) ? <Pressable onPress={() => router.push({ pathname: "/accounting", params: { mode: "details" } })} style={({ pressed }) => [styles.breakdownAllButton, pressed && styles.breakdownRowPressed]}><Text style={styles.breakdownAllText}>查看全部交易明細</Text><Text style={styles.breakdownAllChevron}>›</Text></Pressable> : null}
             </View>
           ) : null}
-        </View>
+        </View> : null}
 
       </View>
     </ScreenContainer>
