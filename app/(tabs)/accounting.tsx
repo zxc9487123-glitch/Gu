@@ -38,10 +38,10 @@ export default function AccountingScreen() {
         <Text style={styles.workspaceTitle}>花費分析</Text>
         <View style={styles.modeControl}>
           <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeMode === "analysis" }} onPress={() => changeMode("analysis")} style={({ pressed }) => [styles.modeButton, activeMode === "analysis" && styles.modeButtonActive, pressed && styles.modeButtonPressed]}>
-            <Text style={[styles.modeText, activeMode === "analysis" && styles.modeTextActive]}>分析</Text>
+            <Text style={[styles.modeText, activeMode === "analysis" && styles.modeTextActive]}>總覽</Text>
           </Pressable>
           <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeMode === "details" }} onPress={() => changeMode("details")} style={({ pressed }) => [styles.modeButton, activeMode === "details" && styles.modeButtonActive, pressed && styles.modeButtonPressed]}>
-            <Text style={[styles.modeText, activeMode === "details" && styles.modeTextActive]}>明細</Text>
+            <Text style={[styles.modeText, activeMode === "details" && styles.modeTextActive]}>交易</Text>
           </Pressable>
         </View>
       </View>
