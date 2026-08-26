@@ -16,6 +16,12 @@ const parseAmount = (value: string) => {
 
 const isDateInput = (value: string) => value === "" || /^\d{4}-\d{2}-\d{2}$/.test(value);
 
+const normalizeDateInput = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  return value.replace(/[/.]/g, "-");
+};
+
 function TransactionRow({ item, onRemove }: { item: Transaction; onRemove: () => void }) {
   const isIncome = item.type === "income";
   return (
@@ -326,14 +332,14 @@ export function TransactionsContent({ initialCategory, onClearCategory }: { init
           <Animated.View style={[styles.drawerSheet, { transform: [{ translateY: drawerTranslateY }] }]}>
             <View style={styles.drawerHandle} />
             <View style={styles.drawerHeader}>
-              <View><Text style={styles.drawerTitle}>篩選與排序</Text><Text style={styles.drawerHint}>日期格式 YYYY-MM-DD；金額使用正數</Text></View>
+              <View><Text style={styles.drawerTitle}>篩選與排序</Text><Text style={styles.drawerHint}>日期可輸入 YYYY-MM-DD 或 YYYYMMDD；金額使用正數</Text></View>
               <Pressable accessibilityRole="button" onPress={closeFilterDrawer} style={({ pressed }) => [styles.drawerCloseButton, pressed && styles.drawerCloseButtonPressed]}><Text style={styles.drawerCloseText}>完成</Text></Pressable>
             </View>
             <Text style={styles.filterLabel}>日期</Text>
             <View style={styles.inputRow}>
-              <TextInput value={dateFrom} onChangeText={setDateFrom} placeholder="開始" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
+              <TextInput value={dateFrom} onChangeText={(value) => setDateFrom(normalizeDateInput(value))} placeholder="開始" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
               <Text style={styles.rangeDivider}>–</Text>
-              <TextInput value={dateTo} onChangeText={setDateTo} placeholder="結束" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
+              <TextInput value={dateTo} onChangeText={(value) => setDateTo(normalizeDateInput(value))} placeholder="結束" placeholderTextColor="#9CA59F" autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.filterInput} />
             </View>
             <Text style={styles.filterLabel}>金額</Text>
             <View style={styles.inputRow}>
