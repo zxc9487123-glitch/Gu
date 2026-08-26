@@ -53,13 +53,13 @@ export default function AccountingScreen() {
 }
 
 const styles = StyleSheet.create({
-  workspaceHeader: { alignItems: "center", backgroundColor: "#F8F6F1", borderBottomColor: "#E8E3DA", borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10 },
-  workspaceTitle: { color: "#1F2421", fontSize: 21, fontWeight: "900" },
-  modeControl: { backgroundColor: "#ECE9E1", borderRadius: 11, flexDirection: "row", padding: 3 },
+  workspaceHeader: { alignItems: "center", backgroundColor: "#FFF4F8", borderBottomColor: "#EADDE6", borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10 },
+  workspaceTitle: { color: "#3F3448", fontSize: 21, fontWeight: "900" },
+  modeControl: { backgroundColor: "#F0E8FA", borderRadius: 11, flexDirection: "row", padding: 3 },
   modeButton: { alignItems: "center", borderRadius: 8, justifyContent: "center", minHeight: 30, minWidth: 58, paddingHorizontal: 10 },
-  modeButtonActive: { backgroundColor: "#FFFFFF" },
+  modeButtonActive: { backgroundColor: "#FFFCFF" },
   modeButtonPressed: { opacity: 0.72 },
-  modeText: { color: "#788179", fontSize: 12, fontWeight: "800" },
-  modeTextActive: { color: "#0E6B56" },
+  modeText: { color: "#806F84", fontSize: 12, fontWeight: "800" },
+  modeTextActive: { color: "#7653A8" },
   modeContent: { flex: 1, overflow: "hidden" },
 });

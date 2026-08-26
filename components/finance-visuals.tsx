@@ -163,10 +163,10 @@ export function IncomeExpenseTrend({ points }: { points: MonthPoint[] }) {
         <View style={styles.incomeExpenseLegendItem}><View style={[styles.incomeExpenseLegendDot, styles.expenseLegendDot]} /><Text style={styles.incomeExpenseLegendText}>消費</Text></View>
       </View>
       <Svg width="100%" height="64" viewBox={`0 0 ${PLOT_WIDTH} 64`}>
-        {[16, 32, 48].map((y) => <Line key={y} x1="8" x2={PLOT_WIDTH - 8} y1={y} y2={y} stroke="#E5E2DC" strokeDasharray="3 5" />)}
-        <Polyline points={toPlotPoints(incomeCoordinates)} fill="none" stroke="#0E6B56" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <Polyline points={toPlotPoints(expenseCoordinates)} fill="none" stroke="#C85F3A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        {points.length === 1 ? <><Circle cx={incomeCoordinates[0]?.x ?? 0} cy={incomeCoordinates[0]?.y ?? 0} r="4" fill="#0E6B56" /><Circle cx={expenseCoordinates[0]?.x ?? 0} cy={expenseCoordinates[0]?.y ?? 0} r="4" fill="#C85F3A" /></> : null}
+        {[16, 32, 48].map((y) => <Line key={y} x1="8" x2={PLOT_WIDTH - 8} y1={y} y2={y} stroke="#E9E1F0" strokeDasharray="3 5" />)}
+        <Polyline points={toPlotPoints(incomeCoordinates)} fill="none" stroke="#7653A8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <Polyline points={toPlotPoints(expenseCoordinates)} fill="none" stroke="#C96B8B" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {points.length === 1 ? <><Circle cx={incomeCoordinates[0]?.x ?? 0} cy={incomeCoordinates[0]?.y ?? 0} r="4" fill="#7653A8" /><Circle cx={expenseCoordinates[0]?.x ?? 0} cy={expenseCoordinates[0]?.y ?? 0} r="4" fill="#C96B8B" /></> : null}
       </Svg>
       <View style={styles.monthLabels}>
         {labelIndexes.map((index) => <Text key={index} style={styles.axisText}>{points[index]?.label}</Text>)}
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   treemapCompactLabel: { fontSize: 8, lineHeight: 11 },
   treemapBlockRatio: { color: "#FFFFFF", fontSize: 13, fontWeight: "900", marginTop: 1 },
   monthLabels: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 6, marginTop: 1 },
-  axisText: { color: "#7A837D", fontSize: 10 },
+  axisText: { color: "#826F80", fontSize: 10 },
   annualSummary: { marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#ECE7DE", gap: 9 },
   annualSummaryHeader: { minHeight: 36, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   annualSummaryTitle: { color: "#34473D", fontSize: 12, fontWeight: "900" },
@@ -266,9 +266,9 @@ const styles = StyleSheet.create({
   incomeExpenseLegend: { flexDirection: "row", gap: 12, marginBottom: 0 },
   incomeExpenseLegendItem: { alignItems: "center", flexDirection: "row", gap: 5 },
   incomeExpenseLegendDot: { borderRadius: 4, height: 8, width: 8 },
-  incomeLegendDot: { backgroundColor: "#0E6B56" },
-  expenseLegendDot: { backgroundColor: "#C85F3A" },
-  incomeExpenseLegendText: { color: "#66726A", fontSize: 10, fontWeight: "800" },
+  incomeLegendDot: { backgroundColor: "#7653A8" },
+  expenseLegendDot: { backgroundColor: "#C96B8B" },
+  incomeExpenseLegendText: { color: "#6F5E73", fontSize: 10, fontWeight: "800" },
   donutLayout: { flexDirection: "row", alignItems: "center", gap: 12 },
   donutWrap: { width: 132, height: 132, alignItems: "center", justifyContent: "center" },
   donutCenter: { position: "absolute", alignItems: "center" },
