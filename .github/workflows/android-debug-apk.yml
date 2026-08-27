@@ -48,28 +48,16 @@ jobs:
           chmod +x gradlew
           ./gradlew app:assembleRelease --no-daemon
 
-      - name: Sign installable test APK
-        working-directory: android
-        run: |
-          KEYSTORE_PATH="$RUNNER_TEMP/bookkeeping-test.jks"
-          ALIGNED_APK="$RUNNER_TEMP/bookkeeping-aligned.apk"
-          OUTPUT_APK="app/build/outputs/apk/release/bookkeeping-test.apk"
-          BUILD_TOOLS_DIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          KEYSTORE_PASSWORD="bookkeeping-test-2026"
-          keytool -genkeypair -noprompt -keystore "$KEYSTORE_PATH" -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" -alias bookkeeping-test -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Bookkeeping Test, O=Bookkeeping, C=TW"
-          "$BUILD_TOOLS_DIR/zipalign" -f -p 4 app/build/outputs/apk/release/app-release-unsigned.apk "$ALIGNED_APK"
-          "$BUILD_TOOLS_DIR/apksigner" sign --ks "$KEYSTORE_PATH" --ks-key-alias bookkeeping-test --ks-pass "pass:$KEYSTORE_PASSWORD" --key-pass "pass:$KEYSTORE_PASSWORD" --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --out "$OUTPUT_APK" "$ALIGNED_APK"
-
-      - name: Verify APK signing
+      - name: Verify release APK signing
         working-directory: android
         run: |
           BUILD_TOOLS_DIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          "$BUILD_TOOLS_DIR/apksigner" verify --verbose --min-sdk-version 24 app/build/outputs/apk/release/bookkeeping-test.apk
+          "$BUILD_TOOLS_DIR/apksigner" verify --verbose --min-sdk-version 24 app/build/outputs/apk/release/app-release.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: bookkeeping-installable-apk-${{ github.run_number }}
-          path: android/app/build/outputs/apk/release/bookkeeping-test.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
