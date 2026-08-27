@@ -1,4 +1,4 @@
-name: Build Android Debug APK
+name: Build Android Installable APK
 
 
 
@@ -16,9 +16,9 @@ permissions:
 
 jobs:
 
-  build-debug-apk:
+  build-installable-apk:
   
-    name: Build debug APK
+    name: Build installable test APK
     
     runs-on: ubuntu-latest
     
@@ -86,7 +86,7 @@ jobs:
         
 
 
-      - name: Build debug APK
+      - name: Build release APK with embedded JavaScript bundle
       
         working-directory: android
         
@@ -94,8 +94,88 @@ jobs:
         
           chmod +x gradlew
           
-          ./gradlew app:assembleDebug --no-daemon
+          ./gradlew app:assembleRelease --no-daemon
           
+
+
+      - name: Sign installable test APK
+      
+        working-directory: android
+        
+        run: |
+        
+          KEYSTORE_PATH="$RUNNER_TEMP/bookkeeping-test.jks"
+          
+          ALIGNED_APK="$RUNNER_TEMP/bookkeeping-aligned.apk"
+          
+          OUTPUT_APK="app/build/outputs/apk/release/bookkeeping-test.apk"
+          
+          BUILD_TOOLS_DIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          
+
+
+          keytool -genkeypair -noprompt \
+          
+            -keystore "$KEYSTORE_PATH" \
+            
+            -storepass android \
+            
+            -keypass android \
+            
+            -alias bookkeeping-test \
+            
+            -keyalg RSA \
+            
+            -keysize 2048 \
+            
+            -validity 10000 \
+            
+            -dname "CN=Bookkeeping Test, O=Bookkeeping, C=TW"
+            
+
+
+          "$BUILD_TOOLS_DIR/zipalign" -f -p 4 \
+          
+            app/build/outputs/apk/release/app-release-unsigned.apk \
+            
+            "$ALIGNED_APK"
+            
+
+
+          "$BUILD_TOOLS_DIR/apksigner" sign \
+          
+            --ks "$KEYSTORE_PATH" \
+            
+            --ks-key-alias bookkeeping-test \
+            
+            --ks-pass pass:android \
+            
+            --key-pass pass:android \
+            
+            --v1-signing-enabled true \
+            
+            --v2-signing-enabled true \
+            
+            --v3-signing-enabled true \
+            
+            --out "$OUTPUT_APK" \
+            
+            "$ALIGNED_APK"
+            
+
+
+      - name: Verify APK signing
+      
+        working-directory: android
+        
+        run: |
+        
+          BUILD_TOOLS_DIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          
+          "$BUILD_TOOLS_DIR/apksigner" verify --verbose --min-sdk-version 24 \
+          
+            app/build/outputs/apk/release/bookkeeping-test.apk
+            
 
 
       - name: Upload APK artifact
@@ -104,14 +184,49 @@ jobs:
         
         with:
         
-          name: bookkeeping-debug-apk-${{ github.run_number }}
+          name: bookkeeping-installable-apk-${{ github.run_number }}
           
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/release/bookkeeping-test.apk
           
           if-no-files-found: error
           
           retention-days: 14
           
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
